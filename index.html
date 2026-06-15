@@ -147,6 +147,14 @@
   .locked .lk{font-size:22px}
   .locked b{display:block;font-size:14px;color:var(--ink)}
   .locked small{font-size:12px;color:var(--ink-soft)}
+  .gm{color:#2563eb}
+  .gf{color:#d6336c}
+  .bindrow{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border:1px solid var(--line);border-radius:9px;margin-bottom:5px;background:var(--paper-2)}
+  .bindrow.on{background:var(--green-soft);border-color:#cfe0d2}
+  .bindrow .bn{font-size:14px;font-weight:600}
+  .bindrow .bn small{color:var(--ink-soft);font-weight:400}
+  .bindrow .bs{font-size:12px;font-weight:700;color:#c98a2b}
+  .bindrow.on .bs{color:var(--fairway)}
 </style>
 </head>
 <body>
@@ -239,15 +247,12 @@ function renderSetup(){
   '</div>'+
   '<div class="section-label">初次設定</div>'+
   '<div class="panel">'+
-    '<div class="field"><label>球隊名單上要顯示的姓名</label>'+
+    '<div class="field"><label>球隊名單上的姓名(會員請填與名單相同的全名)</label>'+
     '<input id="nm" type="text" maxlength="20" value="'+esc(profile.displayName)+'"></div>'+
-    '<div class="row2">'+
-      '<div class="field"><label>身份</label><select id="role"><option value="會員">會員</option><option value="來賓">來賓</option></select></div>'+
-      '<div class="field"><label>性別</label><select id="gender"><option value="">請選擇</option><option value="男">男</option><option value="女">女</option></select></div>'+
-    '</div>'+
+    '<div class="field"><label>性別(會員可不填,系統自動帶;來賓請選)</label><select id="gender"><option value="">請選擇</option><option value="男">男</option><option value="女">女</option></select></div>'+
     '<div class="field"><label>出生年(選填,排名平手比序用)</label><input id="birth" type="text" maxlength="4" placeholder="如 1965"></div>'+
     '<button class="btn" id="saveName">確認,開始報名</button>'+
-    '<p class="formnote">會員依性別收年費(男 10,000、女 9,000);來賓不收年費、不列入排名。設定後系統就記得你。</p>'+
+    '<p class="formnote">輸入姓名後系統會自動比對會員名單:對到 → 綁定為會員並帶入你的性別/差點;查無姓名 → 以來賓加入。</p>'+
   '</div>';
   document.getElementById("saveName").onclick = onSaveName;
 }
@@ -282,7 +287,7 @@ function renderMain(){
   '</div>'+
 
   '<div class="youbar">'+ avatar() +
-    '<div class="who"><b>'+esc(state.member.name)+'</b>'+
+    '<div class="who"><b>'+gname(state.member.name)+'</b>'+
       '<small>'+identitySmall()+'</small></div>'+
     '<span class="badge '+(iAmIn?"in":"out")+'">'+(iAmIn?(iAmWaiting?"候補":"已報名"):"未報名")+'</span>'+
   '</div>'+
@@ -314,8 +319,8 @@ function registerPanel(isFull){
   return '<div class="section-label">'+(isFull?"加入候補":"我要報名")+'</div>'+
   '<div class="panel">'+
     '<div class="hcpbox"><span>你目前的差點</span><b>'+esc(h)+'</b><small>系統管理,例賽後自動更新</small></div>'+
-    '<div class="field"><label>球車</label><select id="cart"><option>需要球車</option><option>不需球車</option></select></div>'+
-    '<div class="field"><label>備註(同組、訂便當…)</label><textarea id="note" maxlength="60" placeholder="想跟 ___ 同組 / 便當 +1"></textarea></div>'+
+    '<div class="field"><label>用餐</label><select id="cart"><option>用餐</option><option>不用餐</option></select></div>'+
+    '<div class="field"><label>備註(同組、訂便當…)</label><textarea id="note" maxlength="60" placeholder="想同組請寫對方姓名(會優先排同組)/ 便當 +1"></textarea></div>'+
     '<button class="btn" id="regBtn">'+(isFull?"加入候補名單":"送出報名")+'</button>'+
     '<p class="formnote">'+(isFull?"目前額滿,送出後列入候補,有人取消會依序遞補。":"報名截止前都可以自行取消。")+'</p>'+
   '</div>';
@@ -340,7 +345,16 @@ function adminPanel(){
   var e=state.event;
   function f(k,label){return '<div class="field"><label>'+label+'</label><input class="adm" data-k="'+k+'" value="'+esc(e[k])+'"></div>';}
   var hasGroups = state.groups && state.groups.groups && state.groups.groups.length;
-  return '<div class="section-label">管理員 · 活動設定</div>'+
+  return '<div class="section-label">管理員 · 會員名單主檔</div>'+
+  '<div class="panel">'+
+    '<div class="field"><label>匯入/更新會員名單(每行:姓名 性別 差點 出生年,順序不拘)</label>'+
+      '<textarea class="big" id="impMembers" placeholder="游素碧 女 18 1960&#10;張曼華 男 12&#10;張凌華 男 20 1958"></textarea></div>'+
+    '<button class="btn sm" id="importMembers">匯入會員名單</button>'+
+    '<p class="formnote" style="text-align:left">男/女自動辨識為性別、四位數當出生年、其他數字當年初差點。匯入會整片覆蓋主檔。</p>'+
+    bindingHtml()+
+  '</div>'+
+
+  '<div class="section-label">管理員 · 活動設定</div>'+
   '<div class="panel">'+
     '<p class="formnote" style="text-align:left;margin:0 0 10px">日期/球場/開球留空 → 自動帶行事曆下一場'+(state.eventView&&state.eventView.fromSchedule?'(目前下一場:'+esc(state.eventView.date)+' '+esc(state.eventView.course)+(state.eventView.tee?' '+esc(state.eventView.tee):'')+')':'')+'</p>'+
     f("titleZh","標題")+ f("date","日期(留空帶行事曆)")+ f("course","球場(留空帶行事曆)")+ f("tee","開球(留空帶行事曆)")+
@@ -358,7 +372,7 @@ function adminPanel(){
   '<div class="panel">'+
     '<div class="row2">'+
       '<div class="field"><label>每組人數</label><select id="gsize"><option value="4">4 人</option><option value="3">3 人</option></select></div>'+
-      '<div class="field"><label>分組方式</label><select id="gmethod"><option value="order">報名順序</option><option value="hcp">差點平均</option><option value="random">隨機</option></select></div>'+
+      '<div class="field"><label>分組方式</label><select id="gmethod"><option value="order">報名順序</option><option value="hcp">差點平均</option><option value="gender">二男二女</option><option value="random">隨機</option></select></div>'+
     '</div>'+
     '<div class="row2">'+
       '<div class="field"><label>開球起始(選填)</label><input id="gstart" placeholder="07:30"></div>'+
@@ -397,7 +411,7 @@ function feePanel(){
       '<b>NT$'+Number(mf.paidSum||0).toLocaleString()+' / '+Number(mf.total||0).toLocaleString()+'</b></div>'+
     mf.list.map(function(x){
       return '<div class="feerow '+(x.paid?"paid":"")+'" data-name="'+esc(x.name)+'" data-paid="'+(x.paid?"1":"0")+'">'+
-        '<span class="fn">'+esc(x.name)+(x.gender?'<small> '+esc(x.gender)+'</small>':'')+'</span>'+
+        '<span class="fn">'+gname(x.name)+(x.gender?'<small> '+esc(x.gender)+'</small>':'')+'</span>'+
         '<span class="fa">NT$'+(x.fee?Number(x.fee).toLocaleString():'-')+'</span>'+
         '<span class="fc">'+(x.paid?'✓ 已收':'未收')+'</span>'+
       '</div>';
@@ -418,7 +432,7 @@ function hcpListHtml(){
   return '<div style="font-size:12px;color:var(--ink-soft);margin-top:8px">差點(年初 → 目前,'+list.length+'人)</div>'+
     '<div class="hcplist">'+list.map(function(h){
       var ss=(h.seasonStart!==undefined&&h.seasonStart!==""&&h.seasonStart!==h.hcp)?('<span style="color:var(--ink-soft)">'+esc(h.seasonStart)+' → </span>'):'';
-      return '<div><span>'+esc(h.name)+'</span><b>'+ss+esc(h.hcp)+'</b></div>';
+      return '<div><span>'+gname(h.name)+'</span><b>'+ss+esc(h.hcp)+'</b></div>';
     }).join('')+'</div>';
 }
 
@@ -442,7 +456,7 @@ function groupsSection(){
     return '<div class="grp '+(i===myGi?"me":"")+'">'+
       '<div class="grphead"><b>第 '+(i+1)+' 組</b>'+(time?'<span>'+esc(time)+'</span>':'')+'</div>'+
       grp.map(function(p){
-        return '<div class="grpp">'+esc(p.name)+
+        return '<div class="grpp">'+gname(p.name)+
           (p.hcp?'<small>HCP '+esc(p.hcp)+'</small>':'')+
           (p.userId===profile.userId?'<span class="tag me">你</span>':'')+'</div>';
       }).join('')+
@@ -461,6 +475,29 @@ function identitySmall(){
 }
 // 報名頁顯示用的活動資料(自動帶行事曆下一場)
 function ev(){ return state.eventView || state.event || {}; }
+// 依性別把名字上色(男=藍、女=玫紅)
+function gname(name){
+  var g=(state.genderMap||{})[name]||'';
+  var cls=g==='男'?'gm':(g==='女'?'gf':'');
+  return '<span class="'+cls+'">'+esc(name)+'</span>';
+}
+// 綁定狀態:主檔每人是否已綁定 LINE
+function bindingHtml(){
+  var b=state.binding;
+  if(!b || !b.list || !b.list.length) return '<p class="formnote" style="text-align:left">尚無主檔資料,先在上方匯入會員名單。</p>';
+  var html='<div class="feesum" style="margin-top:14px"><span>已綁定 '+b.bound+'/'+b.total+' 人</span><b>未綁定 '+(b.total-b.bound)+'</b></div>';
+  html+=b.list.map(function(x){
+    return '<div class="bindrow '+(x.bound?"on":"")+'">'+
+      '<span class="bn">'+gname(x.name)+(x.hcp?'<small> HCP '+esc(x.hcp)+'</small>':'')+'</span>'+
+      '<span class="bs">'+(x.bound?'✓ 已綁定':'未綁定')+'</span>'+
+    '</div>';
+  }).join('');
+  if(b.extra && b.extra.length){
+    html+='<div style="font-size:12px;color:var(--ink-soft);margin-top:8px">已綁定但不在主檔(來賓等):</div>';
+    html+=b.extra.map(function(x){return '<div class="bindrow on"><span class="bn">'+gname(x.name)+'<small> '+esc(x.role)+'</small></span><span class="bs">✓</span></div>';}).join('');
+  }
+  return html;
+}
 
 function rankingSection(){
   var r=state.ranking;
@@ -478,7 +515,7 @@ function rankingSection(){
     var me=(x.name===state.member.name);
     return '<div class="rankrow '+(me?"me ":"")+(x.rankType==="總桿"?"gross":"")+'">'+
       '<span class="rl">'+label+'</span>'+
-      '<span class="rn">'+esc(x.name)+(me?' <i>你</i>':'')+'</span>'+
+      '<span class="rn">'+gname(x.name)+(me?' <i>你</i>':'')+'</span>'+
       '<span>'+esc(x.gross)+'</span>'+
       '<span>'+esc(x.net)+'</span>'+
     '</div>';
@@ -498,7 +535,7 @@ function guestSection(){
   html+=guests.map(function(x){
     var me=(state.member && x.name===state.member.name);
     return '<div class="rankrow '+(me?"me":"")+'">'+
-      '<span class="rl" style="flex:1;color:var(--ink)">'+esc(x.name)+(me?' <i>你</i>':'')+'</span>'+
+      '<span class="rl" style="flex:1">'+gname(x.name)+(me?' <i>你</i>':'')+'</span>'+
       '<span class="rn" style="flex:0 0 44px;text-align:right">'+esc(x.out!==undefined?x.out:"")+'</span>'+
       '<span>'+esc(x.in!==undefined?x.in:"")+'</span>'+
       '<span>'+esc(x.gross)+'</span>'+
@@ -541,7 +578,7 @@ function playerRow(p,i,c){
   if(p.note) bits.push(esc(p.note));
   return '<div class="player '+(isMe?"me ":"")+(isWait?"wait":"")+'">'+
     '<div class="pnum">'+(isWait?"候":(i+1))+'</div>'+
-    '<div class="pinfo"><div class="pname">'+esc(p.name)+
+    '<div class="pinfo"><div class="pname">'+gname(p.name)+
       (isMe?'<span class="tag me">你</span>':'')+(isWait?'<span class="tag wait">候補</span>':'')+'</div>'+
       (bits.length?'<div class="pmeta">'+bits.join(" · ")+'</div>':'')+'</div>'+
   '</div>';
@@ -556,12 +593,11 @@ function flagSvg(){return '<svg class="flag" viewBox="0 0 24 24" fill="none"><pa
 function onSaveName(){
   var nm=(document.getElementById("nm").value||"").trim();
   if(!nm){ toast("請輸入姓名"); return; }
-  var role=val("role"), gender=val("gender"), birth=val("birth").trim();
-  if(role==="會員" && !gender){ toast("會員請選擇性別(計算會費)"); return; }
-  busy("saveName","設定中…");
-  api({action:"setName",userId:profile.userId,name:nm,role:role,gender:gender,birthYear:birth}).then(function(r){
+  var gender=val("gender"), birth=val("birth").trim();
+  busy("saveName","比對中…");
+  api({action:"setName",userId:profile.userId,name:nm,gender:gender,birthYear:birth}).then(function(r){
     if(!r.ok){ toast(r.error||"設定失敗"); return reload(); }
-    toast("設定完成!"); reload();
+    toast(r.matched?"已綁定為會員!":"查無此姓名,以來賓加入"); reload();
   }).catch(function(){ toast("連線失敗"); reload(); });
 }
 
@@ -605,6 +641,15 @@ function wireMain(isFull, iAmIn){
     if(!confirm("確定清除目前分組?")) return;
     busy("clearGroups","清除中…");
     api({action:"clearGroups",userId:profile.userId}).then(after("已清除分組"));
+  };
+  var imm=document.getElementById("importMembers");
+  if(imm) imm.onclick=function(){
+    var txt=val("impMembers").trim();
+    if(!txt){ toast("請先貼上會員名單"); return; }
+    busy("importMembers","匯入中…");
+    api({action:"importMembers",userId:profile.userId,text:txt}).then(function(r){
+      toast(r.ok?("已匯入 "+r.imported+" 位會員"):(r.error||"匯入失敗")); reload();
+    });
   };
   var ih=document.getElementById("importHcp");
   if(ih) ih.onclick=function(){
@@ -670,10 +715,10 @@ function wireMain(isFull, iAmIn){
   if(rl) rl.onclick=reload;
 }
 
-// 修改報名:差點由系統管理,這裡只改球車與備註
+// 修改報名:差點由系統管理,這裡只改用餐與備註
 function showEdit(m){
   renderMain();
-  var cart=confirm("需要球車嗎?(確定=需要,取消=不需)")?"需要球車":"不需球車";
+  var cart=confirm("要用餐嗎?(確定=用餐,取消=不用)")?"用餐":"不用餐";
   var note=prompt("備註",m.note||""); if(note===null) note=m.note||"";
   toast("更新中…");
   api({action:"register",userId:profile.userId,cart:cart,note:note}).then(after("已更新"));
