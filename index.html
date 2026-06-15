@@ -121,6 +121,32 @@
   .rankrow.gross .rl{color:var(--gold)}
   .rankrow .rn i{font-size:11px;color:var(--fairway-2);font-style:normal}
   .ranknote{font-size:12px;color:var(--ink-soft);margin-top:6px}
+  .feesum{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;font-size:13px;color:var(--ink-soft)}
+  .feesum b{color:var(--fairway);font-family:Georgia,serif;font-size:15px}
+  .feerow{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;background:var(--paper-2);cursor:pointer}
+  .feerow.paid{background:var(--green-soft);border-color:#cfe0d2}
+  .feerow .fn{flex:1;font-size:14.5px;font-weight:600}
+  .feerow .fn small{color:var(--ink-soft);font-weight:400}
+  .feerow .fa{font-size:13px;color:var(--ink-soft)}
+  .feerow .fc{flex:0 0 auto;font-size:12.5px;font-weight:700;color:#9aa79b;min-width:48px;text-align:right}
+  .feerow.paid .fc{color:var(--fairway)}
+  .sch{display:flex;align-items:center;gap:11px;padding:10px 12px;border:1px solid var(--line);border-radius:11px;margin-bottom:7px;background:var(--paper-2);box-shadow:var(--shadow)}
+  .sch.next{border-color:var(--fairway-2);box-shadow:0 0 0 2px rgba(45,106,79,.14)}
+  .sch.past{opacity:.5}
+  .schd{flex:0 0 52px;text-align:center}
+  .schd b{display:block;font-size:15px;font-family:Georgia,serif;color:var(--fairway)}
+  .schd small{font-size:11px;color:var(--ink-soft)}
+  .schi{flex:1;min-width:0}
+  .scht{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .scht .typ{font-size:11px;font-weight:700;color:var(--fairway-2);background:var(--green-soft);padding:1px 6px;border-radius:5px;margin-right:4px}
+  .scht .typ.alt{color:var(--flag);background:#fbeeec}
+  .schr{font-size:12px;color:var(--ink-soft);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .schb{flex:0 0 auto;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:#efe6d4;color:var(--gold)}
+  .schb.on{background:var(--fairway);color:#fff}
+  .locked{display:flex;align-items:center;gap:12px;padding:16px;border:1px dashed var(--line);border-radius:12px;background:var(--paper-2);color:var(--ink-soft)}
+  .locked .lk{font-size:22px}
+  .locked b{display:block;font-size:14px;color:var(--ink)}
+  .locked small{font-size:12px;color:var(--ink-soft)}
 </style>
 </head>
 <body>
@@ -242,8 +268,8 @@ function renderMain(){
       '<p class="title-zh">'+esc(state.event.titleZh)+'</p>'+
     '</div>'+
     '<div class="meta">'+
-      metaRow("日期",state.event.date)+ metaRow("球場",state.event.course)+
-      metaRow("開球",state.event.tee)+ metaRow("費用",state.event.fee,"fee")+
+      metaRow("日期",ev().date)+ metaRow("球場",ev().course)+
+      metaRow("開球",ev().tee)+ metaRow("費用",state.event.fee,"fee")+
       metaRow("截止",state.event.deadline)+ metaRow("名額",state.event.cap)+
     '</div>'+
   '</div>'+
@@ -270,6 +296,8 @@ function renderMain(){
 
   groupsSection()+
   rankingSection()+
+  guestSection()+
+  scheduleSection()+
 
   (state.isAdmin ? adminPanel() : "")+
 
@@ -314,8 +342,14 @@ function adminPanel(){
   var hasGroups = state.groups && state.groups.groups && state.groups.groups.length;
   return '<div class="section-label">管理員 · 活動設定</div>'+
   '<div class="panel">'+
-    f("titleZh","標題")+ f("date","日期")+ f("course","球場")+ f("tee","開球")+
+    '<p class="formnote" style="text-align:left;margin:0 0 10px">日期/球場/開球留空 → 自動帶行事曆下一場'+(state.eventView&&state.eventView.fromSchedule?'(目前下一場:'+esc(state.eventView.date)+' '+esc(state.eventView.course)+(state.eventView.tee?' '+esc(state.eventView.tee):'')+')':'')+'</p>'+
+    f("titleZh","標題")+ f("date","日期(留空帶行事曆)")+ f("course","球場(留空帶行事曆)")+ f("tee","開球(留空帶行事曆)")+
     f("fee","費用")+ f("deadline","截止")+ f("cap","名額")+ f("par","標準桿")+
+    '<div class="field"><label>比賽日(YYYY/M/D,留空則抓行事曆下一場)</label><input class="adm" data-k="matchDate" value="'+esc(e.matchDate)+'" placeholder="2026/7/21"></div>'+
+    '<div class="row2">'+
+      '<div class="field"><label>分組開放</label><input class="adm" data-k="groupRevealAt" value="'+esc(e.groupRevealAt)+'" placeholder="08:00"></div>'+
+      '<div class="field"><label>成績開放</label><input class="adm" data-k="scoreRevealAt" value="'+esc(e.scoreRevealAt)+'" placeholder="18:00"></div>'+
+    '</div>'+
     '<button class="btn sm" id="saveEvent">儲存活動資訊</button>'+
     '<div class="btnrow"><button class="btn ghost sm" id="clearBtn" style="flex:1">清空整份名單</button></div>'+
   '</div>'+
@@ -336,30 +370,65 @@ function adminPanel(){
 
   '<div class="section-label">成績與差點</div>'+
   '<div class="panel">'+
-    '<div class="field"><label>① 匯入季初差點(每行:姓名 差點)</label>'+
+    '<div class="field"><label>① 匯入年初差點(每行:姓名 差點)</label>'+
       '<textarea class="big" id="impHcp" placeholder="王大明 18&#10;陳大文 12"></textarea></div>'+
     '<button class="btn sm" id="importHcp">匯入差點</button>'+
     '<div class="field" style="margin-top:16px"><label>② 輸入本月桿數(每行:姓名 OUT IN)→ 自動算排名、更新差點</label>'+
       '<textarea class="big" id="scores" placeholder="王大明 42 45&#10;陳大文 40 41"></textarea></div>'+
     '<button class="btn sm" id="submitScores">送出桿數,計算排名</button>'+
-    '<p class="formnote">總桿=OUT+IN,淨桿=總桿−差點。只算會員;前三名淨桿依級距扣桿,淨桿低於標準桿者再額外扣。</p>'+
-    '<div class="btnrow" style="margin-top:14px"><button class="btn ghost sm" id="seasonReset" style="flex:1">季初重設(全體差點 ×0.85)</button></div>'+
+    '<p class="formnote">總桿=OUT+IN,淨桿=總桿−差點。只算會員;前三名淨桿依級距扣桿,淨桿低於標準桿者再額外扣。總桿冠軍本年度一人一次。</p>'+
+    '<div class="btnrow" style="margin-top:14px"><button class="btn ghost sm" id="seasonReset" style="flex:1">年初重設(差點 ×0.85,收款歸零)</button></div>'+
+    '<div class="btnrow" style="margin-top:8px"><button class="btn sm" id="buildSeason" style="flex:1">產生年總表(寫入試算表分頁)</button></div>'+
     hcpListHtml()+
+  '</div>'+
+
+  feePanel();
+}
+
+function feePanel(){
+  var mf=state.memberFees;
+  if(!mf || !mf.list || !mf.list.length){
+    return '<div class="section-label">會費收款</div><div class="panel"><p class="formnote">尚無會員資料,等隊員設定身份後會出現在這裡。</p></div>';
+  }
+  var paidCount=mf.list.filter(function(x){return x.paid;}).length;
+  return '<div class="section-label">會費收款 · 本年度</div>'+
+  '<div class="panel">'+
+    '<div class="feesum"><span>已收 '+paidCount+'/'+mf.list.length+' 人</span>'+
+      '<b>NT$'+Number(mf.paidSum||0).toLocaleString()+' / '+Number(mf.total||0).toLocaleString()+'</b></div>'+
+    mf.list.map(function(x){
+      return '<div class="feerow '+(x.paid?"paid":"")+'" data-name="'+esc(x.name)+'" data-paid="'+(x.paid?"1":"0")+'">'+
+        '<span class="fn">'+esc(x.name)+(x.gender?'<small> '+esc(x.gender)+'</small>':'')+'</span>'+
+        '<span class="fa">NT$'+(x.fee?Number(x.fee).toLocaleString():'-')+'</span>'+
+        '<span class="fc">'+(x.paid?'✓ 已收':'未收')+'</span>'+
+      '</div>';
+    }).join('')+
+    '<p class="formnote">點一下切換已收/未收,年總表收款欄會自動帶。</p>'+
+  '</div>'+
+
+  '<div class="section-label">行事曆</div>'+
+  '<div class="panel">'+
+    '<p class="formnote" style="text-align:left;margin:0 0 10px">整年度例賽行事曆放在試算表「行事曆」分頁,在那裡新增/刪除/編輯最方便;上方「賽程」會即時反映。第一次按下方按鈕會建立並填入範本。</p>'+
+    '<button class="btn sm" id="buildSchedule">建立行事曆(試算表分頁)</button>'+
   '</div>';
 }
 
 function hcpListHtml(){
   var list=state.hcpList||[];
   if(!list.length) return '';
-  return '<div style="font-size:12px;color:var(--ink-soft);margin-top:8px">目前差點('+list.length+'人)</div>'+
+  return '<div style="font-size:12px;color:var(--ink-soft);margin-top:8px">差點(年初 → 目前,'+list.length+'人)</div>'+
     '<div class="hcplist">'+list.map(function(h){
-      return '<div><span>'+esc(h.name)+'</span><b>'+esc(h.hcp)+'</b></div>';
+      var ss=(h.seasonStart!==undefined&&h.seasonStart!==""&&h.seasonStart!==h.hcp)?('<span style="color:var(--ink-soft)">'+esc(h.seasonStart)+' → </span>'):'';
+      return '<div><span>'+esc(h.name)+'</span><b>'+ss+esc(h.hcp)+'</b></div>';
     }).join('')+'</div>';
 }
 
 function groupsSection(){
   var g = state.groups;
-  if(!g || !g.groups || !g.groups.length) return "";
+  if(!g || !g.groups || !g.groups.length){
+    if(state.groupsLocked) return '<div class="section-label">分組 · Tee Sheet</div>'+
+      '<div class="locked"><span class="lk">🔒</span><div><b>分組尚未開放</b><small>'+esc(state.groupsLocked)+'</small></div></div>';
+    return "";
+  }
   var myGi=-1;
   g.groups.forEach(function(grp,i){ if(grp.some(function(p){return p.userId===profile.userId;})) myGi=i; });
   var grouped=g.groups.reduce(function(a,grp){return a+grp.length;},0);
@@ -390,10 +459,16 @@ function identitySmall(){
   else if(m.role==="來賓") parts.push("不收年費");
   return parts.join(" · ");
 }
+// 報名頁顯示用的活動資料(自動帶行事曆下一場)
+function ev(){ return state.eventView || state.event || {}; }
 
 function rankingSection(){
   var r=state.ranking;
-  if(!r || !r.results || !r.results.length) return "";
+  if(!r || !r.results || !r.results.length){
+    if(state.scoreLocked) return '<div class="section-label">成績排名</div>'+
+      '<div class="locked"><span class="lk">🔒</span><div><b>成績尚未開放</b><small>'+esc(state.scoreLocked)+'</small></div></div>';
+    return "";
+  }
   var rows=r.results.filter(function(x){return x.rankType!=="來賓";});
   if(!rows.length) return "";
   var html='<div class="section-label">成績排名 · '+esc(r.date||"")+'</div>'+
@@ -409,7 +484,51 @@ function rankingSection(){
     '</div>';
   }).join('');
   var guests=r.results.filter(function(x){return x.rankType==="來賓";});
-  if(guests.length) html+='<div class="ranknote">來賓('+guests.length+'人)有成績但不列入排名與獎項</div>';
+  if(guests.length) html+='<div class="ranknote">來賓('+guests.length+'人)有成績但不列入排名與獎項,見下方來賓成績</div>';
+  return html;
+}
+
+function guestSection(){
+  var r=state.ranking;
+  if(!r || !r.results) return "";
+  var guests=r.results.filter(function(x){return x.rankType==="來賓";});
+  if(!guests.length) return "";
+  var html='<div class="section-label">來賓成績 · '+esc(r.date||"")+'</div>'+
+    '<div class="rankhead"><span class="rl">來賓</span><span class="rn">OUT</span><span>IN</span><span>總桿</span></div>';
+  html+=guests.map(function(x){
+    var me=(state.member && x.name===state.member.name);
+    return '<div class="rankrow '+(me?"me":"")+'">'+
+      '<span class="rl" style="flex:1;color:var(--ink)">'+esc(x.name)+(me?' <i>你</i>':'')+'</span>'+
+      '<span class="rn" style="flex:0 0 44px;text-align:right">'+esc(x.out!==undefined?x.out:"")+'</span>'+
+      '<span>'+esc(x.in!==undefined?x.in:"")+'</span>'+
+      '<span>'+esc(x.gross)+'</span>'+
+    '</div>';
+  }).join('');
+  return html;
+}
+
+function scheduleSection(){
+  var s=state.schedule;
+  if(!s || !s.length) return "";
+  var todayKey=(function(){var d=new Date();return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();})();
+  // 找下一場(今天含以後的第一場)
+  var nextIdx=-1;
+  for(var i=0;i<s.length;i++){ if(s[i].sortKey>=todayKey){ nextIdx=i; break; } }
+  var html='<div class="section-label">賽程 · 本年度</div>';
+  html+=s.map(function(e,i){
+    var past=e.sortKey<todayKey;
+    var booked=e.status==="已訂";
+    var typecls=e.type==="月例賽"?"":"alt";
+    return '<div class="sch '+(i===nextIdx?"next ":"")+(past?"past":"")+'">'+
+      '<div class="schd"><b>'+esc(e.date)+'</b><small>'+esc(e.dow)+'</small></div>'+
+      '<div class="schi">'+
+        '<div class="scht"><span class="typ '+typecls+'">'+esc(e.type)+'</span> '+esc(e.course)+(e.tee?' · '+esc(e.tee):'')+'</div>'+
+        '<div class="schr">'+esc(e.reminder)+(e.groups?' · '+esc(e.groups)+'組':'')+(e.price?' · $'+esc(e.price):'')+'</div>'+
+      '</div>'+
+      '<span class="schb '+(booked?"on":"")+'">'+(booked?"已訂":"未訂")+'</span>'+
+    '</div>';
+  }).join('');
+  if(state.isAdmin) html+='<div class="ranknote">編輯/新增/刪除請到試算表「行事曆」分頁;預約提醒會自動更新。</div>';
   return html;
 }
 
@@ -508,10 +627,36 @@ function wireMain(isFull, iAmIn){
   };
   var sr=document.getElementById("seasonReset");
   if(sr) sr.onclick=function(){
-    if(!confirm("季初重設:把全體目前差點 ×0.85 當作新季起始?建議只在新球季開始時做一次。")) return;
+    if(!confirm("年初重設:把全體目前差點 ×0.85 當作新年度起始,並把會費收款全部歸零?建議只在新年度開始時做一次。")) return;
     busy("seasonReset","重設中…");
     api({action:"seasonReset",userId:profile.userId}).then(function(r){
       toast(r.ok?("已重設 "+r.reset+" 人差點"):(r.error||"重設失敗")); reload();
+    });
+  };
+  document.querySelectorAll(".feerow").forEach(function(row){
+    row.onclick=function(){
+      var name=row.dataset.name, newPaid=row.dataset.paid==="1"?"0":"1";
+      row.style.opacity="0.5";
+      api({action:"setPaid",userId:profile.userId,name:name,paid:newPaid}).then(function(r){
+        if(r && r.ok){ if(state.memberFees) state.memberFees=r.memberFees; renderMain(); }
+        else { toast((r&&r.error)||"登記失敗"); row.style.opacity="1"; }
+      });
+    };
+  });
+  var bs=document.getElementById("buildSeason");
+  if(bs) bs.onclick=function(){
+    busy("buildSeason","產生中…");
+    api({action:"buildSeason",userId:profile.userId}).then(function(r){
+      toast(r.ok?("已產生年總表("+r.members+"人 × "+r.months+"場),請到試算表「年總表」分頁查看"):(r.error||"產生失敗"));
+      reload();
+    });
+  };
+  var bsc=document.getElementById("buildSchedule");
+  if(bsc) bsc.onclick=function(){
+    busy("buildSchedule","建立中…");
+    api({action:"buildSchedule",userId:profile.userId}).then(function(r){
+      toast(r.ok?(r.existed?"行事曆已存在,未覆蓋你的編輯":"已建立行事曆,共 "+r.rows+" 場,請到試算表「行事曆」分頁編輯"):(r.error||"建立失敗"));
+      reload();
     });
   };
   var claim=document.getElementById("claim");
