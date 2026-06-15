@@ -92,6 +92,35 @@
   .err{background:#fbeeec;border:1px solid #e8cfca;color:#8a3328;border-radius:10px;padding:12px 14px;font-size:14px;margin:14px 0}
   .toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;font-size:14px;padding:11px 18px;border-radius:10px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;max-width:90%}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .stale{background:#fbf3e0;border:1px solid #e9d6a8;color:#8a6516;border-radius:10px;padding:9px 12px;font-size:13px;margin-bottom:10px}
+  .grp{background:var(--paper-2);border:1px solid var(--line);border-radius:12px;padding:0;margin-bottom:10px;box-shadow:var(--shadow);overflow:hidden}
+  .grp.me{border-color:var(--fairway-2);box-shadow:0 0 0 2px rgba(45,106,79,.14)}
+  .grphead{display:flex;justify-content:space-between;align-items:center;background:var(--green-soft);padding:8px 13px;font-size:14px}
+  .grp.me .grphead{background:var(--fairway);color:#fff}
+  .grphead span{font-size:13px;font-weight:700;font-family:Georgia,serif}
+  .grpp{display:flex;align-items:center;gap:8px;padding:9px 13px;border-top:1px solid #efece0;font-size:14.5px}
+  .grpp small{color:var(--ink-soft);font-size:12px}
+  .grpp .tag.me{font-size:11px;font-weight:600;color:var(--fairway-2)}
+  .hcpbox{display:flex;flex-direction:column;align-items:center;background:var(--green-soft);border:1px solid #cfe0d2;border-radius:12px;padding:12px;margin-bottom:14px}
+  .hcpbox span{font-size:12px;color:var(--ink-soft);letter-spacing:.04em}
+  .hcpbox b{font-size:30px;font-family:Georgia,serif;color:var(--fairway);line-height:1.1}
+  .hcpbox small{font-size:11px;color:var(--ink-soft)}
+  .hcplist{font-size:13px;color:var(--ink-soft);margin:8px 0 0;max-height:160px;overflow:auto}
+  .hcplist div{display:flex;justify-content:space-between;padding:4px 2px;border-bottom:1px solid #efece0}
+  .hcplist b{color:var(--ink);font-weight:600}
+  textarea.big{min-height:90px;font-family:inherit;font-size:14px;width:100%;background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:10px}
+  .rankhead,.rankrow{display:flex;align-items:center;gap:8px;font-size:14px;padding:8px 12px}
+  .rankhead{font-size:12px;color:var(--ink-soft);letter-spacing:.04em}
+  .rankrow{background:var(--paper-2);border:1px solid var(--line);border-radius:10px;margin-bottom:6px;box-shadow:var(--shadow)}
+  .rankrow.gross{background:#fbf3e0;border-color:#e9d6a8}
+  .rankrow.me{border-color:var(--fairway-2);box-shadow:0 0 0 2px rgba(45,106,79,.14)}
+  .rankhead .rl,.rankrow .rl{flex:0 0 72px}
+  .rankhead .rn,.rankrow .rn{flex:1}
+  .rankhead span:last-child,.rankrow span:last-child,.rankhead span:nth-child(3),.rankrow span:nth-child(3){flex:0 0 44px;text-align:right}
+  .rankrow .rl{font-weight:700;color:var(--fairway)}
+  .rankrow.gross .rl{color:var(--gold)}
+  .rankrow .rn i{font-size:11px;color:var(--fairway-2);font-style:normal}
+  .ranknote{font-size:12px;color:var(--ink-soft);margin-top:6px}
 </style>
 </head>
 <body>
@@ -104,8 +133,8 @@
 /* ============================================================
    設定區 — 部署時把這兩個值換成你自己的
    ============================================================ */
-var LIFF_ID = "2010396373-bdFy7e3d";                         // 例:2001234567-AbCdEfGh
-var GAS_URL = "https://script.google.com/macros/s/AKfycbwwU9v8uVEIhg8hgBtU053D5sMIXW-9cFJBYl48K7Cps9_p6IQ89SQrH91-jMuBPpQa/exec";     // 結尾是 /exec
+var LIFF_ID = "2010396373-bdFy7e3d";
+var GAS_URL = "https://script.google.com/macros/s/AKfycbwwU9v8uVEIhg8hgBtU053D5sMIXW-9cFJBYl48K7Cps9_p6IQ89SQrH91-jMuBPpQa/exec";
 /* ============================================================ */
 
 var app = document.getElementById("app");
@@ -182,12 +211,17 @@ function renderSetup(){
   '<div class="youbar" style="margin-top:16px">'+ avatar() +
     '<div class="who"><b>'+esc(profile.displayName)+'</b><small>你的 LINE 帳號</small></div>'+
   '</div>'+
-  '<div class="section-label">你的全名</div>'+
+  '<div class="section-label">初次設定</div>'+
   '<div class="panel">'+
     '<div class="field"><label>球隊名單上要顯示的姓名</label>'+
     '<input id="nm" type="text" maxlength="20" value="'+esc(profile.displayName)+'"></div>'+
+    '<div class="row2">'+
+      '<div class="field"><label>身份</label><select id="role"><option value="會員">會員</option><option value="來賓">來賓</option></select></div>'+
+      '<div class="field"><label>性別</label><select id="gender"><option value="">請選擇</option><option value="男">男</option><option value="女">女</option></select></div>'+
+    '</div>'+
+    '<div class="field"><label>出生年(選填,排名平手比序用)</label><input id="birth" type="text" maxlength="4" placeholder="如 1965"></div>'+
     '<button class="btn" id="saveName">確認,開始報名</button>'+
-    '<p class="formnote">綁定後系統就記得你是誰,之後報名/取消只要一鍵。</p>'+
+    '<p class="formnote">會員依性別收年費(男 10,000、女 9,000);來賓不收年費、不列入排名。設定後系統就記得你。</p>'+
   '</div>';
   document.getElementById("saveName").onclick = onSaveName;
 }
@@ -223,7 +257,7 @@ function renderMain(){
 
   '<div class="youbar">'+ avatar() +
     '<div class="who"><b>'+esc(state.member.name)+'</b>'+
-      '<small>'+(iAmIn?(iAmWaiting?"你目前在候補名單":"你已報名 ✓"):"你尚未報名")+'</small></div>'+
+      '<small>'+identitySmall()+'</small></div>'+
     '<span class="badge '+(iAmIn?"in":"out")+'">'+(iAmIn?(iAmWaiting?"候補":"已報名"):"未報名")+'</span>'+
   '</div>'+
 
@@ -233,6 +267,9 @@ function renderMain(){
   '<div>'+ (total===0
       ? '<div class="empty">還沒有人報名,當第一個開球的人吧 ⛳</div>'
       : state.roster.map(function(p,i){return playerRow(p,i,c);}).join("")) +'</div>'+
+
+  groupsSection()+
+  rankingSection()+
 
   (state.isAdmin ? adminPanel() : "")+
 
@@ -245,12 +282,11 @@ function renderMain(){
 }
 
 function registerPanel(isFull){
+  var h=(state.myHcp&&state.myHcp!=="")?state.myHcp:"未設定";
   return '<div class="section-label">'+(isFull?"加入候補":"我要報名")+'</div>'+
   '<div class="panel">'+
-    '<div class="row2">'+
-      '<div class="field"><label>差點 / HCP</label><input id="hcp" type="text" maxlength="6" placeholder="如 18"></div>'+
-      '<div class="field"><label>球車</label><select id="cart"><option>需要球車</option><option>不需球車</option></select></div>'+
-    '</div>'+
+    '<div class="hcpbox"><span>你目前的差點</span><b>'+esc(h)+'</b><small>系統管理,例賽後自動更新</small></div>'+
+    '<div class="field"><label>球車</label><select id="cart"><option>需要球車</option><option>不需球車</option></select></div>'+
     '<div class="field"><label>備註(同組、訂便當…)</label><textarea id="note" maxlength="60" placeholder="想跟 ___ 同組 / 便當 +1"></textarea></div>'+
     '<button class="btn" id="regBtn">'+(isFull?"加入候補名單":"送出報名")+'</button>'+
     '<p class="formnote">'+(isFull?"目前額滿,送出後列入候補,有人取消會依序遞補。":"報名截止前都可以自行取消。")+'</p>'+
@@ -275,13 +311,106 @@ function registeredPanel(mine){
 function adminPanel(){
   var e=state.event;
   function f(k,label){return '<div class="field"><label>'+label+'</label><input class="adm" data-k="'+k+'" value="'+esc(e[k])+'"></div>';}
+  var hasGroups = state.groups && state.groups.groups && state.groups.groups.length;
   return '<div class="section-label">管理員 · 活動設定</div>'+
   '<div class="panel">'+
     f("titleZh","標題")+ f("date","日期")+ f("course","球場")+ f("tee","開球")+
-    f("fee","費用")+ f("deadline","截止")+ f("cap","名額")+
+    f("fee","費用")+ f("deadline","截止")+ f("cap","名額")+ f("par","標準桿")+
     '<button class="btn sm" id="saveEvent">儲存活動資訊</button>'+
     '<div class="btnrow"><button class="btn ghost sm" id="clearBtn" style="flex:1">清空整份名單</button></div>'+
+  '</div>'+
+
+  '<div class="section-label">自動分組</div>'+
+  '<div class="panel">'+
+    '<div class="row2">'+
+      '<div class="field"><label>每組人數</label><select id="gsize"><option value="4">4 人</option><option value="3">3 人</option></select></div>'+
+      '<div class="field"><label>分組方式</label><select id="gmethod"><option value="order">報名順序</option><option value="hcp">差點平均</option><option value="random">隨機</option></select></div>'+
+    '</div>'+
+    '<div class="row2">'+
+      '<div class="field"><label>開球起始(選填)</label><input id="gstart" placeholder="07:30"></div>'+
+      '<div class="field"><label>間隔分鐘</label><input id="ginterval" placeholder="8"></div>'+
+    '</div>'+
+    '<button class="btn sm" id="makeGroups">產生分組</button>'+
+    (hasGroups ? '<div class="btnrow"><button class="btn ghost sm" id="clearGroups" style="flex:1">清除分組</button></div>' : '')+
+  '</div>'+
+
+  '<div class="section-label">成績與差點</div>'+
+  '<div class="panel">'+
+    '<div class="field"><label>① 匯入季初差點(每行:姓名 差點)</label>'+
+      '<textarea class="big" id="impHcp" placeholder="王大明 18&#10;陳大文 12"></textarea></div>'+
+    '<button class="btn sm" id="importHcp">匯入差點</button>'+
+    '<div class="field" style="margin-top:16px"><label>② 輸入本月桿數(每行:姓名 OUT IN)→ 自動算排名、更新差點</label>'+
+      '<textarea class="big" id="scores" placeholder="王大明 42 45&#10;陳大文 40 41"></textarea></div>'+
+    '<button class="btn sm" id="submitScores">送出桿數,計算排名</button>'+
+    '<p class="formnote">總桿=OUT+IN,淨桿=總桿−差點。只算會員;前三名淨桿依級距扣桿,淨桿低於標準桿者再額外扣。</p>'+
+    '<div class="btnrow" style="margin-top:14px"><button class="btn ghost sm" id="seasonReset" style="flex:1">季初重設(全體差點 ×0.85)</button></div>'+
+    hcpListHtml()+
   '</div>';
+}
+
+function hcpListHtml(){
+  var list=state.hcpList||[];
+  if(!list.length) return '';
+  return '<div style="font-size:12px;color:var(--ink-soft);margin-top:8px">目前差點('+list.length+'人)</div>'+
+    '<div class="hcplist">'+list.map(function(h){
+      return '<div><span>'+esc(h.name)+'</span><b>'+esc(h.hcp)+'</b></div>';
+    }).join('')+'</div>';
+}
+
+function groupsSection(){
+  var g = state.groups;
+  if(!g || !g.groups || !g.groups.length) return "";
+  var myGi=-1;
+  g.groups.forEach(function(grp,i){ if(grp.some(function(p){return p.userId===profile.userId;})) myGi=i; });
+  var grouped=g.groups.reduce(function(a,grp){return a+grp.length;},0);
+  var c=capNum();
+  var confirmed=c>0?Math.min(state.roster.length,c):state.roster.length;
+  var stale=grouped!==confirmed;
+  var html='<div class="section-label">分組 · Tee Sheet</div>';
+  if(stale) html+='<div class="stale">名單已變動,分組可能過時,建議重新產生。</div>';
+  html+=g.groups.map(function(grp,i){
+    var time=(g.times && g.times[i])?g.times[i]:'';
+    return '<div class="grp '+(i===myGi?"me":"")+'">'+
+      '<div class="grphead"><b>第 '+(i+1)+' 組</b>'+(time?'<span>'+esc(time)+'</span>':'')+'</div>'+
+      grp.map(function(p){
+        return '<div class="grpp">'+esc(p.name)+
+          (p.hcp?'<small>HCP '+esc(p.hcp)+'</small>':'')+
+          (p.userId===profile.userId?'<span class="tag me">你</span>':'')+'</div>';
+      }).join('')+
+    '</div>';
+  }).join('');
+  return html;
+}
+
+function identitySmall(){
+  var m=state.member, parts=[];
+  parts.push(m.role||"會員");
+  if(m.gender) parts.push(m.gender);
+  if(state.myFee && state.myFee!=="") parts.push("會費 NT$"+Number(state.myFee).toLocaleString());
+  else if(m.role==="來賓") parts.push("不收年費");
+  return parts.join(" · ");
+}
+
+function rankingSection(){
+  var r=state.ranking;
+  if(!r || !r.results || !r.results.length) return "";
+  var rows=r.results.filter(function(x){return x.rankType!=="來賓";});
+  if(!rows.length) return "";
+  var html='<div class="section-label">成績排名 · '+esc(r.date||"")+'</div>'+
+    '<div class="rankhead"><span class="rl">名次</span><span class="rn">姓名</span><span>總桿</span><span>淨桿</span></div>';
+  html+=rows.map(function(x){
+    var label=x.rankType==="總桿"?"總桿冠軍":("淨桿 "+x.rank);
+    var me=(x.name===state.member.name);
+    return '<div class="rankrow '+(me?"me ":"")+(x.rankType==="總桿"?"gross":"")+'">'+
+      '<span class="rl">'+label+'</span>'+
+      '<span class="rn">'+esc(x.name)+(me?' <i>你</i>':'')+'</span>'+
+      '<span>'+esc(x.gross)+'</span>'+
+      '<span>'+esc(x.net)+'</span>'+
+    '</div>';
+  }).join('');
+  var guests=r.results.filter(function(x){return x.rankType==="來賓";});
+  if(guests.length) html+='<div class="ranknote">來賓('+guests.length+'人)有成績但不列入排名與獎項</div>';
+  return html;
 }
 
 // ---- 小元件 ----
@@ -308,8 +437,10 @@ function flagSvg(){return '<svg class="flag" viewBox="0 0 24 24" fill="none"><pa
 function onSaveName(){
   var nm=(document.getElementById("nm").value||"").trim();
   if(!nm){ toast("請輸入姓名"); return; }
+  var role=val("role"), gender=val("gender"), birth=val("birth").trim();
+  if(role==="會員" && !gender){ toast("會員請選擇性別(計算會費)"); return; }
   busy("saveName","設定中…");
-  api({action:"setName",userId:profile.userId,name:nm}).then(function(r){
+  api({action:"setName",userId:profile.userId,name:nm,role:role,gender:gender,birthYear:birth}).then(function(r){
     if(!r.ok){ toast(r.error||"設定失敗"); return reload(); }
     toast("設定完成!"); reload();
   }).catch(function(){ toast("連線失敗"); reload(); });
@@ -320,7 +451,7 @@ function wireMain(isFull, iAmIn){
   if(reg) reg.onclick=function(){
     busy("regBtn", isFull?"加入中…":"報名中…");
     api({action:"register",userId:profile.userId,
-         hcp:val("hcp"),cart:val("cart"),note:val("note")}).then(after("報名成功!"));
+         cart:val("cart"),note:val("note")}).then(after("報名成功!"));
   };
   var edit=document.getElementById("editBtn");
   if(edit) edit.onclick=function(){ var m=myRow(); showEdit(m); };
@@ -343,6 +474,46 @@ function wireMain(isFull, iAmIn){
     busy("clearBtn","清空中…");
     api({action:"clearRoster",userId:profile.userId}).then(after("名單已清空"));
   };
+  var mg=document.getElementById("makeGroups");
+  if(mg) mg.onclick=function(){
+    busy("makeGroups","分組中…");
+    api({action:"makeGroups",userId:profile.userId,
+         size:val("gsize"),method:val("gmethod"),
+         start:val("gstart"),interval:val("ginterval")}).then(after("已完成分組"));
+  };
+  var cg=document.getElementById("clearGroups");
+  if(cg) cg.onclick=function(){
+    if(!confirm("確定清除目前分組?")) return;
+    busy("clearGroups","清除中…");
+    api({action:"clearGroups",userId:profile.userId}).then(after("已清除分組"));
+  };
+  var ih=document.getElementById("importHcp");
+  if(ih) ih.onclick=function(){
+    var txt=val("impHcp").trim();
+    if(!txt){ toast("請先貼上名單"); return; }
+    busy("importHcp","匯入中…");
+    api({action:"importHcp",userId:profile.userId,text:txt}).then(function(r){
+      toast(r.ok?("已匯入 "+r.imported+" 筆差點"):(r.error||"匯入失敗")); reload();
+    });
+  };
+  var ss=document.getElementById("submitScores");
+  if(ss) ss.onclick=function(){
+    var txt=val("scores").trim();
+    if(!txt){ toast("請先貼上桿數"); return; }
+    if(!confirm("確定送出桿數,計算排名並更新差點?")) return;
+    busy("submitScores","計算中…");
+    api({action:"submitScores",userId:profile.userId,text:txt}).then(function(r){
+      toast(r.ok?("已計算 "+r.count+" 筆成績"):(r.error||"更新失敗")); reload();
+    });
+  };
+  var sr=document.getElementById("seasonReset");
+  if(sr) sr.onclick=function(){
+    if(!confirm("季初重設:把全體目前差點 ×0.85 當作新季起始?建議只在新球季開始時做一次。")) return;
+    busy("seasonReset","重設中…");
+    api({action:"seasonReset",userId:profile.userId}).then(function(r){
+      toast(r.ok?("已重設 "+r.reset+" 人差點"):(r.error||"重設失敗")); reload();
+    });
+  };
   var claim=document.getElementById("claim");
   if(claim) claim.onclick=function(){
     if(!confirm("把自己設為管理員?設定後只有你能修改活動資訊與清空名單。")) return;
@@ -354,15 +525,13 @@ function wireMain(isFull, iAmIn){
   if(rl) rl.onclick=reload;
 }
 
-// 修改報名:把目前值帶回表單再送出
+// 修改報名:差點由系統管理,這裡只改球車與備註
 function showEdit(m){
-  renderMain();                       // 先回到主畫面(會顯示已報名面板)
-  // 直接送出更新用 register 動作覆寫
-  var hcp=prompt("差點 / HCP",m.hcp||""); if(hcp===null) return;
+  renderMain();
   var cart=confirm("需要球車嗎?(確定=需要,取消=不需)")?"需要球車":"不需球車";
   var note=prompt("備註",m.note||""); if(note===null) note=m.note||"";
   toast("更新中…");
-  api({action:"register",userId:profile.userId,hcp:hcp,cart:cart,note:note}).then(after("已更新"));
+  api({action:"register",userId:profile.userId,cart:cart,note:note}).then(after("已更新"));
 }
 
 function after(msg){
