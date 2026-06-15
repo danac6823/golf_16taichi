@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>球隊例賽報名</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  :root{
+    --fairway:#14532d; --fairway-2:#2d6a4f; --green-soft:#e7efe6;
+    --paper:#f7f4ec; --paper-2:#fffdf7; --ink:#1d211c; --ink-soft:#5a6157;
+    --line:#d9d6c8; --flag:#bc4b3c; --gold:#b08534;
+    --shadow:0 1px 2px rgba(20,30,20,.06),0 8px 24px rgba(20,30,20,.07);
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--paper);}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+    color:var(--ink); line-height:1.55; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:540px;margin:0 auto;padding:18px 16px calc(48px + env(safe-area-inset-bottom));}
+  .center{text-align:center;color:var(--ink-soft);padding:70px 20px;}
+  .spinner{width:34px;height:34px;border:3px solid var(--green-soft);border-top-color:var(--fairway-2);border-radius:50%;margin:0 auto 16px;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .card{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+  .masthead{background:linear-gradient(160deg,var(--fairway),var(--fairway-2));color:#f4f7f0;padding:20px 20px 22px;position:relative}
+  .masthead .flag{position:absolute;top:16px;right:18px;width:30px;height:30px}
+  .eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#b9d3c0;margin:0 0 6px}
+  .title{font-family:Georgia,"Times New Roman","Noto Serif TC",serif;font-size:26px;font-weight:700;margin:0;line-height:1.2}
+  .title-zh{font-size:17px;font-weight:600;margin:4px 0 0;color:#dce8df}
+
+  .meta{padding:6px 20px 14px}
+  .meta-row{display:flex;align-items:baseline;gap:12px;padding:9px 0;border-bottom:1px solid #efece0}
+  .meta-row:last-child{border-bottom:0}
+  .meta-k{flex:0 0 60px;font-size:13px;color:var(--ink-soft);letter-spacing:.04em}
+  .meta-v{flex:1;font-size:15.5px;font-weight:600}
+  .meta-v.fee{color:var(--flag)}
+  .meta-input{flex:1;font-size:15.5px;font-weight:600;font-family:inherit;color:var(--ink);background:#fbfdf8;border:1px solid var(--line);border-radius:6px;padding:5px 8px;width:100%}
+
+  .countstrip{display:flex;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin:16px 0}
+  .cstat{flex:1;background:var(--paper-2);padding:14px 8px;text-align:center}
+  .cstat b{display:block;font-size:24px;font-family:Georgia,serif;color:var(--fairway);line-height:1}
+  .cstat span{font-size:11.5px;color:var(--ink-soft);letter-spacing:.06em}
+  .cstat.full b{color:var(--flag)}
+
+  .youbar{display:flex;align-items:center;gap:11px;background:var(--green-soft);border:1px solid #cfe0d2;border-radius:12px;padding:12px 14px;margin:16px 0}
+  .ava{flex:0 0 38px;height:38px;border-radius:50%;background:var(--fairway);color:#fff;display:grid;place-items:center;font-weight:700;font-size:16px;overflow:hidden}
+  .ava img{width:100%;height:100%;object-fit:cover}
+  .youbar .who{flex:1;min-width:0}
+  .youbar .who b{font-size:15.5px}
+  .youbar .who small{display:block;font-size:12px;color:var(--ink-soft)}
+  .badge{flex:0 0 auto;font-size:12px;font-weight:700;padding:5px 10px;border-radius:20px}
+  .badge.in{background:var(--fairway);color:#fff}
+  .badge.out{background:#efe6d4;color:var(--gold)}
+
+  .section-label{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin:26px 0 10px;display:flex;align-items:center;gap:8px}
+  .section-label::before{content:"";width:18px;height:2px;background:var(--gold)}
+
+  .panel{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:12.5px;color:var(--ink-soft);margin-bottom:5px}
+  .field input,.field select,.field textarea{width:100%;font-family:inherit;font-size:15px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:11px 12px}
+  .field textarea{resize:vertical;min-height:44px}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--fairway-2);background:#fff;box-shadow:0 0 0 3px rgba(45,106,79,.12)}
+  .row2{display:flex;gap:10px}.row2 .field{flex:1}
+
+  .btn{width:100%;font-family:inherit;font-size:16px;font-weight:700;letter-spacing:.04em;color:#f4f7f0;background:var(--fairway);border:none;border-radius:10px;padding:13px;cursor:pointer;transition:background .15s,transform .05s}
+  .btn:hover{background:#0f3d22}.btn:active{transform:translateY(1px)}
+  .btn[disabled]{background:#9aa79b;cursor:not-allowed}
+  .btn.ghost{background:transparent;color:var(--flag);border:1px solid #e8cfca}
+  .btn.ghost:hover{background:#fbeeec}
+  .btn.sm{font-size:14px;padding:10px}
+  .btnrow{display:flex;gap:10px;margin-top:4px}
+  .formnote{font-size:12px;color:var(--ink-soft);text-align:center;margin-top:10px}
+
+  .player{display:flex;align-items:center;gap:12px;background:var(--paper-2);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:8px;box-shadow:var(--shadow)}
+  .player.me{border-color:var(--fairway-2);box-shadow:0 0 0 2px rgba(45,106,79,.14)}
+  .player.wait{background:#fbf7ef;border-style:dashed}
+  .pnum{flex:0 0 26px;height:26px;border-radius:50%;background:var(--green-soft);color:var(--fairway);font-size:13px;font-weight:700;display:grid;place-items:center}
+  .player.wait .pnum{background:#f3e6cf;color:var(--gold)}
+  .pinfo{flex:1;min-width:0}
+  .pname{font-size:15.5px;font-weight:700}
+  .pname .tag{font-size:11px;font-weight:600;margin-left:6px}
+  .pname .tag.me{color:var(--fairway-2)} .pname .tag.wait{color:var(--gold)}
+  .pmeta{font-size:12px;color:var(--ink-soft);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .empty{text-align:center;color:var(--ink-soft);font-size:14px;padding:26px 14px;border:1px dashed var(--line);border-radius:12px;background:var(--paper-2)}
+  .footer{margin-top:26px;text-align:center;font-size:12px;color:var(--ink-soft)}
+  .footer button{font-family:inherit;font-size:12px;color:var(--ink-soft);background:none;border:none;text-decoration:underline;cursor:pointer;margin:0 6px}
+  .err{background:#fbeeec;border:1px solid #e8cfca;color:#8a3328;border-radius:10px;padding:12px 14px;font-size:14px;margin:14px 0}
+  .toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;font-size:14px;padding:11px 18px;border-radius:10px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;max-width:90%}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <div class="center"><div class="spinner"></div>連線中…</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   設定區 — 部署時把這兩個值換成你自己的
+   ============================================================ */
+var LIFF_ID = "2010396373-bdFy7e3d";                         // 例:2001234567-AbCdEfGh
+var GAS_URL = "https://script.google.com/macros/s/AKfycbwwU9v8uVEIhg8hgBtU053D5sMIXW-9cFJBYl48K7Cps9_p6IQ89SQrH91-jMuBPpQa/exec
+";     // 結尾是 /exec
+/* ============================================================ */
+
+var app = document.getElementById("app");
+var profile = null;     // {userId, displayName, pictureUrl}
+var state = null;       // bootstrap 回傳
+
+// ---- JSONP:用 <script> 載入,避開 CORS ----
+function api(params){
+  return new Promise(function(resolve, reject){
+    var cb = "cb_" + Date.now() + "_" + Math.floor(Math.random()*1e6);
+    var timer = setTimeout(function(){ cleanup(); reject(new Error("連線逾時")); }, 12000);
+    window[cb] = function(data){ clearTimeout(timer); cleanup(); resolve(data); };
+    function cleanup(){ delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); }
+    var qs = Object.keys(params).map(function(k){
+      return encodeURIComponent(k)+"="+encodeURIComponent(params[k]);
+    }).join("&");
+    var s = document.createElement("script");
+    s.src = GAS_URL + "?" + qs + "&callback=" + cb;
+    s.onerror = function(){ clearTimeout(timer); cleanup(); reject(new Error("無法連線到伺服器")); };
+    document.body.appendChild(s);
+  });
+}
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function capNum(){var n=parseInt(state.event.cap,10);return isNaN(n)?0:n;}
+function myRow(){return state.roster.filter(function(p){return p.userId===profile.userId;})[0]||null;}
+
+// ---- 啟動 ----
+(async function init(){
+  try{
+    await liff.init({ liffId: LIFF_ID });
+  }catch(e){
+    return fatal("LIFF 初始化失敗,請確認 LIFF_ID 設定正確。");
+  }
+  if(!liff.isLoggedIn()){ liff.login(); return; }   // 外部瀏覽器會導向 LINE 登入
+  try{
+    profile = await liff.getProfile();
+  }catch(e){
+    return fatal("無法取得 LINE 個人資料,請重新開啟。");
+  }
+  await reload();
+})();
+
+async function reload(){
+  try{
+    state = await api({ action:"bootstrap", userId: profile.userId });
+    if(!state.ok) return fatal(state.error || "讀取失敗");
+    render();
+  }catch(e){
+    fatal(e.message || "連線失敗,請確認 GAS_URL 設定並稍後再試。");
+  }
+}
+
+function fatal(msg){
+  app.innerHTML = '<div class="err">⚠️ '+esc(msg)+'</div>'+
+                  '<div class="center"><button class="btn sm" onclick="location.reload()">重新載入</button></div>';
+}
+
+// ---- 畫面 ----
+function render(){
+  if(!state.member){ return renderSetup(); }   // 還沒綁定全名
+  renderMain();
+}
+
+// 第一次:設定全名(預設帶入 LINE 暱稱,可改成正式姓名)
+function renderSetup(){
+  app.innerHTML =
+  '<div class="card"><div class="masthead">'+
+    flagSvg()+
+    '<p class="eyebrow">First time · 初次設定</p>'+
+    '<h1 class="title">Welcome</h1>'+
+    '<p class="title-zh">設定一次,以後一鍵報名</p>'+
+  '</div></div>'+
+  '<div class="youbar" style="margin-top:16px">'+ avatar() +
+    '<div class="who"><b>'+esc(profile.displayName)+'</b><small>你的 LINE 帳號</small></div>'+
+  '</div>'+
+  '<div class="section-label">你的全名</div>'+
+  '<div class="panel">'+
+    '<div class="field"><label>球隊名單上要顯示的姓名</label>'+
+    '<input id="nm" type="text" maxlength="20" value="'+esc(profile.displayName)+'"></div>'+
+    '<button class="btn" id="saveName">確認,開始報名</button>'+
+    '<p class="formnote">綁定後系統就記得你是誰,之後報名/取消只要一鍵。</p>'+
+  '</div>';
+  document.getElementById("saveName").onclick = onSaveName;
+}
+
+function renderMain(){
+  var c=capNum(), total=state.roster.length;
+  var confirmed=c>0?Math.min(total,c):total, waiting=c>0?Math.max(0,total-c):0;
+  var left=c>0?Math.max(0,c-total):null, isFull=c>0&&total>=c;
+  var mine=myRow(), iAmIn=!!mine;
+  var myIdx=state.roster.indexOf(mine);
+  var iAmWaiting=iAmIn&&c>0&&myIdx>=c;
+
+  app.innerHTML =
+  '<div class="card">'+
+    '<div class="masthead">'+flagSvg()+
+      '<p class="eyebrow">Tee Sheet · 報名表</p>'+
+      '<h1 class="title">'+esc(state.event.title)+'</h1>'+
+      '<p class="title-zh">'+esc(state.event.titleZh)+'</p>'+
+    '</div>'+
+    '<div class="meta">'+
+      metaRow("日期",state.event.date)+ metaRow("球場",state.event.course)+
+      metaRow("開球",state.event.tee)+ metaRow("費用",state.event.fee,"fee")+
+      metaRow("截止",state.event.deadline)+ metaRow("名額",state.event.cap)+
+    '</div>'+
+  '</div>'+
+
+  '<div class="countstrip">'+
+    '<div class="cstat"><b>'+confirmed+'</b><span>已報名</span></div>'+
+    '<div class="cstat '+(isFull?"full":"")+'"><b>'+(c>0?(left===0?"額滿":left):"—")+
+      '</b><span>'+(c>0?"剩餘名額":"無限額")+'</span></div>'+
+    '<div class="cstat"><b>'+waiting+'</b><span>候補</span></div>'+
+  '</div>'+
+
+  '<div class="youbar">'+ avatar() +
+    '<div class="who"><b>'+esc(state.member.name)+'</b>'+
+      '<small>'+(iAmIn?(iAmWaiting?"你目前在候補名單":"你已報名 ✓"):"你尚未報名")+'</small></div>'+
+    '<span class="badge '+(iAmIn?"in":"out")+'">'+(iAmIn?(iAmWaiting?"候補":"已報名"):"未報名")+'</span>'+
+  '</div>'+
+
+  (iAmIn ? registeredPanel(mine) : registerPanel(isFull))+
+
+  '<div class="section-label">報名名單 · '+total+' 人</div>'+
+  '<div>'+ (total===0
+      ? '<div class="empty">還沒有人報名,當第一個開球的人吧 ⛳</div>'
+      : state.roster.map(function(p,i){return playerRow(p,i,c);}).join("")) +'</div>'+
+
+  (state.isAdmin ? adminPanel() : "")+
+
+  '<div class="footer">'+
+    (!state.hasAdmin ? '<button id="claim">設我為管理員</button>' : '')+
+    '<button id="reloadBtn">重新整理</button>'+
+  '</div>';
+
+  wireMain(isFull, iAmIn);
+}
+
+function registerPanel(isFull){
+  return '<div class="section-label">'+(isFull?"加入候補":"我要報名")+'</div>'+
+  '<div class="panel">'+
+    '<div class="row2">'+
+      '<div class="field"><label>差點 / HCP</label><input id="hcp" type="text" maxlength="6" placeholder="如 18"></div>'+
+      '<div class="field"><label>球車</label><select id="cart"><option>需要球車</option><option>不需球車</option></select></div>'+
+    '</div>'+
+    '<div class="field"><label>備註(同組、訂便當…)</label><textarea id="note" maxlength="60" placeholder="想跟 ___ 同組 / 便當 +1"></textarea></div>'+
+    '<button class="btn" id="regBtn">'+(isFull?"加入候補名單":"送出報名")+'</button>'+
+    '<p class="formnote">'+(isFull?"目前額滿,送出後列入候補,有人取消會依序遞補。":"報名截止前都可以自行取消。")+'</p>'+
+  '</div>';
+}
+
+function registeredPanel(mine){
+  var bits=[];
+  if(mine.hcp) bits.push("HCP "+esc(mine.hcp));
+  if(mine.cart) bits.push(esc(mine.cart));
+  if(mine.note) bits.push(esc(mine.note));
+  return '<div class="section-label">你的報名</div>'+
+  '<div class="panel">'+
+    (bits.length?'<p style="margin:0 0 12px;font-size:14px;color:var(--ink-soft)">'+bits.join(" · ")+'</p>':'')+
+    '<div class="btnrow">'+
+      '<button class="btn sm" id="editBtn" style="flex:1">修改</button>'+
+      '<button class="btn ghost sm" id="cancelBtn" style="flex:1">取消報名</button>'+
+    '</div>'+
+  '</div>';
+}
+
+function adminPanel(){
+  var e=state.event;
+  function f(k,label){return '<div class="field"><label>'+label+'</label><input class="adm" data-k="'+k+'" value="'+esc(e[k])+'"></div>';}
+  return '<div class="section-label">管理員 · 活動設定</div>'+
+  '<div class="panel">'+
+    f("titleZh","標題")+ f("date","日期")+ f("course","球場")+ f("tee","開球")+
+    f("fee","費用")+ f("deadline","截止")+ f("cap","名額")+
+    '<button class="btn sm" id="saveEvent">儲存活動資訊</button>'+
+    '<div class="btnrow"><button class="btn ghost sm" id="clearBtn" style="flex:1">清空整份名單</button></div>'+
+  '</div>';
+}
+
+// ---- 小元件 ----
+function metaRow(k,v,cls){return '<div class="meta-row"><div class="meta-k">'+k+'</div><div class="meta-v '+(cls||"")+'">'+esc(v)+'</div></div>';}
+function playerRow(p,i,c){
+  var isWait=c>0&&i>=c, isMe=p.userId===profile.userId, bits=[];
+  if(p.hcp) bits.push("HCP "+esc(p.hcp));
+  if(p.cart) bits.push(esc(p.cart));
+  if(p.note) bits.push(esc(p.note));
+  return '<div class="player '+(isMe?"me ":"")+(isWait?"wait":"")+'">'+
+    '<div class="pnum">'+(isWait?"候":(i+1))+'</div>'+
+    '<div class="pinfo"><div class="pname">'+esc(p.name)+
+      (isMe?'<span class="tag me">你</span>':'')+(isWait?'<span class="tag wait">候補</span>':'')+'</div>'+
+      (bits.length?'<div class="pmeta">'+bits.join(" · ")+'</div>':'')+'</div>'+
+  '</div>';
+}
+function avatar(){
+  if(profile.pictureUrl) return '<div class="ava"><img src="'+esc(profile.pictureUrl)+'" alt=""></div>';
+  return '<div class="ava">'+esc((profile.displayName||"?").slice(0,1))+'</div>';
+}
+function flagSvg(){return '<svg class="flag" viewBox="0 0 24 24" fill="none"><path d="M6 3v18" stroke="#f0d9a8" stroke-width="1.6" stroke-linecap="round"/><path d="M6 4l11 2.4L6 9.5V4z" fill="#bc4b3c"/><circle cx="6" cy="21" r="1.4" fill="#f0d9a8"/></svg>';}
+
+// ---- 事件 ----
+function onSaveName(){
+  var nm=(document.getElementById("nm").value||"").trim();
+  if(!nm){ toast("請輸入姓名"); return; }
+  busy("saveName","設定中…");
+  api({action:"setName",userId:profile.userId,name:nm}).then(function(r){
+    if(!r.ok){ toast(r.error||"設定失敗"); return reload(); }
+    toast("設定完成!"); reload();
+  }).catch(function(){ toast("連線失敗"); reload(); });
+}
+
+function wireMain(isFull, iAmIn){
+  var reg=document.getElementById("regBtn");
+  if(reg) reg.onclick=function(){
+    busy("regBtn", isFull?"加入中…":"報名中…");
+    api({action:"register",userId:profile.userId,
+         hcp:val("hcp"),cart:val("cart"),note:val("note")}).then(after("報名成功!"));
+  };
+  var edit=document.getElementById("editBtn");
+  if(edit) edit.onclick=function(){ var m=myRow(); showEdit(m); };
+  var cancel=document.getElementById("cancelBtn");
+  if(cancel) cancel.onclick=function(){
+    if(!confirm("確定要取消報名嗎?")) return;
+    busy("cancelBtn","取消中…");
+    api({action:"cancel",userId:profile.userId}).then(after("已取消報名"));
+  };
+  var saveEvent=document.getElementById("saveEvent");
+  if(saveEvent) saveEvent.onclick=function(){
+    var p={action:"updateEvent",userId:profile.userId};
+    document.querySelectorAll(".adm").forEach(function(el){p[el.dataset.k]=el.value;});
+    busy("saveEvent","儲存中…");
+    api(p).then(after("已更新活動資訊"));
+  };
+  var clr=document.getElementById("clearBtn");
+  if(clr) clr.onclick=function(){
+    if(!confirm("確定清空整份報名名單?此動作無法復原。")) return;
+    busy("clearBtn","清空中…");
+    api({action:"clearRoster",userId:profile.userId}).then(after("名單已清空"));
+  };
+  var claim=document.getElementById("claim");
+  if(claim) claim.onclick=function(){
+    if(!confirm("把自己設為管理員?設定後只有你能修改活動資訊與清空名單。")) return;
+    api({action:"claimAdmin",userId:profile.userId}).then(function(r){
+      toast(r.ok?"你已成為管理員":(r.error||"設定失敗")); reload();
+    });
+  };
+  var rl=document.getElementById("reloadBtn");
+  if(rl) rl.onclick=reload;
+}
+
+// 修改報名:把目前值帶回表單再送出
+function showEdit(m){
+  renderMain();                       // 先回到主畫面(會顯示已報名面板)
+  // 直接送出更新用 register 動作覆寫
+  var hcp=prompt("差點 / HCP",m.hcp||""); if(hcp===null) return;
+  var cart=confirm("需要球車嗎?(確定=需要,取消=不需)")?"需要球車":"不需球車";
+  var note=prompt("備註",m.note||""); if(note===null) note=m.note||"";
+  toast("更新中…");
+  api({action:"register",userId:profile.userId,hcp:hcp,cart:cart,note:note}).then(after("已更新"));
+}
+
+function after(msg){
+  return function(r){
+    if(r && r.ok===false){ toast(r.error||"操作失敗"); }
+    else { toast(msg); }
+    reload();
+  };
+}
+function val(id){var el=document.getElementById(id);return el?el.value:"";}
+function busy(id,txt){var b=document.getElementById(id);if(b){b.disabled=true;b.textContent=txt;}}
+
+var toastTimer;
+function toast(msg){
+  var t=document.getElementById("toast");
+  t.textContent=msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer=setTimeout(function(){t.classList.remove("show");},2200);
+}
+</script>
+</body>
+</html>
