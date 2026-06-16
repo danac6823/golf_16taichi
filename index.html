@@ -36,7 +36,8 @@
   .meta-row:last-child{border-bottom:0}
   .meta-k{flex:0 0 60px;font-size:14px;color:var(--ink-soft);letter-spacing:.04em}
   .meta-v{flex:1;font-size:16.5px;font-weight:600}
-  .meta-v.fee{color:var(--flag)}
+  .meta-v.fee{color:var(--fairway-2)}
+  .meta-v.tee{color:var(--flag)}
   .meta-input{flex:1;font-size:16.5px;font-weight:600;font-family:inherit;color:var(--ink);background:#fbfdf8;border:1px solid var(--line);border-radius:6px;padding:5px 8px;width:100%}
 
   .countstrip{display:flex;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin:16px 0}
@@ -411,11 +412,24 @@ async function reload(){
       var ad = await pAdmin;
       if(ad && ad.ok){ s.hcpList=ad.hcpList; s.memberFees=ad.memberFees; s.binding=ad.binding; s.balls=ad.balls; s.techList=ad.techList; s.seasonResetAllowed=ad.seasonResetAllowed; s.seasonResetLastMatch=ad.seasonResetLastMatch; s.teamNote=ad.teamNote; s.__adminLoaded=true; }
     }
+    var prevMyStats = (state && state.myStats !== undefined) ? state.myStats : undefined;
     state = s;
+    if(prevMyStats !== undefined) state.myStats = prevMyStats;   // 沿用上次,重新整理時不閃爍
     render();
+    loadMyStats();           // 首屏畫好後再補抓「我的本年度」統計(不拖慢登入)
   }catch(e){
     fatal(e.message || "連線失敗,請確認 GAS_URL 設定並稍後再試。");
   }
+}
+
+// 首屏後補抓/刷新「我的本年度出席/獎金」(原本在 bootstrap,改延後以加快登入)
+function loadMyStats(){
+  if(!state || !state.member || state.__myStatsLoading) return;
+  state.__myStatsLoading=true;
+  api({ action:"myStats", userId: profile.userId }).then(function(r){
+    state.__myStatsLoading=false;
+    if(r && r.ok){ state.myStats=r.myStats; rerenderKeepOpen(); }
+  });
 }
 
 // 展開管理員專區 → 抓一次管理員資料,抓到後就地重繪(保留已展開的區塊)
@@ -502,7 +516,7 @@ function renderMain(){
     '</div>'+
     '<div class="meta">'+
       metaRow("日期",ev().date)+ metaRow("球場",ev().course)+
-      metaRow("開球",ev().tee)+ metaRow("費用",ev().fee,"fee")+
+      metaRow("開球",ev().tee,"tee")+ metaRow("費用",ev().fee,"fee")+
       metaRow("截止",ev().deadline)+ metaRow("名額",ev().cap)+
     '</div>'+
   '</div>'+
@@ -721,6 +735,7 @@ function matchScoreAdminPanel(){
     '<div class="field"><label>輸入本月桿數 → 自動算排名、更新差點</label></div>'+
     '<button class="btn sm" id="openScore">📝 表格輸入成績(OUT/IN 自動加總)</button>'+
     (state.ranking && state.ranking.date ? '<button class="btn ghost sm" id="editScore" style="margin-top:8px"'+(state.matchLocked?' disabled':'')+'>✏️ 修改 '+esc(state.ranking.date)+' 已輸入成績(只改要修的那格)</button>' : '')+
+    (state.ranking && state.ranking.date ? '<button class="btn ghost sm" id="clearMatch" style="margin-top:8px;color:#bc4b3c;border-color:#e3b9b1"'+(state.matchLocked?' disabled':'')+'>🗑️ 清除 '+esc(state.ranking.date)+' 整場成績(會還原差點)</button>' : '')+
     (state.matchLockDate ? lockBarHtml() : '')+
     '<p class="formnote">總桿=OUT+IN,淨桿=總桿−差點。只算會員;前三名淨桿依級距扣桿,淨桿低於標準桿者再額外扣。總桿冠軍本年度一人一次。送出後可於結果頁直接「📄 匯出 PDF」。</p>'+
     '<div style="font-size:13px;color:var(--ink-soft);margin:14px 0 6px">匯出 PDF(資料夾設定 / 重新匯出)</div>'+
@@ -803,6 +818,8 @@ function groupsSection(){
   if(!g || !g.groups || !g.groups.length){
     if(state.groupsLocked) return '<div class="section-label">分組 · Tee Sheet</div>'+
       '<div class="locked"><span class="lk">🔒</span><div><b>分組尚未開放</b><small>'+esc(state.groupsLocked)+'</small></div></div>';
+    if(!state.isAdmin) return '<div class="section-label">分組 · Tee Sheet</div>'+
+      '<div class="locked"><span class="lk">🔒</span><div><b>分組尚未產生</b><small>總幹事分組後即可在此查看</small></div></div>';
     return "";
   }
   var myGi=-1;
@@ -1536,6 +1553,16 @@ function wireMain(isFull, iAmIn){
       if(box) box.innerHTML='<a class="btn sm" style="margin-top:8px;display:block;text-align:center;text-decoration:none" href="'+r.url+'" target="_blank" rel="noopener">開啟 PDF('+esc(r.date)+')</a>';
       try{ if(window.liff&&liff.openWindow){ liff.openWindow({url:r.url,external:true}); } else { window.open(r.url,"_blank"); } }catch(e){}
     }).catch(function(){ toast("連線失敗"); var el=document.getElementById("exportPdf"); if(el){el.disabled=false;el.textContent="重新匯出 PDF";} });
+  };
+  var cm=document.getElementById("clearMatch");
+  if(cm) cm.onclick=function(){
+    var d=(state.ranking&&state.ranking.date)||"";
+    if(!confirm("確定清除 "+d+" 整場成績?\n\n會還原前三名差點、刪除本場成績與技術獎、清掉本場 PDF 連結與結果頁顯示。\n此動作無法復原。")) return;
+    busy("clearMatch","清除中…");
+    api({action:"clearMatch",userId:profile.userId,date:d}).then(function(r){
+      if(!r.ok){ toast(r.error||"清除失敗"); var e0=document.getElementById("clearMatch"); if(e0){e0.disabled=false;} return; }
+      toast("已清除 "+(r.date||d)+" 整場成績,差點已還原"); reload();
+    }).catch(function(){ toast("連線失敗"); var e0=document.getElementById("clearMatch"); if(e0){e0.disabled=false;} });
   };
   var sn=document.getElementById("saveNote");
   if(sn) sn.onclick=function(){
