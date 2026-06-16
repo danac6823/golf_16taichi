@@ -17,7 +17,7 @@
   html,body{margin:0;background:var(--paper);}
   body{
     font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
-    color:var(--ink); line-height:1.55; -webkit-font-smoothing:antialiased;
+    color:var(--ink); font-size:17px; line-height:1.55; -webkit-font-smoothing:antialiased; -webkit-text-size-adjust:100%;
   }
   .wrap{max-width:540px;margin:0 auto;padding:18px 16px calc(48px + env(safe-area-inset-bottom));}
   .center{text-align:center;color:var(--ink-soft);padding:70px 20px;}
@@ -27,22 +27,22 @@
   .card{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
   .masthead{background:linear-gradient(160deg,var(--fairway),var(--fairway-2));color:#f4f7f0;padding:20px 20px 22px;position:relative}
   .masthead .flag{position:absolute;top:16px;right:18px;width:30px;height:30px}
-  .eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#b9d3c0;margin:0 0 6px}
-  .title{font-family:Georgia,"Times New Roman","Noto Serif TC",serif;font-size:26px;font-weight:700;margin:0;line-height:1.2}
-  .title-zh{font-size:17px;font-weight:600;margin:4px 0 0;color:#dce8df}
+  .eyebrow{font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:#b9d3c0;margin:0 0 6px}
+  .title{font-family:Georgia,"Times New Roman","Noto Serif TC",serif;font-size:28px;font-weight:700;margin:0;line-height:1.2}
+  .title-zh{font-size:18.5px;font-weight:600;margin:4px 0 0;color:#dce8df}
 
   .meta{padding:6px 20px 14px}
   .meta-row{display:flex;align-items:baseline;gap:12px;padding:9px 0;border-bottom:1px solid #efece0}
   .meta-row:last-child{border-bottom:0}
-  .meta-k{flex:0 0 60px;font-size:13px;color:var(--ink-soft);letter-spacing:.04em}
-  .meta-v{flex:1;font-size:15.5px;font-weight:600}
+  .meta-k{flex:0 0 60px;font-size:14px;color:var(--ink-soft);letter-spacing:.04em}
+  .meta-v{flex:1;font-size:16.5px;font-weight:600}
   .meta-v.fee{color:var(--flag)}
-  .meta-input{flex:1;font-size:15.5px;font-weight:600;font-family:inherit;color:var(--ink);background:#fbfdf8;border:1px solid var(--line);border-radius:6px;padding:5px 8px;width:100%}
+  .meta-input{flex:1;font-size:16.5px;font-weight:600;font-family:inherit;color:var(--ink);background:#fbfdf8;border:1px solid var(--line);border-radius:6px;padding:5px 8px;width:100%}
 
   .countstrip{display:flex;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin:16px 0}
   .cstat{flex:1;background:var(--paper-2);padding:14px 6px;text-align:center}
-  .cstat b{display:block;font-size:22px;font-family:Georgia,serif;color:var(--fairway);line-height:1}
-  .cstat span{display:block;margin-top:3px;font-size:11px;color:var(--ink-soft);letter-spacing:.02em;line-height:1.25}
+  .cstat b{display:block;font-size:24px;font-family:Georgia,serif;color:var(--fairway);line-height:1}
+  .cstat span{display:block;margin-top:3px;font-size:12px;color:var(--ink-soft);letter-spacing:.02em;line-height:1.25}
   .cstat.mem{background:var(--green-soft)}
   .cstat.mem b{color:var(--fairway)}
   .cstat.mem span{color:var(--fairway-2)}
@@ -52,26 +52,26 @@
   .youbar .who{min-width:0}
   .youbar .badge{margin-left:auto}
   .hcpmini{flex:0 0 auto;text-align:center;background:var(--paper);border:1px solid #cfe0d2;border-radius:12px;padding:5px 22px;line-height:1.1}
-  .hcpmini span{display:block;font-size:11px;color:var(--ink-soft)}
-  .hcpmini b{font-family:Georgia,serif;font-size:20px;color:var(--fairway)}
-  .ava{flex:0 0 38px;height:38px;border-radius:50%;background:var(--fairway);color:#fff;display:grid;place-items:center;font-weight:700;font-size:16px;overflow:hidden}
+  .hcpmini span{display:block;font-size:12px;color:var(--ink-soft)}
+  .hcpmini b{font-family:Georgia,serif;font-size:21.5px;color:var(--fairway)}
+  .ava{flex:0 0 38px;height:38px;border-radius:50%;background:var(--fairway);color:#fff;display:grid;place-items:center;font-weight:700;font-size:17.5px;overflow:hidden}
   .ava img{width:100%;height:100%;object-fit:cover}
   .youbar .who{flex:1;min-width:0}
-  .youbar .who b{font-size:15.5px}
-  .youbar .who small{display:block;font-size:12px;color:var(--ink-soft)}
-  .badge{flex:0 0 auto;font-size:12px;font-weight:700;padding:5px 10px;border-radius:20px}
+  .youbar .who b{font-size:16.5px}
+  .youbar .who small{display:block;font-size:13px;color:var(--ink-soft)}
+  .badge{flex:0 0 auto;font-size:13px;font-weight:700;padding:5px 10px;border-radius:20px}
   .badge.in{background:var(--fairway);color:#fff}
   .badge.out{background:#efe6d4;color:var(--gold)}
 
-  .section-label{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin:26px 0 10px;display:flex;align-items:center;gap:8px}
+  .section-label{font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin:26px 0 10px;display:flex;align-items:center;gap:8px}
   .admsec{margin:26px 0 0}
-  .admsec>summary{cursor:pointer;list-style:none;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 10px;display:flex;align-items:center}
+  .admsec>summary{cursor:pointer;list-style:none;font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 10px;display:flex;align-items:center}
   .admsec>summary::-webkit-details-marker{display:none}
-  .admsec>summary::after{content:"展開 ▾";margin-left:auto;font-size:11px;letter-spacing:.02em;text-transform:none;color:var(--fairway)}
+  .admsec>summary::after{content:"展開 ▾";margin-left:auto;font-size:12px;letter-spacing:.02em;text-transform:none;color:var(--fairway)}
   .admsec[open]>summary::after{content:"收合 ▴"}
-  .subhd{font-size:13px;font-weight:700;color:var(--fairway);border-bottom:1px solid var(--line);padding-bottom:5px;margin-bottom:10px}
+  .subhd{font-size:14px;font-weight:700;color:var(--fairway);border-bottom:1px solid var(--line);padding-bottom:5px;margin-bottom:10px}
   .adminzone{background:#e9eef2;border:1px solid #ccdae3;border-radius:14px;padding:6px 12px 14px;margin:22px 0}
-  .adminzone::before{content:"🔒 管理員專區(僅你看得到)";display:block;font-size:12px;font-weight:700;color:#42637a;letter-spacing:.04em;margin:8px 2px 2px}
+  .adminzone::before{content:"🔒 管理員專區(僅你看得到)";display:block;font-size:13px;font-weight:700;color:#42637a;letter-spacing:.04em;margin:8px 2px 2px}
   .adminzone .section-label{margin-top:16px;color:#52708a}
   .adminzone .admsec{margin-top:16px}
   .adminzone .admsec>summary{color:#42637a}
@@ -79,59 +79,59 @@
 
   .panel{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
   .field{margin-bottom:12px}
-  .field label{display:block;font-size:12.5px;color:var(--ink-soft);margin-bottom:5px}
-  .field input,.field select,.field textarea{width:100%;font-family:inherit;font-size:15px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:11px 12px}
+  .field label{display:block;font-size:13.5px;color:var(--ink-soft);margin-bottom:5px}
+  .field input,.field select,.field textarea{width:100%;font-family:inherit;font-size:16px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:11px 12px}
   .field textarea{resize:vertical;min-height:44px}
   .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--fairway-2);background:#fff;box-shadow:0 0 0 3px rgba(45,106,79,.12)}
   .row2{display:flex;gap:10px}.row2 .field{flex:1}
 
-  .btn{width:100%;font-family:inherit;font-size:16px;font-weight:700;letter-spacing:.04em;color:#f4f7f0;background:var(--fairway);border:none;border-radius:10px;padding:13px;cursor:pointer;transition:background .15s,transform .05s}
+  .btn{width:100%;font-family:inherit;font-size:17.5px;font-weight:700;letter-spacing:.04em;color:#f4f7f0;background:var(--fairway);border:none;border-radius:10px;padding:13px;cursor:pointer;transition:background .15s,transform .05s}
   .btn:hover{background:#0f3d22}.btn:active{transform:translateY(1px)}
   .btn[disabled]{background:#9aa79b;cursor:not-allowed}
   .btn.ghost{background:transparent;color:var(--flag);border:1px solid #e8cfca}
   .btn.ghost:hover{background:#fbeeec}
-  .btn.sm{font-size:14px;padding:10px}
+  .btn.sm{font-size:15px;padding:10px}
   .btnrow{display:flex;gap:10px;margin-top:4px}
-  .formnote{font-size:12px;color:var(--ink-soft);text-align:center;margin-top:10px}
+  .formnote{font-size:13px;color:var(--ink-soft);text-align:center;margin-top:10px}
 
   .player{display:flex;align-items:center;gap:12px;background:var(--paper-2);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:8px;box-shadow:var(--shadow)}
   .player.me{border-color:var(--fairway-2);box-shadow:0 0 0 2px rgba(45,106,79,.14)}
   .player.wait{background:#fbf7ef;border-style:dashed}
-  .pnum{flex:0 0 26px;height:26px;border-radius:50%;background:var(--green-soft);color:var(--fairway);font-size:13px;font-weight:700;display:grid;place-items:center}
+  .pnum{flex:0 0 26px;height:26px;border-radius:50%;background:var(--green-soft);color:var(--fairway);font-size:14px;font-weight:700;display:grid;place-items:center}
   .player.wait .pnum{background:#f3e6cf;color:var(--gold)}
   .pinfo{flex:1;min-width:0}
-  .pname{font-size:15.5px;font-weight:700}
-  .pname .tag{font-size:11px;font-weight:600;margin-left:6px}
+  .pname{font-size:16.5px;font-weight:700}
+  .pname .tag{font-size:12px;font-weight:600;margin-left:6px}
   .pname .tag.me{color:var(--fairway-2)} .pname .tag.wait{color:var(--gold)}
-  .pmeta{font-size:12px;color:var(--ink-soft);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pmeta{font-size:13px;color:var(--ink-soft);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-  .empty{text-align:center;color:var(--ink-soft);font-size:14px;padding:26px 14px;border:1px dashed var(--line);border-radius:12px;background:var(--paper-2)}
-  .footer{margin-top:26px;text-align:center;font-size:12px;color:var(--ink-soft)}
-  .footer button{font-family:inherit;font-size:12px;color:var(--ink-soft);background:none;border:none;text-decoration:underline;cursor:pointer;margin:0 6px}
-  .err{background:#fbeeec;border:1px solid #e8cfca;color:#8a3328;border-radius:10px;padding:12px 14px;font-size:14px;margin:14px 0}
-  .toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;font-size:14px;padding:11px 18px;border-radius:10px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;max-width:90%}
+  .empty{text-align:center;color:var(--ink-soft);font-size:15px;padding:26px 14px;border:1px dashed var(--line);border-radius:12px;background:var(--paper-2)}
+  .footer{margin-top:26px;text-align:center;font-size:13px;color:var(--ink-soft)}
+  .footer button{font-family:inherit;font-size:13px;color:var(--ink-soft);background:none;border:none;text-decoration:underline;cursor:pointer;margin:0 6px}
+  .err{background:#fbeeec;border:1px solid #e8cfca;color:#8a3328;border-radius:10px;padding:12px 14px;font-size:15px;margin:14px 0}
+  .toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;font-size:15px;padding:11px 18px;border-radius:10px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;max-width:90%}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-  .stale{background:#fbf3e0;border:1px solid #e9d6a8;color:#8a6516;border-radius:10px;padding:9px 12px;font-size:13px;margin-bottom:10px}
+  .stale{background:#fbf3e0;border:1px solid #e9d6a8;color:#8a6516;border-radius:10px;padding:9px 12px;font-size:14px;margin-bottom:10px}
   .ggrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:start}
   .ggrid .grp{margin-bottom:0}
   .grp{background:var(--paper-2);border:1px solid var(--line);border-radius:12px;padding:0;margin-bottom:10px;box-shadow:var(--shadow);overflow:hidden}
   .grp.me{border-color:var(--fairway-2);box-shadow:0 0 0 2px rgba(45,106,79,.14)}
-  .grphead{display:flex;justify-content:space-between;align-items:center;background:var(--green-soft);padding:8px 13px;font-size:14px}
+  .grphead{display:flex;justify-content:space-between;align-items:center;background:var(--green-soft);padding:8px 13px;font-size:15px}
   .grp.me .grphead{background:var(--fairway);color:#fff}
-  .grphead span{font-size:13px;font-weight:700;font-family:Georgia,serif}
-  .grpp{display:flex;align-items:center;gap:8px;padding:9px 13px;border-top:1px solid #efece0;font-size:14.5px}
-  .grpp small{color:var(--ink-soft);font-size:12px}
-  .grpp .tag.me{font-size:11px;font-weight:600;color:var(--fairway-2)}
+  .grphead span{font-size:14px;font-weight:700;font-family:Georgia,serif}
+  .grpp{display:flex;align-items:center;gap:8px;padding:9px 13px;border-top:1px solid #efece0;font-size:15.5px}
+  .grpp small{color:var(--ink-soft);font-size:13px}
+  .grpp .tag.me{font-size:12px;font-weight:600;color:var(--fairway-2)}
   .hcpbox{display:flex;flex-direction:column;align-items:center;background:var(--green-soft);border:1px solid #cfe0d2;border-radius:12px;padding:12px;margin-bottom:14px}
-  .hcpbox span{font-size:12px;color:var(--ink-soft);letter-spacing:.04em}
-  .hcpbox b{font-size:30px;font-family:Georgia,serif;color:var(--fairway);line-height:1.1}
-  .hcpbox small{font-size:11px;color:var(--ink-soft)}
-  .hcplist{font-size:13px;color:var(--ink-soft);margin:8px 0 0;max-height:160px;overflow:auto}
+  .hcpbox span{font-size:13px;color:var(--ink-soft);letter-spacing:.04em}
+  .hcpbox b{font-size:32.5px;font-family:Georgia,serif;color:var(--fairway);line-height:1.1}
+  .hcpbox small{font-size:12px;color:var(--ink-soft)}
+  .hcplist{font-size:14px;color:var(--ink-soft);margin:8px 0 0;max-height:160px;overflow:auto}
   .hcplist div{display:flex;justify-content:space-between;padding:4px 2px;border-bottom:1px solid #efece0}
   .hcplist b{color:var(--ink);font-weight:600}
-  textarea.big{min-height:90px;font-family:inherit;font-size:14px;width:100%;background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:10px}
-  .rankhead,.rankrow{display:flex;align-items:center;gap:6px;font-size:14px;padding:8px 10px}
-  .rankhead{font-size:12px;color:var(--ink-soft);letter-spacing:.04em}
+  textarea.big{min-height:90px;font-family:inherit;font-size:15px;width:100%;background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:10px}
+  .rankhead,.rankrow{display:flex;align-items:center;gap:6px;font-size:15px;padding:8px 10px}
+  .rankhead{font-size:13px;color:var(--ink-soft);letter-spacing:.04em}
   .rankrow{background:var(--paper-2);border:1px solid var(--line);border-radius:10px;margin-bottom:6px;box-shadow:var(--shadow)}
   .rankrow.gross{background:#fbf3e0;border-color:#e9d6a8}
   .rankrow.me{border-color:var(--fairway-2);box-shadow:0 0 0 2px rgba(45,106,79,.14)}
@@ -141,161 +141,176 @@
   .rankhead .rc2,.rankrow .rc2{flex:0 0 46px;text-align:right}
   .rankrow .rc2.up{color:var(--flag);font-weight:700}
   .seasonmatch{margin:0 0 8px}
-  .seasonmatch>summary{cursor:pointer;list-style:none;padding:10px 12px;font-size:14px;font-weight:600;color:var(--ink);background:var(--paper-2);border:1px solid var(--line);border-radius:10px}
+  .seasonmatch>summary{cursor:pointer;list-style:none;padding:10px 12px;font-size:15px;font-weight:600;color:var(--ink);background:var(--paper-2);border:1px solid var(--line);border-radius:10px}
   .seasonmatch>summary::-webkit-details-marker{display:none}
   .seasonmatch>summary::after{content:"▾";float:right;color:var(--ink-soft);font-weight:400}
   .seasonmatch[open]>summary::after{content:"▴"}
   .ssgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-  .ssrow{display:flex;align-items:center;gap:7px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--paper-2);font-size:13px;min-width:0}
+  .ssrow{display:flex;align-items:center;gap:7px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--paper-2);font-size:14px;min-width:0}
   .ssrow.gross{background:#fbf3e0;border-color:#e9d6a8}
   .ssrow.me{border-color:var(--fairway-2);box-shadow:0 0 0 2px rgba(45,106,79,.12)}
-  .ssrow .sr{flex:0 0 18px;color:var(--ink-soft);font-size:12px;text-align:right}
+  .ssrow .sr{flex:0 0 18px;color:var(--ink-soft);font-size:13px;text-align:right}
   .ssrow .snm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .ssrow .sg{flex:0 0 auto;font-family:Georgia,serif;font-weight:700;color:var(--fairway)}
   #seasonMBody{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
   .guestbox{background:#fbf2e9;border:1px solid #ecd9c4;border-radius:12px;margin-top:10px;padding:2px 12px 12px}
-  .guestbox>summary{cursor:pointer;list-style:none;font-size:14px;font-weight:600;color:#9a6a3a;padding:11px 2px}
+  .editbox{border:1px solid var(--line);border-radius:11px;background:var(--paper-2);padding:0 12px;margin-bottom:4px}
+  .lockbar{display:flex;align-items:center;gap:8px;margin:10px 0 2px;padding:9px 12px;border-radius:10px;background:#eef4ee;border:1px solid #d6e3d8;font-size:13.5px}
+  .lockbar.on{background:#f6ece3;border-color:#e7d2bd}
+  .lockbar .lk{flex:1;font-weight:600;color:var(--ink)}
+  .lockbar .btn{width:auto;flex:0 0 auto;padding:7px 12px;font-size:13px}
+  .editbox>summary{cursor:pointer;list-style:none;padding:12px 0;font-size:15.5px;font-weight:600;color:var(--ink);display:flex;align-items:center}
+  .editbox .reg-ok{color:var(--fairway);font-weight:700}
+  .editbox>summary::-webkit-details-marker{display:none}
+  .editbox>summary::after{content:"修改 ▾";margin-left:auto;font-size:13px;color:var(--fairway);font-weight:700;white-space:nowrap;padding-left:8px}
+  .editbox[open]>summary::after{content:"收合 ▴"}
+  .editbox[open]>summary{border-bottom:1px solid var(--line);margin-bottom:8px}
+  .editbox>:last-child{margin-bottom:12px}
+  .guestbox>summary{cursor:pointer;list-style:none;font-size:15px;font-weight:600;color:#9a6a3a;padding:11px 2px}
   .guestbox>summary::-webkit-details-marker{display:none}
   .guestbox>summary::after{content:"▾";float:right;color:#b98a5a;font-weight:400}
   .guestbox[open]>summary::after{content:"▴"}
   .guestbox .field label{color:#8a6038}
   .seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
-  .seg .segb{flex:1;padding:11px 8px;background:var(--paper-2);border:none;border-right:1px solid var(--line);font-size:15px;font-weight:600;color:var(--ink-soft);font-family:inherit;cursor:pointer}
+  .seg .segb{flex:1;padding:11px 8px;background:var(--paper-2);border:none;border-right:1px solid var(--line);font-size:16px;font-weight:600;color:var(--ink-soft);font-family:inherit;cursor:pointer}
   .seg .segb:last-child{border-right:none}
   .seg .segb.on{background:var(--fairway);color:#fff}
+  .atttext{width:100%;flex:1;min-height:240px;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;padding:12px;font-size:15px;line-height:1.7;font-family:inherit;color:var(--ink);background:var(--paper-2);resize:none}
   .champrow{display:flex;align-items:center;gap:8px;padding:11px 8px;border-top:1px solid var(--line);cursor:pointer}
   .champrow:first-child{border-top:none}
   .champrow .cr-date{flex:0 0 52px;font-weight:700;color:var(--fairway)}
-  .champrow .cr-champ{flex:1;min-width:0;font-size:14px}
+  .champrow .cr-champ{flex:1;min-width:0;font-size:15px}
   .champrow .cr-champ small{color:var(--ink-soft)}
-  .champrow .cr-go{flex:0 0 auto;font-size:13px;color:var(--flag);font-weight:700}
+  .champrow .cr-go{flex:0 0 auto;font-size:14px;color:var(--flag);font-weight:700}
   .champrow:active{background:var(--green-soft)}
   .scorebox{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin-bottom:12px;box-shadow:var(--shadow)}
-  .scorebox .boxtitle{font-size:12px;font-weight:700;color:var(--fairway);letter-spacing:.04em;margin:2px 2px 7px}
+  .scorebox .boxtitle{font-size:13px;font-weight:700;color:var(--fairway);letter-spacing:.04em;margin:2px 2px 7px}
   .scorebox .rankhead{padding:0 8px 6px}
   .scorebox .rankrow{box-shadow:none;background:transparent;border:none;border-radius:0;border-top:1px solid var(--line);margin:0;padding:8px}
   .scorebox .rankrow.me{background:var(--green-soft)}
   .scorebox .rankrow.gross{background:#fbf3e0}
   .techrow{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:8px;border-top:1px solid var(--line)}
   .techrow:first-of-type{border-top:none}
-  .techrow .ta{font-size:13px;color:var(--ink-soft);flex:0 0 auto}
-  .techrow .ta em{font-style:normal;font-size:12px;color:var(--flag);margin-left:4px}
-  .techrow .tw{font-weight:600;font-size:15px;text-align:right;min-width:0}
+  .techrow .ta{font-size:14px;color:var(--ink-soft);flex:0 0 auto}
+  .techrow .ta em{font-style:normal;font-size:13px;color:var(--flag);margin-left:4px}
+  .techrow .tw{font-weight:600;font-size:16px;text-align:right;min-width:0}
   .hcpinfo{margin:2px 0 12px}
-  .hcpinfo>summary{cursor:pointer;padding:8px 2px;font-size:13px;font-weight:700;color:var(--fairway);list-style:none}
+  .hcpinfo>summary{cursor:pointer;padding:8px 2px;font-size:14px;font-weight:700;color:var(--fairway);list-style:none}
   .hcpinfo>summary::-webkit-details-marker{display:none}
   .hcpinfo>summary::after{content:"▾";float:right;color:var(--ink-soft);font-weight:400}
   .hcpinfo[open]>summary::after{content:"▴"}
-  .hcpinfo-body{padding:0 2px 8px;font-size:13px;color:var(--ink);line-height:1.6}
+  .hcpinfo-body{padding:0 2px 8px;font-size:14px;color:var(--ink);line-height:1.6}
   .hcpinfo-body p{margin:6px 0}
   .hcpinfo-body .hi-h{font-weight:700;color:var(--fairway);margin-top:10px}
-  .hcpinfo-body .hi-n{color:var(--ink-soft);font-size:12px;background:var(--paper-2);border-radius:8px;padding:6px 9px}
+  .hcpinfo-body .hi-n{color:var(--ink-soft);font-size:13px;background:var(--paper-2);border-radius:8px;padding:6px 9px}
   .hi-t{width:100%;border-collapse:collapse;margin:4px 0}
-  .hi-t th,.hi-t td{border:1px solid var(--line);padding:4px 6px;text-align:center;font-size:12px}
+  .hi-t th,.hi-t td{border:1px solid var(--line);padding:4px 6px;text-align:center;font-size:13px}
   .hi-t th{background:var(--paper-2);color:var(--ink-soft)}
   .rankrow .rl{font-weight:700;color:var(--fairway)}
   .rankrow.gross .rl{color:var(--gold)}
-  .rankrow .rn i{font-size:11px;color:var(--fairway-2);font-style:normal}
-  .ranknote{font-size:12px;color:var(--ink-soft);margin-top:6px}
-  .feesum{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;font-size:13px;color:var(--ink-soft)}
-  .feesum b{color:var(--fairway);font-family:Georgia,serif;font-size:15px}
+  .rankrow .rn i{font-size:12px;color:var(--fairway-2);font-style:normal}
+  .ranknote{font-size:13px;color:var(--ink-soft);margin-top:6px}
+  .feesum{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;font-size:14px;color:var(--ink-soft)}
+  .feesum b{color:var(--fairway);font-family:Georgia,serif;font-size:16px}
   .feerow{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;background:var(--paper-2);cursor:pointer}
+  .feerow.ro{cursor:default}
   .feerow.paid{background:var(--green-soft);border-color:#cfe0d2}
-  .feerow .fn{flex:1;font-size:14.5px;font-weight:600}
+  .feerow .fn{flex:1;font-size:15.5px;font-weight:600}
   .feerow .fn small{color:var(--ink-soft);font-weight:400}
-  .feerow .fa{font-size:13px;color:var(--ink-soft)}
-  .feerow .fc{flex:0 0 auto;font-size:12.5px;font-weight:700;color:#9aa79b;min-width:48px;text-align:right}
+  .feerow .fa{font-size:14px;color:var(--ink-soft)}
+  .feerow .fc{flex:0 0 auto;font-size:13.5px;font-weight:700;color:#9aa79b;min-width:48px;text-align:right}
   .feerow.paid .fc{color:var(--fairway)}
   .sch{display:flex;align-items:center;flex-wrap:wrap;gap:5px 9px;padding:11px 13px;border:1px solid var(--line);border-radius:11px;margin-bottom:7px;background:var(--paper-2);box-shadow:var(--shadow)}
   .sch.next{border-color:var(--fairway-2);box-shadow:0 0 0 2px rgba(45,106,79,.14)}
   .sch.past{opacity:.5}
-  .sch .s-date{font-size:16px;font-family:Georgia,serif;color:var(--fairway);font-weight:700}
-  .sch .s-dow{font-size:13px;color:var(--ink-soft)}
-  .sch .typ{font-size:12px;font-weight:700;color:var(--fairway-2);background:var(--green-soft);padding:2px 7px;border-radius:5px}
+  .sch .s-date{font-size:17.5px;font-family:Georgia,serif;color:var(--fairway);font-weight:700}
+  .sch .s-dow{font-size:14px;color:var(--ink-soft)}
+  .sch .typ{font-size:13px;font-weight:700;color:var(--fairway-2);background:var(--green-soft);padding:2px 7px;border-radius:5px}
   .sch .typ.alt{color:var(--flag);background:#fbeeec}
-  .sch .s-course{font-size:15px;font-weight:600}
-  .sch .s-tee{font-size:14px;color:var(--ink)}
-  .sch .s-x{font-size:13px;color:var(--ink-soft)}
-  .schb{margin-left:auto;flex:0 0 auto;font-size:12px;font-weight:700;padding:3px 9px;border-radius:20px;background:#efe6d4;color:var(--gold)}
+  .sch .s-course{font-size:16px;font-weight:600}
+  .sch .s-tee{font-size:15px;color:var(--ink)}
+  .sch .s-x{font-size:14px;color:var(--ink-soft)}
+  .schb{margin-left:auto;flex:0 0 auto;font-size:13px;font-weight:700;padding:3px 9px;border-radius:20px;background:#efe6d4;color:var(--gold)}
   .schb.on{background:var(--fairway);color:#fff}
   .locked{display:flex;align-items:center;gap:12px;padding:16px;border:1px dashed var(--line);border-radius:12px;background:var(--paper-2);color:var(--ink-soft)}
-  .locked .lk{font-size:22px}
-  .locked b{display:block;font-size:14px;color:var(--ink)}
-  .locked small{font-size:12px;color:var(--ink-soft)}
+  .locked .lk{font-size:24px}
+  .locked b{display:block;font-size:15px;color:var(--ink)}
+  .locked small{font-size:13px;color:var(--ink-soft)}
   .gm{color:#2563eb}
   .gf{color:#d6336c}
   .bindrow{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border:1px solid var(--line);border-radius:9px;margin-bottom:5px;background:var(--paper-2)}
   .bindrow.on{background:var(--green-soft);border-color:#cfe0d2}
-  .bindrow .bn{font-size:14px;font-weight:600}
+  .bindrow .bn{font-size:15px;font-weight:600}
   .bindrow .bn small{color:var(--ink-soft);font-weight:400}
-  .bindrow .bs{font-size:12px;font-weight:700;color:#c98a2b}
+  .bindrow .bs{font-size:13px;font-weight:700;color:#c98a2b}
   .bindrow.on .bs{color:var(--fairway)}
   .offs{display:flex;flex-direction:column;gap:8px}
   .offrow{display:flex;align-items:center;gap:12px}
-  .offrow .ot{flex:0 0 64px;font-size:12px;font-weight:700;color:#fff;background:var(--fairway);padding:3px 0;border-radius:6px;text-align:center}
-  .offrow .on{font-size:15px;font-weight:600}
+  .offrow .ot{flex:0 0 64px;font-size:13px;font-weight:700;color:#fff;background:var(--fairway);padding:3px 0;border-radius:6px;text-align:center}
+  .offrow .on{font-size:16px;font-weight:600}
   .mystat{display:flex;gap:8px}
   .mystat .ms{flex:1;text-align:center;background:var(--paper-2);border:1px solid var(--line);border-radius:10px;padding:10px 4px}
-  .mystat .ms b{display:block;font-family:Georgia,serif;font-size:17px;color:var(--fairway)}
-  .mystat .ms span{font-size:11px;color:var(--ink-soft)}
-  .perfect{margin-top:10px;text-align:center;font-size:13px;font-weight:700;color:var(--gold);background:#fbf3e0;border:1px solid #e9d6a8;border-radius:9px;padding:7px}
+  .mystat .ms b{display:block;font-family:Georgia,serif;font-size:18.5px;color:var(--fairway)}
+  .mystat .ms span{font-size:12px;color:var(--ink-soft)}
+  .perfect{margin-top:10px;text-align:center;font-size:14px;font-weight:700;color:var(--gold);background:#fbf3e0;border:1px solid #e9d6a8;border-radius:9px;padding:7px}
   .techrow{display:grid;grid-template-columns:1.1fr 1.3fr 56px;gap:6px;margin-bottom:6px}
-  .techrow select,.techrow input{width:100%;padding:8px 6px;border:1px solid var(--line);border-radius:8px;background:var(--paper-2);font-size:13px}
+  .techrow select,.techrow input{width:100%;padding:8px 6px;border:1px solid var(--line);border-radius:8px;background:var(--paper-2);font-size:14px}
   .techrow .tr-tiao{text-align:center}
   .modal{position:fixed;inset:0;background:rgba(20,30,22,.55);z-index:50;display:flex;align-items:flex-end;justify-content:center}
   .modal.hidden{display:none}
   .modal-card{background:var(--paper);width:100%;max-width:520px;max-height:88vh;border-radius:16px 16px 0 0;padding:16px;display:flex;flex-direction:column;box-shadow:0 -8px 30px rgba(0,0,0,.3)}
-  .modal-head{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:16px;color:var(--fairway);margin-bottom:10px}
-  .mclose{background:none;border:none;font-size:20px;color:var(--ink-soft);cursor:pointer;line-height:1;padding:2px 6px}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:17.5px;color:var(--fairway);margin-bottom:10px}
+  .mclose{background:none;border:none;font-size:21.5px;color:var(--ink-soft);cursor:pointer;line-height:1;padding:2px 6px}
   .sctab-wrap{overflow:auto;flex:1;border:1px solid var(--line);border-radius:10px;margin:4px 0 12px}
   .sctab{width:100%;border-collapse:collapse}
-  .sctab th{position:sticky;top:0;background:var(--green-soft);font-size:12px;padding:7px 4px;border-bottom:1px solid var(--line)}
-  .sctab td{padding:5px 4px;border-bottom:1px solid #eee;text-align:center;font-size:14px}
+  .sctab th{position:sticky;top:0;background:var(--green-soft);font-size:13px;padding:7px 4px;border-bottom:1px solid var(--line)}
+  .sctab td{padding:5px 4px;border-bottom:1px solid #eee;text-align:center;font-size:15px}
   .sctab td.sn{text-align:left;padding-left:10px;font-weight:600;white-space:nowrap}
-  .sctab input{width:54px;text-align:center;padding:7px 2px;border:1px solid var(--line);border-radius:8px;font-size:15px}
+  .sctab input{width:54px;text-align:center;padding:7px 2px;border:1px solid var(--line);border-radius:8px;font-size:16px}
   .sctab .sc-tot{font-family:Georgia,serif;font-weight:700;color:var(--fairway);min-width:38px}
   .sctab .sc-hcp{color:var(--ink-soft)}
   .sctab .sc-net{font-family:Georgia,serif;font-weight:700;color:var(--flag)}
   .sctab tr.chg{background:#fbf3e0}
   .sctab .nh b{color:var(--fairway)}
   .sctab .hcpold{color:#999;text-decoration:line-through;margin-right:2px}
-  .smnote{font-size:12px;color:var(--ink-soft);margin:2px 0 8px;text-align:left}
+  .smnote{font-size:13px;color:var(--ink-soft);margin:2px 0 8px;text-align:left}
   .smfoot .btn{width:100%}
   /* 成績輸入:滿版 + 內容可捲動 + 送出鍵固定底部 */
-  .modal-card.full{max-width:560px;width:100%;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;border-radius:0;padding:12px 14px 0}
-  .modal-card.full #smInput{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
-  .modal-card.full #smResult{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .modal-card.full{max-width:560px;width:100%;height:100dvh;height:100%;max-height:none;border-radius:0;padding:12px 14px 0}
+  .modal-card.full #smInput{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+  .modal-card.full #smResult{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
   .modal-card.full .sctab-wrap{overflow-x:auto;overflow-y:visible}
-  .modal-card.full .smfoot{position:sticky;bottom:0;background:var(--paper);padding:10px 0 calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line);box-shadow:0 -6px 14px rgba(247,244,236,.95)}
-  .pvbar{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#14532d;color:#eaf3ec;border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:13px}
+  .modal-card.full .smfoot{flex:0 0 auto;background:var(--paper);padding:8px 0 calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+  .modal-card.full .smfoot .btn{padding:11px;font-size:16px}
+  .pvbar{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#14532d;color:#eaf3ec;border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:14px}
   .pvbar.pv{background:#bc4b3c}
-  .pvbar button{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+  .pvbar button{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:8px;padding:6px 10px;font-size:14px;cursor:pointer;white-space:nowrap}
   .badge.leave{background:#f3e0dc;color:#bc4b3c}
-  .leaverow{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border:1px solid var(--line);border-radius:10px;margin-bottom:5px;background:var(--paper-2);font-weight:600;font-size:14px}
-  .leaverow span{font-size:12px;font-weight:700;color:var(--flag)}
+  .leaverow{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border:1px solid var(--line);border-radius:10px;margin-bottom:5px;background:var(--paper-2);font-weight:600;font-size:15px}
+  .leaverow span{font-size:13px;font-weight:700;color:var(--flag)}
   .progress{display:flex;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin:0 0 16px}
   .progress .pg{flex:1;background:var(--paper);padding:9px 4px;text-align:center}
-  .progress .pg b{font-family:Georgia,serif;font-size:18px;color:var(--fairway);margin-left:6px}
-  .progress .pg span{font-size:13px;color:var(--ink-soft)}
+  .progress .pg b{font-family:Georgia,serif;font-size:19.5px;color:var(--fairway);margin-left:6px}
+  .progress .pg span{font-size:14px;color:var(--ink-soft)}
   .progress .pg i{display:none}
   .progress .pg.warn b{color:var(--flag)}
   .rgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
   .rchip{display:flex;align-items:center;gap:6px;background:var(--paper-2);border:1px solid var(--line);border-radius:9px;padding:7px 9px;min-width:0}
   .rchip.me{background:var(--green-soft);border-color:#cfe0d2}
   .rchip.wait{opacity:.7}
-  .rchip .rnum{flex:0 0 auto;font-size:11px;color:var(--ink-soft);min-width:16px;text-align:center}
-  .rchip .rnm{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .rchip .ct{flex:0 0 auto;font-size:10px;font-style:normal;color:#fff;background:#9aa0a6;border-radius:5px;padding:1px 4px}
+  .rchip .rnum{flex:0 0 auto;font-size:12px;color:var(--ink-soft);min-width:16px;text-align:center}
+  .rchip .rnm{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rchip .ct{flex:0 0 auto;font-size:11px;font-style:normal;color:#fff;background:#9aa0a6;border-radius:5px;padding:1px 4px}
   .rchip .ct.me{background:var(--fairway)}
   .rchip .ct.wait{background:#c98a2b}
   .rchip .ct.note{background:#7a86c2}
   .rchip .ct.guest{background:#0c8a8a}
-  .rchip .gg{margin-left:auto;font-family:Georgia,serif;font-size:16px;color:var(--fairway)}
+  .rchip .gg{margin-left:auto;font-family:Georgia,serif;font-size:17.5px;color:var(--fairway)}
   .guestlist{margin-top:12px;border-top:1px solid var(--line);padding-top:8px}
-  .guestlist .gl-h{font-size:12px;color:var(--ink-soft);margin-bottom:6px}
-  .grow{display:flex;align-items:center;gap:8px;padding:6px 0;font-weight:600;font-size:14px}
-  .grow .gtag{font-size:10px;font-weight:700;color:#fff;background:#0c8a8a;border-radius:5px;padding:1px 5px}
-  .grow .glnk{margin-left:auto;background:none;border:none;color:var(--flag);font-size:13px;cursor:pointer;text-decoration:underline}
+  .guestlist .gl-h{font-size:13px;color:var(--ink-soft);margin-bottom:6px}
+  .grow{display:flex;align-items:center;gap:8px;padding:6px 0;font-weight:600;font-size:15px}
+  .grow .gtag{font-size:11px;font-weight:700;color:#fff;background:#0c8a8a;border-radius:5px;padding:1px 5px}
+  .grow .glnk{margin-left:auto;background:none;border:none;color:var(--flag);font-size:14px;cursor:pointer;text-decoration:underline}
   .rchip.leave{background:#faf1ee;border-color:#e7cfc8}
   .rchip .ct.leave{background:var(--flag)}
 </style>
@@ -316,6 +331,7 @@ var GAS_URL = "https://script.google.com/macros/s/AKfycbwwU9v8uVEIhg8hgBtU053D5s
 
 var app = document.getElementById("app");
 var profile = null;     // {userId, displayName, pictureUrl}
+var ID_TOKEN = '';      // LINE ID Token(寫入動作驗證用)
 var state = null;       // bootstrap 回傳
 
 // ---- JSONP:用 <script> 載入,避開 CORS ----
@@ -328,6 +344,7 @@ function api(params){
     var qs = Object.keys(params).map(function(k){
       return encodeURIComponent(k)+"="+encodeURIComponent(params[k]);
     }).join("&");
+    if(ID_TOKEN) qs += "&idToken=" + encodeURIComponent(ID_TOKEN);
     var s = document.createElement("script");
     s.src = GAS_URL + "?" + qs + "&callback=" + cb;
     s.onerror = function(){ clearTimeout(timer); cleanup(); resolve({ok:false, error:"無法連線到伺服器,請稍後再試"}); };
@@ -336,10 +353,11 @@ function api(params){
 }
 
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
-function capNum(){var n=parseInt(state.event.cap,10);return isNaN(n)?0:n;}
+function capNum(){var n=parseInt((state.eventView&&state.eventView.cap)||state.event.cap,10);return isNaN(n)?0:n;}
 function myRow(){return state.roster.filter(function(p){return p.userId===profile.userId;})[0]||null;}
 
 // ---- 啟動 ----
+var previewMember=false;
 (async function init(){
   try{
     await liff.init({ liffId: LIFF_ID });
@@ -347,23 +365,71 @@ function myRow(){return state.roster.filter(function(p){return p.userId===profil
     return fatal("LIFF 初始化失敗,請確認 LIFF_ID 設定正確。");
   }
   if(!liff.isLoggedIn()){ liff.login(); return; }   // 外部瀏覽器會導向 LINE 登入
-  try{
-    profile = await liff.getProfile();
-  }catch(e){
-    return fatal("無法取得 LINE 個人資料,請重新開啟。");
-  }
-  await reload();
-})();
 
-var previewMember=false;
-async function reload(){
+  try{ ID_TOKEN = liff.getIDToken() || ""; }catch(e){ ID_TOKEN = ""; }   // 寫入動作驗證用(需頻道開啟 openid scope)
+
+  // 用 getContext() 立刻取得 userId(免一次網路往返),
+  // 讓「取個人資料」與「bootstrap」平行進行,縮短登入等待。
+  var ctx=null; try{ ctx=liff.getContext(); }catch(e){}
+  var uid = ctx && ctx.userId;
+  var pProfile = liff.getProfile().catch(function(){ return null; });
+  var pBoot = uid ? api({ action:"bootstrap", userId:uid, asMember: previewMember?"1":"" }) : null;
+
+  profile = await pProfile;
+  if(!profile){
+    if(uid){ profile = { userId:uid, displayName:"", pictureUrl:"" }; }   // 拿不到 profile 但有 uid,仍可運作
+    else { return fatal("無法取得 LINE 個人資料,請重新開啟。"); }
+  }
+
   try{
-    state = await api({ action:"bootstrap", userId: profile.userId, asMember: previewMember?"1":"" });
-    if(!state.ok) return fatal(state.error || "讀取失敗");
+    state = await (pBoot || api({ action:"bootstrap", userId:profile.userId, asMember: previewMember?"1":"" }));
+    if(!state || !state.ok) return fatal((state&&state.error) || "讀取失敗");
     render();
   }catch(e){
     fatal(e.message || "連線失敗,請確認 GAS_URL 設定並稍後再試。");
   }
+})();
+
+async function reload(){
+  try{
+    var hadAdmin = state && state.__adminLoaded;
+    var pBoot = api({ action:"bootstrap", userId: profile.userId, asMember: previewMember?"1":"" });
+    var pAdmin = hadAdmin ? api({ action:"adminData", userId: profile.userId, asMember: previewMember?"1":"" }) : null;
+    var s = await pBoot;
+    if(!s.ok) return fatal(s.error || "讀取失敗");
+    if(pAdmin){
+      var ad = await pAdmin;
+      if(ad && ad.ok){ s.hcpList=ad.hcpList; s.memberFees=ad.memberFees; s.binding=ad.binding; s.balls=ad.balls; s.techList=ad.techList; s.__adminLoaded=true; }
+    }
+    state = s;
+    render();
+  }catch(e){
+    fatal(e.message || "連線失敗,請確認 GAS_URL 設定並稍後再試。");
+  }
+}
+
+// 展開管理員專區 → 抓一次管理員資料,抓到後就地重繪(保留已展開的區塊)
+function loadAdminData(){
+  if(!state || state.__adminLoaded || state.__adminLoading) return;
+  state.__adminLoading=true;
+  api({ action:"adminData", userId: profile.userId, asMember: previewMember?"1":"" }).then(function(r){
+    state.__adminLoading=false;
+    if(r && r.ok){
+      state.hcpList=r.hcpList; state.memberFees=r.memberFees; state.binding=r.binding; state.balls=r.balls; state.techList=r.techList;
+      state.__adminLoaded=true;
+      rerenderKeepOpen();
+    }
+  });
+}
+// 重繪主畫面但保留目前展開的管理員區塊
+function rerenderKeepOpen(){
+  var openTexts=[];
+  document.querySelectorAll(".admsec[open]>summary").forEach(function(s){ openTexts.push(s.textContent); });
+  renderMain();
+  document.querySelectorAll(".admsec").forEach(function(d){
+    var s=d.querySelector("summary");
+    if(s && openTexts.indexOf(s.textContent)>=0) d.open=true;
+  });
 }
 
 function fatal(msg){
@@ -389,14 +455,15 @@ function renderSetup(){
   '<div class="youbar" style="margin-top:16px">'+ avatar() +
     '<div class="who"><b>'+esc(profile.displayName)+'</b><small>你的 LINE 帳號</small></div>'+
   '</div>'+
-  '<div class="section-label">初次設定</div>'+
+  '<div class="section-label">初次設定 · 建立個人資料</div>'+
   '<div class="panel">'+
     '<div class="field"><label>球隊名單上的姓名(會員請填與名單相同的全名)</label>'+
     '<input id="nm" type="text" maxlength="20" value="'+esc(profile.displayName)+'"></div>'+
+    '<div class="field"><label>聯絡電話(必填,建立個人資料用)</label><input id="phone" type="tel" inputmode="numeric" maxlength="20" placeholder="如 0912345678"></div>'+
     '<div class="field"><label>性別(會員可不填,系統自動帶;來賓請選)</label><select id="gender"><option value="">請選擇</option><option value="男">男</option><option value="女">女</option></select></div>'+
-    '<div class="field"><label>出生年(選填,排名平手比序用)</label><input id="birth" type="text" maxlength="4" placeholder="如 1965"></div>'+
+    '<div class="field"><label>出生年(西元,必填,排名平手比序用)</label><input id="birth" type="text" inputmode="numeric" maxlength="4" placeholder="如 1965"></div>'+
     '<button class="btn" id="saveName">確認,開始登記</button>'+
-    '<p class="formnote">輸入姓名後系統會自動比對會員名單:對到 → 綁定為會員並帶入你的性別/差點;查無姓名 → 以來賓加入。</p>'+
+    '<p class="formnote">系統會用姓名自動比對會員名單:對到 → 綁定為會員並帶入性別/差點;查無 → 以來賓加入。電話與出生年會一起存進你的個人資料。</p>'+
   '</div>';
   document.getElementById("saveName").onclick = onSaveName;
 }
@@ -420,12 +487,12 @@ function renderMain(){
     '<div class="masthead">'+flagSvg()+
       '<p class="eyebrow">'+teamLine()+'</p>'+
       '<h1 class="title">'+esc(state.event.title)+'</h1>'+
-      '<p class="title-zh">'+esc(state.event.titleZh)+(seasonLabel()?'<br><span style="font-size:13px;font-weight:400;color:#b9d3c0">年度 '+esc(seasonLabel())+'</span>':'')+'</p>'+
+      '<p class="title-zh">'+esc(state.event.titleZh)+(seasonLabel()?'<br><span style="font-size:14px;font-weight:400;color:#b9d3c0">年度 '+esc(seasonLabel())+'</span>':'')+'</p>'+
     '</div>'+
     '<div class="meta">'+
       metaRow("日期",ev().date)+ metaRow("球場",ev().course)+
-      metaRow("開球",ev().tee)+ metaRow("費用",state.event.fee,"fee")+
-      metaRow("截止",state.event.deadline)+ metaRow("名額",state.event.cap)+
+      metaRow("開球",ev().tee)+ metaRow("費用",ev().fee,"fee")+
+      metaRow("截止",ev().deadline)+ metaRow("名額",ev().cap)+
     '</div>'+
   '</div>'+
 
@@ -450,6 +517,7 @@ function renderMain(){
       : '<div class="rgrid">'+playing.map(function(p,i){return playerChip(p,i,c);}).join("")+'</div>')+
   (leave.length? '<div class="section-label">請假名單 · '+leave.length+' 人</div><div class="rgrid">'+
       leave.map(function(p){return '<div class="rchip leave"><span class="rnm">'+gname(p.name)+'</span><i class="ct leave">請假</i></div>';}).join("")+'</div>' : '')+
+  (state.isAdmin && total>0 ? '<button class="btn ghost sm" id="openAttList" style="width:100%;margin-top:4px">📋 匯出當月出席名單(傳球場)</button>'+attListModalHtml(playing) : '')+
 
   groupsSection()+
   (state.isAdmin ? groupAdminPanel() : "")+
@@ -487,7 +555,7 @@ function registerPanel(isFull){
 function leavePanel(){
   return '<div class="section-label">你已請假</div>'+
   '<div class="panel">'+
-    '<p style="margin:0 0 12px;font-size:14px;color:var(--ink-soft)">已記錄你本場<b style="color:var(--flag)">請假</b>,不列入擊球與分組。</p>'+
+    '<p style="margin:0 0 12px;font-size:15px;color:var(--ink-soft)">已記錄你本場<b style="color:var(--flag)">請假</b>,不列入擊球與分組。</p>'+
     '<div class="btnrow">'+
       '<button class="btn sm" id="unleaveBtn" style="flex:1">改為參加</button>'+
       '<button class="btn ghost sm" id="cancelBtn" style="flex:1">清除狀態</button>'+
@@ -504,15 +572,17 @@ function registeredPanel(mine){
   }).join('');
   return '<div class="section-label">你的出席</div>'+
   '<div class="panel">'+
-    (mine.hcp?'<p style="margin:0 0 12px;font-size:14px;color:var(--ink-soft)">差點 HCP '+esc(mine.hcp)+'</p>':'')+
-    '<div class="field"><label>擊球後是否用餐?</label>'+
-      '<div class="seg" id="cartSeg">'+
-        '<button type="button" class="segb'+(dine?" on":"")+'" data-v="用餐">用餐</button>'+
-        '<button type="button" class="segb'+(!dine?" on":"")+'" data-v="不用餐">不用餐</button>'+
+    '<details class="editbox">'+
+      '<summary><b class="reg-ok">本場已登記參加</b>｜'+(dine?"用餐":"不用餐")+(mine.note?('｜'+esc(mine.note)):'')+'</summary>'+
+      '<div class="field" style="margin-top:10px"><label>擊球後是否用餐?</label>'+
+        '<div class="seg" id="cartSeg">'+
+          '<button type="button" class="segb'+(dine?" on":"")+'" data-v="用餐">用餐</button>'+
+          '<button type="button" class="segb'+(!dine?" on":"")+'" data-v="不用餐">不用餐</button>'+
+        '</div>'+
       '</div>'+
-    '</div>'+
-    '<div class="field"><label>備註(同組、其他需求)</label><input id="editNote" maxlength="40" value="'+esc(mine.note||"")+'" placeholder="例:想和○○同組"></div>'+
-    '<button class="btn sm" id="saveEdit" style="width:100%">儲存變更</button>'+
+      '<div class="field"><label>備註(同組、其他需求)</label><input id="editNote" maxlength="40" value="'+esc(mine.note||"")+'" placeholder="例:想和○○同組"></div>'+
+      '<button class="btn sm" id="saveEdit" style="width:100%">儲存變更</button>'+
+    '</details>'+
     '<div class="btnrow" style="margin-top:8px">'+
       '<button class="btn ghost sm" id="leaveBtn" style="flex:1">改為請假</button>'+
       '<button class="btn ghost sm" id="cancelBtn" style="flex:1">取消參加</button>'+
@@ -529,23 +599,26 @@ function registeredPanel(mine){
 
 function adminPanel(){
   var e=state.event;
-  function f(k,label){return '<div class="field"><label>'+label+'</label><input class="adm" data-k="'+k+'" value="'+esc(e[k])+'"></div>';}
 
   var secTeam='<details class="admsec"><summary>管理員 · 球隊資料設定</summary>'+
   '<div class="panel">'+
-    '<div class="field"><label>球隊名稱</label><input class="adm" data-k="teamName" value="'+esc(e.teamName||"意象太極高爾夫球隊")+'"></div>'+
-    '<div class="field"><label>屆(數字)</label><input class="adm" data-k="term" value="'+esc(e.term||"16")+'"></div>'+
+    '<div class="row2">'+
+      '<div class="field"><label>球隊名稱</label><input class="adm" data-k="teamName" value="'+esc(e.teamName||"意象太極高爾夫球隊")+'"></div>'+
+      '<div class="field"><label>屆(數字)</label><input class="adm" data-k="term" value="'+esc(e.term||"16")+'"></div>'+
+    '</div>'+
     '<div class="row2">'+
       '<div class="field"><label>會長</label><input class="adm" data-k="president" value="'+esc(e.president||"游素碧")+'"></div>'+
       '<div class="field"><label>副會長</label><input class="adm" data-k="vicePresident" value="'+esc(e.vicePresident||"張曼華")+'"></div>'+
     '</div>'+
-    '<div class="field"><label>總幹事</label><input class="adm" data-k="secretary" value="'+esc(e.secretary||"張凌華")+'"></div>'+
-    '<div class="field"><label>財務長</label><input class="adm" data-k="treasurer" value="'+esc(e.treasurer||"")+'"></div>'+
+    '<div class="row2">'+
+      '<div class="field"><label>財務長</label><input class="adm" data-k="treasurer" value="'+esc(e.treasurer||"")+'"></div>'+
+      '<div class="field"><label>總幹事</label><input class="adm" data-k="secretary" value="'+esc(e.secretary||"張凌華")+'"></div>'+
+    '</div>'+
     '<div class="row2">'+
       '<div class="field"><label>年度起(YYYY/M)</label><input class="adm" data-k="seasonFrom" value="'+esc(e.seasonFrom||"2026/7")+'"></div>'+
       '<div class="field"><label>年度迄(YYYY/M)</label><input class="adm" data-k="seasonTo" value="'+esc(e.seasonTo||"2027/6")+'"></div>'+
     '</div>'+
-    '<div style="font-size:12px;color:var(--ink-soft);margin:6px 0 4px">各名次獎金(數字,空白=0)</div>'+
+    '<div style="font-size:13px;color:var(--ink-soft);margin:6px 0 4px">各名次獎金(數字,空白=0)</div>'+
     '<div class="row2">'+
       '<div class="field"><label>總桿冠軍</label><input class="adm" data-k="prizeGross" value="'+esc(e.prizeGross||"")+'" placeholder="2000"></div>'+
       '<div class="field"><label>淨桿冠軍</label><input class="adm" data-k="prizeNet1" value="'+esc(e.prizeNet1||"")+'" placeholder="1500"></div>'+
@@ -594,28 +667,16 @@ function adminPanel(){
       '<button class="btn ghost sm" id="clearTest" style="flex:1">清除測試資料</button></div>'+
   '</div></details>';
 
-  var secEvent='<details class="admsec"><summary>管理員 · 活動設定</summary>'+
+  var secMaint='<details class="admsec"><summary>管理員 · 名單維護</summary>'+
   '<div class="panel">'+
-    '<div class="subhd">顯示(會員主畫面看到的)</div>'+
-    '<p class="formnote" style="text-align:left;margin:0 0 10px">日期/球場/開球以行事曆下一場為準;這裡填的只在行事曆沒有下一場時才當備用。'+(state.eventView&&state.eventView.fromSchedule?'<br>目前下一場:'+esc(state.eventView.date)+' '+esc(state.eventView.course)+(state.eventView.tee?' '+esc(state.eventView.tee):'')+'(來自行事曆)':'')+'</p>'+
-    f("title","主標題(大字)")+ f("titleZh","副標題")+ f("date","日期(備用)")+ f("course","球場(備用)")+ f("tee","開球(備用)")+
-    f("fee","費用")+ f("deadline","截止")+
-    '<div class="subhd" style="margin-top:16px">規則(名額 / 標準桿 / 時間鎖)</div>'+
-    f("cap","名額")+ f("par","標準桿")+
-    '<div class="field"><label>比賽日(YYYY/M/D,留空則抓行事曆下一場)</label><input class="adm" data-k="matchDate" value="'+esc(e.matchDate)+'" placeholder="2026/7/21"></div>'+
-    '<div class="row2">'+
-      '<div class="field"><label>分組開放</label><input class="adm" data-k="groupRevealAt" value="'+esc(e.groupRevealAt)+'" placeholder="08:00"></div>'+
-      '<div class="field"><label>成績開放</label><input class="adm" data-k="scoreRevealAt" value="'+esc(e.scoreRevealAt)+'" placeholder="18:00"></div>'+
-    '</div>'+
-    '<div class="field"><label>賽後保留天數(本場仍顯示,之後才換下一場)</label><input class="adm" data-k="eventGraceDays" value="'+esc(e.eventGraceDays||"5")+'" placeholder="5"></div>'+
-    '<button class="btn sm" id="saveEvent" style="margin-top:6px">儲存活動資訊</button>'+
-    '<div class="btnrow"><button class="btn ghost sm" id="clearBtn" style="flex:1">清空整份名單</button></div>'+
+    '<p class="formnote" style="text-align:left;margin-top:0">活動資訊(主標題、副標題、標準桿、分組/成績開放時間、賽後保留天數等)請直接在試算表「Config」分頁編輯。日期/球場/開球/費用/截止/名額一律以「行事曆」分頁為準。</p>'+
+    '<div class="btnrow"><button class="btn ghost sm" id="clearBtn" style="flex:1">清空整份名單(重置本月報名)</button></div>'+
   '</div></details>';
 
   var secHcp='<details class="admsec"><summary>管理員 · 差點設定</summary>'+
   '<div class="panel">'+
     '<div class="btnrow" style="align-items:center;gap:8px">'+
-      '<div style="font-size:13px;color:var(--ink-soft)">差點倍率</div>'+
+      '<div style="font-size:14px;color:var(--ink-soft)">差點倍率</div>'+
       '<input id="resetFactor" value="'+esc(e.hcpResetFactor||"0.85")+'" style="flex:0 0 64px;text-align:center" placeholder="0.85">'+
       '<button class="btn ghost sm" id="seasonReset" style="flex:1">年初重設(重算差點+收款歸零)</button>'+
     '</div>'+
@@ -627,7 +688,7 @@ function adminPanel(){
   return '<div class="adminzone">'+
     feePanel()+    // 會費收款 + 行事曆
     secBalls+
-    secEvent+
+    secMaint+
     secHcp+
     secTeam+
     secMembers+
@@ -635,6 +696,14 @@ function adminPanel(){
   '</div>';
 }
 
+function lockBarHtml(){
+  var d=esc(state.matchLockDate);
+  return '<div class="lockbar '+(state.matchLocked?'on':'')+'">'+
+    (state.matchLocked
+      ? '<span class="lk">🔒 '+d+' 成績已鎖定,不可編輯</span><button class="btn ghost sm" id="unlockBtn">🔓 解鎖</button>'
+      : '<span class="lk">📝 '+d+' 成績可編輯</span><button class="btn ghost sm" id="lockBtn">🔒 鎖定本場</button>')+
+  '</div>';
+}
 // 月例賽成績(管理員):顯示在成績排名/來賓成績下方
 function matchScoreAdminPanel(){
   var e=state.event;
@@ -644,8 +713,9 @@ function matchScoreAdminPanel(){
     '<div class="field"><label>輸入本月桿數 → 自動算排名、更新差點</label></div>'+
     '<button class="btn sm" id="openScore">📝 表格輸入成績(OUT/IN 自動加總)</button>'+
     scoreModalHtml()+
+    (state.matchLockDate ? lockBarHtml() : '')+
     '<p class="formnote">總桿=OUT+IN,淨桿=總桿−差點。只算會員;前三名淨桿依級距扣桿,淨桿低於標準桿者再額外扣。總桿冠軍本年度一人一次。送出後可於結果頁直接「📄 匯出 PDF」。</p>'+
-    '<div style="font-size:12px;color:var(--ink-soft);margin:14px 0 6px">匯出 PDF(資料夾設定 / 重新匯出)</div>'+
+    '<div style="font-size:13px;color:var(--ink-soft);margin:14px 0 6px">匯出 PDF(資料夾設定 / 重新匯出)</div>'+
     '<div class="field"><label>比賽日期(留空=最近一場)</label><input id="pdfDate" placeholder="7/21"></div>'+
     '<div class="field"><label>儲存資料夾(雲端硬碟,沒有會自動建立)</label><input id="pdfFolder" value="'+esc(e.pdfFolder||"例賽報表")+'" placeholder="例賽報表"></div>'+
     '<button class="btn sm" id="exportPdf">重新匯出 PDF</button>'+
@@ -677,12 +747,15 @@ function groupAdminPanel(){
 
 function feePanel(){
   var mf=state.memberFees;
-  if(!mf || !mf.list || !mf.list.length){
-    return '<details class="admsec"><summary>會費收款</summary><div class="panel"><p class="formnote">尚無會員資料,等隊員設定身份後會出現在這裡。</p></div></details>'+
-    '<details class="admsec"><summary>行事曆</summary><div class="panel">'+
+  var schedDetails='<details class="admsec"><summary>行事曆</summary><div class="panel">'+
       '<p class="formnote" style="text-align:left;margin:0 0 10px">整年度例賽行事曆放在試算表「行事曆」分頁,在那裡新增/刪除/編輯最方便;上方「賽程」會即時反映。第一次按下方按鈕會建立並填入範本。</p>'+
       '<button class="btn sm" id="buildSchedule">建立行事曆(試算表分頁)</button>'+
     '</div></details>';
+  if(mf===undefined){
+    return '<details class="admsec"><summary>會費收款</summary><div class="panel"><p class="formnote">載入中…</p></div></details>'+schedDetails;
+  }
+  if(!mf || !mf.list || !mf.list.length){
+    return '<details class="admsec"><summary>會費收款</summary><div class="panel"><p class="formnote">尚無會員資料,等隊員設定身份後會出現在這裡。</p></div></details>'+schedDetails;
   }
   var paidCount=mf.list.filter(function(x){return x.paid;}).length;
   return '<details class="admsec"><summary>會費收款 · 本年度'+(seasonLabel()?' '+esc(seasonLabel()):'')+'</summary>'+
@@ -690,26 +763,22 @@ function feePanel(){
     '<div class="feesum"><span>已收 '+paidCount+'/'+mf.list.length+' 人</span>'+
       '<b>NT$'+Number(mf.paidSum||0).toLocaleString()+' / '+Number(mf.total||0).toLocaleString()+'</b></div>'+
     mf.list.map(function(x){
-      return '<div class="feerow '+(x.paid?"paid":"")+'" data-name="'+esc(x.name)+'" data-paid="'+(x.paid?"1":"0")+'">'+
+      return '<div class="feerow ro '+(x.paid?"paid":"")+'">'+
         '<span class="fn">'+gname(x.name)+(x.gender?'<small> '+esc(x.gender)+'</small>':'')+'</span>'+
         '<span class="fa">NT$'+(x.fee?Number(x.fee).toLocaleString():'-')+'</span>'+
         '<span class="fc">'+(x.paid?'✓ 已收':'未收')+'</span>'+
       '</div>';
     }).join('')+
-    '<p class="formnote">點一下切換已收/未收,年總表收款欄會自動帶。</p>'+
-  '</div></details>'+
-
-  '<details class="admsec"><summary>行事曆</summary>'+
-  '<div class="panel">'+
-    '<p class="formnote" style="text-align:left;margin:0 0 10px">整年度例賽行事曆放在試算表「行事曆」分頁,在那裡新增/刪除/編輯最方便;上方「賽程」會即時反映。第一次按下方按鈕會建立並填入範本。</p>'+
-    '<button class="btn sm" id="buildSchedule">建立行事曆(試算表分頁)</button>'+
-  '</div></details>';
+    '<p class="formnote" style="text-align:left">繳交狀態請在試算表「Payments」分頁編輯:已收的人在 <b>paid</b> 欄填 <b>v</b>(清空表示未收),年總表收款欄會自動帶。此處只顯示、不修改。</p>'+
+    '<button class="btn ghost sm" id="paySync">把目前會員列入 Payments 分頁</button>'+
+  '</div></details>'+schedDetails;
 }
 
 function hcpListHtml(){
+  if(state.hcpList===undefined) return '<p class="formnote">載入中…</p>';
   var list=state.hcpList||[];
   if(!list.length) return '';
-  return '<div style="font-size:12px;color:var(--ink-soft);margin-top:8px">差點(年初 → 目前,'+list.length+'人)</div>'+
+  return '<div style="font-size:13px;color:var(--ink-soft);margin-top:8px">差點(年初 → 目前,'+list.length+'人)</div>'+
     '<div class="hcplist">'+list.map(function(h){
       var ss=(h.seasonStart!==undefined&&h.seasonStart!==""&&h.seasonStart!==h.hcp)?('<span style="color:var(--ink-soft)">'+esc(h.seasonStart)+' → </span>'):'';
       return '<div><span>'+gname(h.name)+'</span><b>'+ss+esc(h.hcp)+'</b></div>';
@@ -785,24 +854,39 @@ function officersSection(){
 }
 // 逐月總桿冠軍/成績:每場一列(日期+總桿冠軍),點開燈箱看該場總成績
 function seasonSection(){
-  var s=state.seasonResults;
-  if(!s || !s.length) return "";
-  var html='<div class="section-label">逐月總桿冠軍/成績'+(seasonLabel()?' · '+esc(seasonLabel()):'')+'</div>'+
-    '<div class="scorebox" style="padding:4px 6px">'+
-    s.slice().reverse().map(function(m,i){
-      var idx=s.length-1-i;
-      return '<div class="champrow" data-idx="'+idx+'">'+
-        '<span class="cr-date">'+esc(m.date)+'</span>'+
-        '<span class="cr-champ">'+(m.gross?'總桿冠軍 '+gname(m.gross)+(m.grossScore?' <small>'+m.grossScore+'桿</small>':''):'<span class="muted">尚無</span>')+'</span>'+
-        '<span class="cr-go">總成績 ›</span>'+
-      '</div>';
-    }).join('')+
-    '</div>'+
+  var loaded = state.seasonResults && state.seasonResults.length;
+  var inner = loaded
+    ? seasonListHtml(state.seasonResults)
+    : '<button class="btn ghost sm" id="loadSeason" style="width:100%">🏆 查看年度各場成績</button>';
+  return '<div class="section-label">逐月總桿冠軍/成績'+(seasonLabel()?' · '+esc(seasonLabel()):'')+'</div>'+
+    '<div class="scorebox" id="seasonWrap" style="padding:4px 6px">'+inner+'</div>'+
     '<div id="seasonModal" class="modal hidden"><div class="modal-card">'+
       '<div class="modal-head"><span id="seasonMTitle">總成績</span><button class="mclose" id="seasonClose">✕</button></div>'+
       '<div id="seasonMBody" style="padding:4px"></div>'+
     '</div></div>';
-  return html;
+}
+function seasonListHtml(s){
+  return s.slice().reverse().map(function(m,i){
+    var idx=s.length-1-i;
+    return '<div class="champrow" data-idx="'+idx+'">'+
+      '<span class="cr-date">'+esc(m.date)+'</span>'+
+      '<span class="cr-champ">'+(m.gross?'總桿冠軍 '+gname(m.gross)+(m.grossScore?' <small>'+m.grossScore+'桿</small>':''):'<span class="muted">尚無</span>')+'</span>'+
+      '<span class="cr-go">總成績 ›</span>'+
+    '</div>';
+  }).join('');
+}
+function wireSeasonRows(){
+  document.querySelectorAll(".champrow").forEach(function(row){
+    row.onclick=function(){
+      var idx=parseInt(row.dataset.idx,10);
+      var m=(state.seasonResults||[])[idx]; if(!m) return;
+      var t=document.getElementById("seasonMTitle"); if(t) t.textContent=m.date+" 總成績";
+      var b=document.getElementById("seasonMBody"); if(b) b.innerHTML=seasonMatchTable(m);
+      var md=document.getElementById("seasonModal"); if(md) md.classList.remove("hidden");
+    };
+  });
+  var seasonClose=document.getElementById("seasonClose");
+  if(seasonClose) seasonClose.onclick=function(){ var md=document.getElementById("seasonModal"); if(md) md.classList.add("hidden"); };
 }
 function seasonMatchTable(m){
   var rows=m.rows.filter(function(r){return r.rankType!=="來賓";}).slice().sort(function(a,b){return a.gross-b.gross;});
@@ -836,24 +920,26 @@ function gname(name){
 }
 // 綁定狀態:主檔每人是否已綁定 LINE
 function bindingHtml(){
+  if(state.binding===undefined) return '<p class="formnote">載入中…</p>';
   var b=state.binding;
   if(!b || !b.list || !b.list.length) return '<p class="formnote" style="text-align:left">尚無主檔資料,請先到試算表「會員名單」分頁建立。</p>';
   var html='<div class="feesum" style="margin-top:14px"><span>已綁定 '+b.bound+'/'+b.total+' 人</span><b>未綁定 '+(b.total-b.bound)+'</b></div>';
   html+=b.list.map(function(x){
     return '<div class="bindrow '+(x.bound?"on":"")+'">'+
-      '<span class="bn">'+gname(x.name)+(x.hcp?'<small> HCP '+esc(x.hcp)+'</small>':'')+'</span>'+
+      '<span class="bn">'+gname(x.name)+(x.hcp?'<small> HCP '+esc(x.hcp)+'</small>':'')+(x.phone?'<small> 📞 '+esc(x.phone)+'</small>':'')+'</span>'+
       '<span class="bs">'+(x.bound?'✓ 已綁定':'未綁定')+'</span>'+
     '</div>';
   }).join('');
   if(b.extra && b.extra.length){
-    html+='<div style="font-size:12px;color:var(--ink-soft);margin-top:8px">已綁定但不在主檔(來賓等):</div>';
-    html+=b.extra.map(function(x){return '<div class="bindrow on"><span class="bn">'+gname(x.name)+'<small> '+esc(x.role)+'</small></span><span class="bs">✓</span></div>';}).join('');
+    html+='<div style="font-size:13px;color:var(--ink-soft);margin-top:8px">已綁定但不在主檔(來賓等):</div>';
+    html+=b.extra.map(function(x){return '<div class="bindrow on"><span class="bn">'+gname(x.name)+'<small> '+esc(x.role)+'</small>'+(x.phone?'<small> 📞 '+esc(x.phone)+'</small>':'')+'</span><span class="bs">✓</span></div>';}).join('');
   }
   return html;
 }
 
 // 球數庫存摘要
 function ballStatHtml(){
+  if(state.balls===undefined) return '<p class="formnote">載入中…</p>';
   var b=state.balls;
   if(!b) return '<p class="formnote" style="text-align:left">尚未設定期初球數。</p>';
   var bal=b.balance, box=Math.floor(Math.abs(bal)/4), rem=Math.abs(bal)%4, sign=bal<0?'-':'';
@@ -868,7 +954,7 @@ function ballStatHtml(){
 function ballMonthlyHtml(){
   var b=state.balls;
   if(!b || !b.ledger || !b.ledger.length) return '';
-  var html='<div style="font-size:12px;color:var(--ink-soft);margin:12px 0 6px">每月用球量</div>';
+  var html='<div style="font-size:13px;color:var(--ink-soft);margin:12px 0 6px">每月用球量</div>';
   html+=b.ledger.map(function(x){
     return '<div class="bindrow"><span class="bn">'+esc(x.date)+'</span><span class="bs">'+x.out+' 條 · 結存 '+x.balance+'</span></div>';
   }).join('');
@@ -876,9 +962,10 @@ function ballMonthlyHtml(){
 }
 // 技術獎清單(本年度)
 function techListHtml(){
+  if(state.techList===undefined) return '<p class="formnote">載入中…</p>';
   var t=state.techList;
   if(!t || !t.length) return '';
-  var html='<div style="font-size:12px;color:var(--ink-soft);margin:12px 0 6px">本年度技術獎登錄('+t.length+' 筆)</div>';
+  var html='<div style="font-size:13px;color:var(--ink-soft);margin:12px 0 6px">本年度技術獎登錄('+t.length+' 筆)</div>';
   html+=t.map(function(x){
     return '<div class="bindrow"><span class="bn"><small>'+esc(x.date)+'</small> '+esc(x.award)+' · '+gname(x.winner)+'</span><span class="bs">'+x.tiao+' 條</span></div>';
   }).join('');
@@ -981,9 +1068,9 @@ function scoreModalHtml(){
       '<div id="smTechRows">'+techRowsSeed()+'</div>'+
       '<button class="btn ghost sm" id="smAddTech" style="margin-top:6px">+ 新增一列</button>'+
       '<p class="smnote">送出後會先計算成績排名,再一併登錄技術獎並從球數庫存扣除。</p>'+
-      '<div class="smfoot"><button class="btn" id="smSubmit">送出(成績+技術獎)</button></div>'+
     '</div>'+
     '<div id="smResult" class="hidden"></div>'+
+    '<div class="smfoot" id="smSubmitFoot"><button class="btn" id="smSubmit">送出(成績+技術獎)</button></div>'+
   '</div></div>';
 }
 // 送出後的計算結果(含淨桿1~3名新差點)
@@ -1089,6 +1176,37 @@ function progressStrip(){
     '<div class="pg warn"><span>尚未登記</span><b>'+p.notYet+'/'+p.members+'</b></div>'+
   '</div>';
 }
+// 當月出席名單純文字(傳球場用):球隊/日期/球場/開球 + 編號名單
+function buildAttText(playing){
+  var ev=state.eventView||{}, e=state.event||{};
+  var team=e.teamName||e.title||"";
+  var date=ev.date||e.date||"";
+  var course=ev.course||e.course||"";
+  var tee=ev.tee||e.tee||"";
+  var L=[];
+  if(team) L.push(team);
+  if(date) L.push("日期:"+date);
+  if(course) L.push("球場:"+course);
+  if(tee) L.push("開球時間:"+tee);
+  var dine=0, noDine=0;
+  playing.forEach(function(p){ if(p.cart==="不用餐") noDine++; else dine++; });
+  L.push("");
+  L.push("出席名單(共 "+playing.length+" 人):");
+  L.push("用餐 "+dine+" 人 · 不用餐 "+noDine+" 人");
+  playing.forEach(function(p,i){
+    var isGuest=(p.userId && p.userId.indexOf("G:")===0) || (state.roleMap && state.roleMap[p.name]==="來賓");
+    L.push((i+1)+". "+p.name+(isGuest?"(來賓)":""));
+  });
+  return L.join("\n");
+}
+function attListModalHtml(playing){
+  return '<div id="attModal" class="modal hidden"><div class="modal-card">'+
+    '<div class="modal-head"><span>當月出席名單</span><button class="mclose" id="attClose">✕</button></div>'+
+    '<p class="smnote" style="margin:0 0 8px">下面文字可直接複製貼到 LINE 傳給球場。</p>'+
+    '<textarea id="attText" class="atttext" readonly>'+esc(buildAttText(playing))+'</textarea>'+
+    '<div class="smfoot"><button class="btn" id="attCopy">複製文字</button></div>'+
+  '</div></div>';
+}
 function playerChip(p,i,c){
   var isWait=c>0&&i>=c, isMe=p.userId===profile.userId, tag='';
   var isGuest=(state.roleMap&&state.roleMap[p.name]==="來賓")||(p.userId&&p.userId.indexOf("G:")===0);
@@ -1173,9 +1291,11 @@ function flagSvg(){return '<svg class="flag" viewBox="0 0 24 24" fill="none"><pa
 function onSaveName(){
   var nm=(document.getElementById("nm").value||"").trim();
   if(!nm){ toast("請輸入姓名"); return; }
-  var gender=val("gender"), birth=val("birth").trim();
+  var gender=val("gender"), birth=val("birth").trim(), phone=val("phone").trim();
+  if(!phone){ toast("請輸入聯絡電話"); return; }
+  if(!/^\d{4}$/.test(birth)){ toast("請輸入西元出生年(4 位數字,如 1965)"); return; }
   busy("saveName","比對中…");
-  api({action:"setName",userId:profile.userId,name:nm,gender:gender,birthYear:birth}).then(function(r){
+  api({action:"setName",userId:profile.userId,name:nm,gender:gender,birthYear:birth,phone:phone}).then(function(r){
     if(!r.ok){ toast(r.error||"設定失敗"); return reload(); }
     toast(r.matched?"已綁定為會員!":"查無此姓名,以來賓加入"); reload();
   }).catch(function(){ toast("連線失敗"); reload(); });
@@ -1235,19 +1355,44 @@ function wireMain(isFull, iAmIn){
   if(openSched) openSched.onclick=function(){ var m=document.getElementById("schedModal"); if(m) m.classList.remove("hidden"); };
   var schedClose=document.getElementById("schedClose");
   if(schedClose) schedClose.onclick=function(){ var m=document.getElementById("schedModal"); if(m) m.classList.add("hidden"); };
-  document.querySelectorAll(".champrow").forEach(function(row){
-    row.onclick=function(){
-      var idx=parseInt(row.dataset.idx,10);
-      var m=(state.seasonResults||[])[idx]; if(!m) return;
-      var t=document.getElementById("seasonMTitle"); if(t) t.textContent=m.date+" 總成績";
-      var b=document.getElementById("seasonMBody"); if(b) b.innerHTML=seasonMatchTable(m);
-      var md=document.getElementById("seasonModal"); if(md) md.classList.remove("hidden");
-    };
-  });
-  var seasonClose=document.getElementById("seasonClose");
-  if(seasonClose) seasonClose.onclick=function(){ var md=document.getElementById("seasonModal"); if(md) md.classList.add("hidden"); };
-  var saveEvent=document.getElementById("saveEvent");
-  if(saveEvent) saveEvent.onclick=function(){ saveAdm("saveEvent","已更新活動資訊"); };
+  var loadSeason=document.getElementById("loadSeason");
+  if(loadSeason) loadSeason.onclick=function(){
+    loadSeason.disabled=true; loadSeason.textContent="載入中…";
+    api({action:"seasonResults",userId:profile.userId,asMember:previewMember?"1":""}).then(function(r){
+      state.seasonResults=(r&&r.seasonResults)||[];
+      var wrap=document.getElementById("seasonWrap");
+      if(wrap){
+        wrap.innerHTML = state.seasonResults.length ? seasonListHtml(state.seasonResults)
+          : '<p class="smnote" style="margin:6px">目前尚無年度成績</p>';
+        wireSeasonRows();
+      }
+    });
+  };
+  wireSeasonRows();
+  if(state.isAdmin && !window.__admToggleBound){
+    // 第一次展開任一「管理員專區」區塊時,才抓管理員資料(差點/會費/綁定/球數/技術獎)
+    document.addEventListener("toggle", function(e){
+      var t=e.target;
+      if(t && t.classList && t.classList.contains("admsec") && t.open &&
+         state && state.isAdmin && !state.__adminLoaded && !state.__adminLoading){
+        loadAdminData();
+      }
+    }, true);
+    window.__admToggleBound=true;
+  }
+  var openAtt=document.getElementById("openAttList");
+  if(openAtt) openAtt.onclick=function(){ var m=document.getElementById("attModal"); if(m) m.classList.remove("hidden"); };
+  var attClose=document.getElementById("attClose");
+  if(attClose) attClose.onclick=function(){ var m=document.getElementById("attModal"); if(m) m.classList.add("hidden"); };
+  var attCopy=document.getElementById("attCopy");
+  if(attCopy) attCopy.onclick=function(){
+    var ta=document.getElementById("attText"); if(!ta) return;
+    ta.focus(); ta.select(); try{ta.setSelectionRange(0,999999);}catch(e){}
+    var ok=false; try{ ok=document.execCommand("copy"); }catch(e){}
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(ta.value).then(function(){toast("✓ 已複製,可貼到 LINE");},function(){toast(ok?"✓ 已複製,可貼到 LINE":"請長按文字手動複製");});
+    }else{ toast(ok?"✓ 已複製,可貼到 LINE":"請長按文字手動複製"); }
+  };
   var saveTeam=document.getElementById("saveTeam");
   if(saveTeam) saveTeam.onclick=function(){ saveAdm("saveTeam","已更新球隊資料"); };
   var clr=document.getElementById("clearBtn");
@@ -1389,6 +1534,24 @@ function wireMain(isFull, iAmIn){
     var nm=row.querySelector(".tr-name"); var cur=nm.value;
     nm.innerHTML=(ev.target.value==="來賓獎")?guestNameOptions(cur):techNameOptions(cur);
   });
+  var lockBtn=document.getElementById("lockBtn");
+  if(lockBtn) lockBtn.onclick=function(){
+    if(!confirm("鎖定後「"+state.matchLockDate+"」的成績將不可再編輯(需解鎖才能改)。確定鎖定?")) return;
+    busy("lockBtn","鎖定中…");
+    api({action:"lockScores",userId:profile.userId,date:state.matchLockDate}).then(function(r){
+      if(r&&r.ok){ toast("✓ 已鎖定本場成績"); reload(); }
+      else { toast((r&&r.error)||"鎖定失敗"); var b=document.getElementById("lockBtn"); if(b){b.disabled=false;b.textContent="🔒 鎖定本場";} }
+    });
+  };
+  var unlockBtn=document.getElementById("unlockBtn");
+  if(unlockBtn) unlockBtn.onclick=function(){
+    if(!confirm("解鎖後即可再次編輯「"+state.matchLockDate+"」的成績。確定解鎖?")) return;
+    busy("unlockBtn","解鎖中…");
+    api({action:"unlockScores",userId:profile.userId,date:state.matchLockDate}).then(function(r){
+      if(r&&r.ok){ toast("✓ 已解鎖,可重新編輯"); reload(); }
+      else { toast((r&&r.error)||"解鎖失敗"); var b=document.getElementById("unlockBtn"); if(b){b.disabled=false;b.textContent="🔓 解鎖";} }
+    });
+  };
   var smSubmit=document.getElementById("smSubmit");
   if(smSubmit) smSubmit.onclick=function(){
     var d=(val("smDate")||"").trim();
@@ -1407,12 +1570,18 @@ function wireMain(isFull, iAmIn){
       var ti=(row.querySelector(".tr-tiao").value||"1").trim();
       if(nm) techLines.push(aw+" "+nm+" "+ti);
     });
-    if(!confirm("送出 "+lines.length+" 筆成績"+(techLines.length?(" + "+techLines.length+" 筆技術獎"):"")+"("+d+"),計算排名並更新差點?")) return;
+    if(state.matchLocked && state.matchLockDate===d){ toast("本場成績已鎖定,請先在下方「🔓 解鎖」再編輯"); return; }
+    var resubmit = !!(state.ranking && state.ranking.date===d);
+    var msg = resubmit
+      ? ("「"+d+"」已有成績,將【覆蓋並重新計算差點】(不會重覆扣)。確定送出?")
+      : ("送出 "+lines.length+" 筆成績"+(techLines.length?(" + "+techLines.length+" 筆技術獎"):"")+"("+d+"),計算排名並更新差點?");
+    if(!confirm(msg)) return;
     busy("smSubmit","計算中…");
     api({action:"submitMatch",userId:profile.userId,date:d,text:lines.join("\n"),tech:techLines.join("\n")}).then(function(r){
       if(!r.ok){ toast(r.error||"更新失敗"); var b=document.getElementById("smSubmit"); if(b){b.disabled=false;b.textContent="送出(成績+技術獎)";} return; }
       toast("已計算 "+r.count+" 筆成績"+(r.techAdded?(",技術獎 "+r.techAdded+" 筆"):""));
       var inp=document.getElementById("smInput"); if(inp) inp.classList.add("hidden");
+      var sf=document.getElementById("smSubmitFoot"); if(sf) sf.classList.add("hidden");
       var ttl=document.getElementById("smTitle"); if(ttl) ttl.textContent="計算結果 "+r.ranking.date;
       var res=document.getElementById("smResult");
       if(res){ res.classList.remove("hidden"); res.innerHTML=scoreResultHtml(r.ranking);
@@ -1443,16 +1612,14 @@ function wireMain(isFull, iAmIn){
       toast(r.ok?("已重算 "+r.reset+" 人差點(×"+r.factor+")"+(r.kept?","+r.kept+" 人無成績維持原值":"")):(r.error||"重設失敗")); reload();
     });
   };
-  document.querySelectorAll(".feerow").forEach(function(row){
-    row.onclick=function(){
-      var name=row.dataset.name, newPaid=row.dataset.paid==="1"?"0":"1";
-      row.style.opacity="0.5";
-      api({action:"setPaid",userId:profile.userId,name:name,paid:newPaid}).then(function(r){
-        if(r && r.ok){ if(state.memberFees) state.memberFees=r.memberFees; renderMain(); }
-        else { toast((r&&r.error)||"登記失敗"); row.style.opacity="1"; }
-      });
-    };
-  });
+  var paySync=document.getElementById("paySync");
+  if(paySync) paySync.onclick=function(){
+    busy("paySync","處理中…");
+    api({action:"ensurePayList",userId:profile.userId}).then(function(r){
+      if(r && r.ok){ toast("✓ 已列入 "+r.count+" 位會員,可到試算表 Payments 分頁打 v"); setTimeout(reload,600); }
+      else { var b=document.getElementById("paySync"); if(b){b.disabled=false;b.textContent="把目前會員列入 Payments 分頁";} toast((r&&r.error)||"處理失敗"); }
+    });
+  };
   var bs=document.getElementById("buildSeason");
   if(bs) bs.onclick=function(){
     busy("buildSeason","產生中…");
