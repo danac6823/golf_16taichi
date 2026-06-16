@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>球隊例賽報名</title>
+<meta name="theme-color" content="#14532d">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="例賽報名">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
   :root{
@@ -25,7 +32,7 @@
   @keyframes spin{to{transform:rotate(360deg)}}
 
   .card{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
-  .masthead{background:linear-gradient(160deg,var(--fairway),var(--fairway-2));color:#f4f7f0;padding:20px 20px 22px;position:relative}
+  .masthead{background:linear-gradient(160deg,var(--fairway),var(--fairway-2));color:#f4f7f0;padding:calc(20px + env(safe-area-inset-top)) 20px 22px;position:relative}
   .masthead .flag{position:absolute;top:16px;right:18px;width:30px;height:30px}
   .eyebrow{font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:#b9d3c0;margin:0 0 6px}
   .title{font-family:Georgia,"Times New Roman","Noto Serif TC",serif;font-size:28px;font-weight:700;margin:0;line-height:1.2}
@@ -1389,7 +1396,7 @@ function wireMain(isFull, iAmIn){
   if(reg) reg.onclick=function(){
     busy("regBtn", isFull?"加入中…":"送出中…");
     api({action:"register",userId:profile.userId,
-         cart:val("cart"),note:val("note")}).then(after("已登記參加!"));
+         cart:val("cart"),note:val("note")}).then(afterRoster("已登記參加!"));
   };
   var seg=document.getElementById("cartSeg");
   if(seg) seg.querySelectorAll(".segb").forEach(function(b){
@@ -1400,38 +1407,38 @@ function wireMain(isFull, iAmIn){
     var on=seg?seg.querySelector(".segb.on"):null;
     var cart=on?on.dataset.v:"用餐";
     busy("saveEdit","儲存中…");
-    api({action:"register",userId:profile.userId,cart:cart,note:val("editNote")}).then(after("已更新出席資料"));
+    api({action:"register",userId:profile.userId,cart:cart,note:val("editNote")}).then(afterRoster("已更新出席資料"));
   };
   var cancel=document.getElementById("cancelBtn");
   if(cancel) cancel.onclick=function(){
     if(!confirm("確定要取消參加嗎?")) return;
     busy("cancelBtn","取消中…");
-    api({action:"cancel",userId:profile.userId}).then(after("已取消參加"));
+    api({action:"cancel",userId:profile.userId}).then(afterRoster("已取消參加"));
   };
   var leaveBtn=document.getElementById("leaveBtn");
   if(leaveBtn) leaveBtn.onclick=function(){
     if(!confirm("確定這場請假(不參加)嗎?")) return;
     busy("leaveBtn","送出中…");
-    api({action:"requestLeave",userId:profile.userId,note:val("note")}).then(after("已記為請假"));
+    api({action:"requestLeave",userId:profile.userId,note:val("note")}).then(afterRoster("已記為請假"));
   };
   var unleave=document.getElementById("unleaveBtn");
   if(unleave) unleave.onclick=function(){
     busy("unleaveBtn","送出中…");
-    api({action:"register",userId:profile.userId}).then(after("已改為參加"));
+    api({action:"register",userId:profile.userId}).then(afterRoster("已改為參加"));
   };
   var guestAdd=document.getElementById("guestAdd");
   if(guestAdd) guestAdd.onclick=function(){
     var nm=(val("guestName")||"").trim();
     if(!nm){ toast("請填來賓姓名"); return; }
     busy("guestAdd","登記中…");
-    api({action:"addGuest",userId:profile.userId,guestName:nm,cart:val("guestCart")}).then(after("已登記來賓:"+nm));
+    api({action:"addGuest",userId:profile.userId,guestName:nm,cart:val("guestCart")}).then(afterRoster("已登記來賓:"+nm));
   };
   document.querySelectorAll(".glnk").forEach(function(b){
     b.onclick=function(){
       var gn=b.dataset.gname;
       if(!confirm("移除來賓「"+gn+"」?")) return;
       b.disabled=true;
-      api({action:"removeGuest",userId:profile.userId,guestName:gn}).then(after("已移除來賓"));
+      api({action:"removeGuest",userId:profile.userId,guestName:gn}).then(afterRoster("已移除來賓"));
     };
   });
   var openSched=document.getElementById("openSched");
@@ -1782,6 +1789,15 @@ function after(msg){
   return function(r){
     if(r && r.ok===false){ toast("⚠ "+(r.error||"操作失敗,請再試一次")); reload(); }
     else { toast("✓ "+msg); reload(); }
+  };
+}
+// 出席相關動作:後端已回傳最新名單+進度 → 就地更新即可,免再跑一次 bootstrap(省一趟往返)
+function afterRoster(msg){
+  return function(r){
+    if(!r || r.ok===false){ toast("⚠ "+((r&&r.error)||"操作失敗,請再試一次")); return reload(); }
+    toast("✓ "+msg);
+    if(state && r.roster){ state.roster = r.roster; if(r.progress) state.progress = r.progress; rerenderKeepOpen ? rerenderKeepOpen() : render(); }
+    else { reload(); }
   };
 }
 function val(id){var el=document.getElementById(id);return el?el.value:"";}
