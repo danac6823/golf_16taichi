@@ -40,9 +40,12 @@
   .meta-input{flex:1;font-size:15.5px;font-weight:600;font-family:inherit;color:var(--ink);background:#fbfdf8;border:1px solid var(--line);border-radius:6px;padding:5px 8px;width:100%}
 
   .countstrip{display:flex;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin:16px 0}
-  .cstat{flex:1;background:var(--paper-2);padding:14px 8px;text-align:center}
-  .cstat b{display:block;font-size:24px;font-family:Georgia,serif;color:var(--fairway);line-height:1}
-  .cstat span{font-size:11.5px;color:var(--ink-soft);letter-spacing:.06em}
+  .cstat{flex:1;background:var(--paper-2);padding:14px 6px;text-align:center}
+  .cstat b{display:block;font-size:22px;font-family:Georgia,serif;color:var(--fairway);line-height:1}
+  .cstat span{display:block;margin-top:3px;font-size:11px;color:var(--ink-soft);letter-spacing:.02em;line-height:1.25}
+  .cstat.mem{background:var(--green-soft)}
+  .cstat.mem b{color:var(--fairway)}
+  .cstat.mem span{color:var(--fairway-2)}
   .cstat.full b{color:var(--flag)}
 
   .youbar{display:flex;align-items:center;gap:11px;background:var(--green-soft);border:1px solid #cfe0d2;border-radius:12px;padding:12px 14px;margin:16px 0}
@@ -142,6 +145,24 @@
   .seasonmatch>summary::-webkit-details-marker{display:none}
   .seasonmatch>summary::after{content:"▾";float:right;color:var(--ink-soft);font-weight:400}
   .seasonmatch[open]>summary::after{content:"▴"}
+  .ssgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .ssrow{display:flex;align-items:center;gap:7px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--paper-2);font-size:13px;min-width:0}
+  .ssrow.gross{background:#fbf3e0;border-color:#e9d6a8}
+  .ssrow.me{border-color:var(--fairway-2);box-shadow:0 0 0 2px rgba(45,106,79,.12)}
+  .ssrow .sr{flex:0 0 18px;color:var(--ink-soft);font-size:12px;text-align:right}
+  .ssrow .snm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ssrow .sg{flex:0 0 auto;font-family:Georgia,serif;font-weight:700;color:var(--fairway)}
+  #seasonMBody{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .guestbox{background:#fbf2e9;border:1px solid #ecd9c4;border-radius:12px;margin-top:10px;padding:2px 12px 12px}
+  .guestbox>summary{cursor:pointer;list-style:none;font-size:14px;font-weight:600;color:#9a6a3a;padding:11px 2px}
+  .guestbox>summary::-webkit-details-marker{display:none}
+  .guestbox>summary::after{content:"▾";float:right;color:#b98a5a;font-weight:400}
+  .guestbox[open]>summary::after{content:"▴"}
+  .guestbox .field label{color:#8a6038}
+  .seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .seg .segb{flex:1;padding:11px 8px;background:var(--paper-2);border:none;border-right:1px solid var(--line);font-size:15px;font-weight:600;color:var(--ink-soft);font-family:inherit;cursor:pointer}
+  .seg .segb:last-child{border-right:none}
+  .seg .segb.on{background:var(--fairway);color:#fff}
   .champrow{display:flex;align-items:center;gap:8px;padding:11px 8px;border-top:1px solid var(--line);cursor:pointer}
   .champrow:first-child{border-top:none}
   .champrow .cr-date{flex:0 0 52px;font-weight:700;color:var(--fairway)}
@@ -240,6 +261,12 @@
   .sctab .hcpold{color:#999;text-decoration:line-through;margin-right:2px}
   .smnote{font-size:12px;color:var(--ink-soft);margin:2px 0 8px;text-align:left}
   .smfoot .btn{width:100%}
+  /* 成績輸入:滿版 + 內容可捲動 + 送出鍵固定底部 */
+  .modal-card.full{max-width:560px;width:100%;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;border-radius:0;padding:12px 14px 0}
+  .modal-card.full #smInput{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+  .modal-card.full #smResult{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .modal-card.full .sctab-wrap{overflow-x:auto;overflow-y:visible}
+  .modal-card.full .smfoot{position:sticky;bottom:0;background:var(--paper);padding:10px 0 calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line);box-shadow:0 -6px 14px rgba(247,244,236,.95)}
   .pvbar{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#14532d;color:#eaf3ec;border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:13px}
   .pvbar.pv{background:#bc4b3c}
   .pvbar button{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
@@ -295,7 +322,7 @@ var state = null;       // bootstrap 回傳
 function api(params){
   return new Promise(function(resolve, reject){
     var cb = "cb_" + Date.now() + "_" + Math.floor(Math.random()*1e6);
-    var timer = setTimeout(function(){ cleanup(); reject(new Error("連線逾時")); }, 12000);
+    var timer = setTimeout(function(){ cleanup(); resolve({ok:false, error:"連線逾時,請確認網路後再試一次"}); }, 12000);
     window[cb] = function(data){ clearTimeout(timer); cleanup(); resolve(data); };
     function cleanup(){ delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); }
     var qs = Object.keys(params).map(function(k){
@@ -303,7 +330,7 @@ function api(params){
     }).join("&");
     var s = document.createElement("script");
     s.src = GAS_URL + "?" + qs + "&callback=" + cb;
-    s.onerror = function(){ clearTimeout(timer); cleanup(); reject(new Error("無法連線到伺服器")); };
+    s.onerror = function(){ clearTimeout(timer); cleanup(); resolve({ok:false, error:"無法連線到伺服器,請稍後再試"}); };
     document.body.appendChild(s);
   });
 }
@@ -357,7 +384,7 @@ function renderSetup(){
     flagSvg()+
     '<p class="eyebrow">First time · 初次設定</p>'+
     '<h1 class="title">Welcome</h1>'+
-    '<p class="title-zh">設定一次,以後一鍵報名</p>'+
+    '<p class="title-zh">設定一次,以後一鍵登記</p>'+
   '</div></div>'+
   '<div class="youbar" style="margin-top:16px">'+ avatar() +
     '<div class="who"><b>'+esc(profile.displayName)+'</b><small>你的 LINE 帳號</small></div>'+
@@ -368,7 +395,7 @@ function renderSetup(){
     '<input id="nm" type="text" maxlength="20" value="'+esc(profile.displayName)+'"></div>'+
     '<div class="field"><label>性別(會員可不填,系統自動帶;來賓請選)</label><select id="gender"><option value="">請選擇</option><option value="男">男</option><option value="女">女</option></select></div>'+
     '<div class="field"><label>出生年(選填,排名平手比序用)</label><input id="birth" type="text" maxlength="4" placeholder="如 1965"></div>'+
-    '<button class="btn" id="saveName">確認,開始報名</button>'+
+    '<button class="btn" id="saveName">確認,開始登記</button>'+
     '<p class="formnote">輸入姓名後系統會自動比對會員名單:對到 → 綁定為會員並帶入你的性別/差點;查無姓名 → 以來賓加入。</p>'+
   '</div>';
   document.getElementById("saveName").onclick = onSaveName;
@@ -403,25 +430,23 @@ function renderMain(){
   '</div>'+
 
   '<div class="countstrip">'+
-    '<div class="cstat"><b>'+confirmed+'</b><span>已報名</span></div>'+
-    '<div class="cstat '+(isFull?"full":"")+'"><b>'+(c>0?(left===0?"額滿":left):"—")+
-      '</b><span>'+(c>0?"剩餘名額":"無限額")+'</span></div>'+
+    '<div class="cstat"><b>'+confirmed+'</b><span>參加</span></div>'+
     '<div class="cstat"><b>'+leave.length+'</b><span>請假</span></div>'+
-    (state.progress&&state.progress.members?'<div class="cstat"><b>'+state.progress.notYet+'/'+state.progress.members+'</b><span>尚未登記</span></div>':'')+
+    (state.progress&&state.progress.members?'<div class="cstat"><b>'+state.progress.notYet+'</b><span>尚未登記</span></div>':'')+
   '</div>'+
 
   '<div class="youbar">'+ avatar() +
     '<div class="who"><b>'+gname(state.member.name)+'</b>'+
       '<small>'+identitySmall()+'</small></div>'+
     '<div class="hcpmini"><span>差點</span><b>'+esc((state.myHcp&&state.myHcp!=="")?state.myHcp:"—")+'</b></div>'+
-    '<span class="badge '+(iAmLeave?"leave":(iAmPlaying?"in":"out"))+'">'+(iAmLeave?"請假":(iAmPlaying?(iAmWaiting?"候補":"已報名"):"未報名"))+'</span>'+
+    '<span class="badge '+(iAmLeave?"leave":(iAmPlaying?"in":"out"))+'">'+(iAmLeave?"請假":(iAmPlaying?(iAmWaiting?"候補":"參加"):"尚未登記"))+'</span>'+
   '</div>'+
 
   (iAmLeave ? leavePanel() : (iAmPlaying ? registeredPanel(mine) : registerPanel(isFull)))+
 
   '<div class="section-label">出席名單 · '+total+' 人</div>'+
   (total===0
-      ? '<div class="empty">還沒有人報名,當第一個開球的人吧 ⛳</div>'
+      ? '<div class="empty">還沒有人登記,當第一個開球的人吧 ⛳</div>'
       : '<div class="rgrid">'+playing.map(function(p,i){return playerChip(p,i,c);}).join("")+'</div>')+
   (leave.length? '<div class="section-label">請假名單 · '+leave.length+' 人</div><div class="rgrid">'+
       leave.map(function(p){return '<div class="rchip leave"><span class="rnm">'+gname(p.name)+'</span><i class="ct leave">請假</i></div>';}).join("")+'</div>' : '')+
@@ -464,37 +489,41 @@ function leavePanel(){
   '<div class="panel">'+
     '<p style="margin:0 0 12px;font-size:14px;color:var(--ink-soft)">已記錄你本場<b style="color:var(--flag)">請假</b>,不列入擊球與分組。</p>'+
     '<div class="btnrow">'+
-      '<button class="btn sm" id="unleaveBtn" style="flex:1">改為報名</button>'+
+      '<button class="btn sm" id="unleaveBtn" style="flex:1">改為參加</button>'+
       '<button class="btn ghost sm" id="cancelBtn" style="flex:1">清除狀態</button>'+
     '</div>'+
   '</div>';
 }
 
 function registeredPanel(mine){
-  var bits=[];
-  if(mine.hcp) bits.push("HCP "+esc(mine.hcp));
-  if(mine.cart) bits.push(esc(mine.cart));
-  if(mine.note) bits.push(esc(mine.note));
+  var dine=(mine.cart!=="不用餐");
   var myGuests=(state.roster||[]).filter(function(r){return r.userId && r.userId.indexOf("G:"+profile.userId+":")===0;});
   var glist=myGuests.map(function(g){
     return '<div class="grow">'+gname(g.name)+'<span class="gtag">來賓</span>'+
       '<button class="glnk" data-gname="'+esc(g.name)+'">移除</button></div>';
   }).join('');
-  return '<div class="section-label">你的報名</div>'+
+  return '<div class="section-label">你的出席</div>'+
   '<div class="panel">'+
-    (bits.length?'<p style="margin:0 0 12px;font-size:14px;color:var(--ink-soft)">'+bits.join(" · ")+'</p>':'')+
-    '<div class="btnrow">'+
-      '<button class="btn sm" id="editBtn" style="flex:1">修改</button>'+
-      '<button class="btn ghost sm" id="cancelBtn" style="flex:1">取消報名</button>'+
+    (mine.hcp?'<p style="margin:0 0 12px;font-size:14px;color:var(--ink-soft)">差點 HCP '+esc(mine.hcp)+'</p>':'')+
+    '<div class="field"><label>擊球後是否用餐?</label>'+
+      '<div class="seg" id="cartSeg">'+
+        '<button type="button" class="segb'+(dine?" on":"")+'" data-v="用餐">用餐</button>'+
+        '<button type="button" class="segb'+(!dine?" on":"")+'" data-v="不用餐">不用餐</button>'+
+      '</div>'+
     '</div>'+
-    '<button class="btn ghost sm" id="leaveBtn" style="margin-top:8px;width:100%">改為請假</button>'+
-    '<button class="btn ghost sm" id="guestToggle" style="margin-top:8px;width:100%">➕ 來賓參加登記</button>'+
-    '<div id="guestForm" class="hidden" style="margin-top:10px">'+
+    '<div class="field"><label>備註(同組、其他需求)</label><input id="editNote" maxlength="40" value="'+esc(mine.note||"")+'" placeholder="例:想和○○同組"></div>'+
+    '<button class="btn sm" id="saveEdit" style="width:100%">儲存變更</button>'+
+    '<div class="btnrow" style="margin-top:8px">'+
+      '<button class="btn ghost sm" id="leaveBtn" style="flex:1">改為請假</button>'+
+      '<button class="btn ghost sm" id="cancelBtn" style="flex:1">取消參加</button>'+
+    '</div>'+
+    '<details class="guestbox">'+
+      '<summary>➕ 幫來賓登記出席'+(myGuests.length?'('+myGuests.length+')':'')+'</summary>'+
       '<div class="field"><label>來賓姓名</label><input id="guestName" maxlength="20" placeholder="例:王先生"></div>'+
       '<div class="field"><label>擊球後是否用餐?</label><select id="guestCart"><option>用餐</option><option>不用餐</option></select></div>'+
-      '<button class="btn sm" id="guestAdd" style="width:100%">送出來賓登記</button>'+
-    '</div>'+
-    (myGuests.length?'<div class="guestlist"><div class="gl-h">你登記的來賓('+myGuests.length+')</div>'+glist+'</div>':'')+
+      '<button class="btn sm" id="guestAdd" style="width:100%">送出</button>'+
+      (myGuests.length?'<div class="guestlist"><div class="gl-h">你登記的來賓('+myGuests.length+')</div>'+glist+'</div>':'')+
+    '</details>'+
   '</div>';
 }
 
@@ -578,6 +607,7 @@ function adminPanel(){
       '<div class="field"><label>分組開放</label><input class="adm" data-k="groupRevealAt" value="'+esc(e.groupRevealAt)+'" placeholder="08:00"></div>'+
       '<div class="field"><label>成績開放</label><input class="adm" data-k="scoreRevealAt" value="'+esc(e.scoreRevealAt)+'" placeholder="18:00"></div>'+
     '</div>'+
+    '<div class="field"><label>賽後保留天數(本場仍顯示,之後才換下一場)</label><input class="adm" data-k="eventGraceDays" value="'+esc(e.eventGraceDays||"5")+'" placeholder="5"></div>'+
     '<button class="btn sm" id="saveEvent" style="margin-top:6px">儲存活動資訊</button>'+
     '<div class="btnrow"><button class="btn ghost sm" id="clearBtn" style="flex:1">清空整份名單</button></div>'+
   '</div></details>';
@@ -633,13 +663,13 @@ function groupAdminPanel(){
   '<div class="panel">'+
     '<div class="row2">'+
       '<div class="field"><label>每組人數</label><select id="gsize"><option value="4">4 人</option><option value="3">3 人</option></select></div>'+
-      '<div class="field"><label>分組方式</label><select id="gmethod"><option value="order">報名順序</option><option value="hcp">差點平均</option><option value="gender">二男二女</option><option value="random">隨機</option></select></div>'+
+      '<div class="field"><label>分組方式</label><select id="gmethod"><option value="order">登記順序</option><option value="hcp">差點平均</option><option value="gender">二男二女</option><option value="random">隨機</option></select></div>'+
     '</div>'+
     '<div class="row2">'+
       '<div class="field"><label>開球起始(選填)</label><input id="gstart" placeholder="07:30"></div>'+
       '<div class="field"><label>間隔分鐘</label><input id="ginterval" placeholder="8"></div>'+
     '</div>'+
-    '<button class="btn sm" id="makeGroups">產生分組</button>'+
+    '<button class="btn sm" id="makeGroups">'+(hasGroups?"重新分組(重新洗牌)":"產生分組")+'</button>'+
     (hasGroups ? '<div class="btnrow"><button class="btn ghost sm" id="clearGroups" style="flex:1">清除分組</button></div>' : '')+
   '</div></details>'+
   '</div>';   // /adminzone
@@ -726,7 +756,7 @@ function ev(){ return state.eventView || state.event || {}; }
 // 抬頭的球隊名 + 屆
 function teamLine(){
   var e=state.event||{}, t=(e.teamName||'').trim();
-  if(!t) return 'Tee Sheet · 報名表';
+  if(!t) return 'Tee Sheet · 出席表';
   return esc(t)+(e.term?' · 第 '+esc(e.term)+' 屆':'');
 }
 // 管理員「會員檢視」切換
@@ -776,12 +806,15 @@ function seasonSection(){
 }
 function seasonMatchTable(m){
   var rows=m.rows.filter(function(r){return r.rankType!=="來賓";}).slice().sort(function(a,b){return a.gross-b.gross;});
-  var body=rows.map(function(r,idx){
+  var hasChamp=rows.some(function(r){return r.rankType==="總桿";});
+  var cells=rows.map(function(r,idx){
     var me=(state.member&&r.name===state.member.name);
     var champ=(r.rankType==="總桿");
-    return '<div class="rankrow'+(me?" me":"")+(champ?" gross":"")+'"><span class="rl">'+(champ?"總桿冠軍":(idx+1))+'</span><span class="rn">'+gname(r.name)+'</span><span class="rc">'+esc(r.gross)+'</span></div>';
+    return '<div class="ssrow'+(me?" me":"")+(champ?" gross":"")+'"><span class="sr">'+(idx+1)+'</span>'+
+      '<span class="snm">'+(champ?"♔ ":"")+gname(r.name)+'</span><span class="sg">'+esc(r.gross)+'</span></div>';
   }).join('');
-  return '<div class="scorebox"><div class="rankhead"><span class="rl">名次</span><span class="rn">姓名</span><span class="rc">總桿</span></div>'+body+'</div>';
+  return (hasChamp?'<p class="smnote" style="margin:0 0 8px">♔ 金底為當月總桿冠軍 · 依總桿由低至高</p>':'<p class="smnote" style="margin:0 0 8px">依總桿由低至高</p>')+
+    '<div class="ssgrid">'+cells+'</div>';
 }
 // 我的本年度(出席 + 獎金)
 function myStatsSection(){
@@ -937,7 +970,7 @@ function scoreModalHtml(){
     '</tr>';
   }).join('');
   var d=((state.eventView&&state.eventView.date)||'').replace(/\(.*\)/,'').trim();
-  return '<div id="scoreModal" class="modal hidden"><div class="modal-card">'+
+  return '<div id="scoreModal" class="modal hidden"><div class="modal-card full">'+
     '<div class="modal-head"><span id="smTitle">表格輸入成績</span><button class="mclose" id="scoreClose">✕</button></div>'+
     '<div id="smInput">'+
       '<div class="field"><label>比賽日期(如 7/21)</label><input id="smDate" value="'+esc(d)+'" placeholder="7/21"></div>'+
@@ -1151,17 +1184,26 @@ function onSaveName(){
 function wireMain(isFull, iAmIn){
   var reg=document.getElementById("regBtn");
   if(reg) reg.onclick=function(){
-    busy("regBtn", isFull?"加入中…":"報名中…");
+    busy("regBtn", isFull?"加入中…":"送出中…");
     api({action:"register",userId:profile.userId,
-         cart:val("cart"),note:val("note")}).then(after("報名成功!"));
+         cart:val("cart"),note:val("note")}).then(after("已登記參加!"));
   };
-  var edit=document.getElementById("editBtn");
-  if(edit) edit.onclick=function(){ var m=myRow(); showEdit(m); };
+  var seg=document.getElementById("cartSeg");
+  if(seg) seg.querySelectorAll(".segb").forEach(function(b){
+    b.onclick=function(){ seg.querySelectorAll(".segb").forEach(function(x){x.classList.remove("on");}); b.classList.add("on"); };
+  });
+  var saveEdit=document.getElementById("saveEdit");
+  if(saveEdit) saveEdit.onclick=function(){
+    var on=seg?seg.querySelector(".segb.on"):null;
+    var cart=on?on.dataset.v:"用餐";
+    busy("saveEdit","儲存中…");
+    api({action:"register",userId:profile.userId,cart:cart,note:val("editNote")}).then(after("已更新出席資料"));
+  };
   var cancel=document.getElementById("cancelBtn");
   if(cancel) cancel.onclick=function(){
-    if(!confirm("確定要取消報名嗎?")) return;
+    if(!confirm("確定要取消參加嗎?")) return;
     busy("cancelBtn","取消中…");
-    api({action:"cancel",userId:profile.userId}).then(after("已取消報名"));
+    api({action:"cancel",userId:profile.userId}).then(after("已取消參加"));
   };
   var leaveBtn=document.getElementById("leaveBtn");
   if(leaveBtn) leaveBtn.onclick=function(){
@@ -1172,10 +1214,8 @@ function wireMain(isFull, iAmIn){
   var unleave=document.getElementById("unleaveBtn");
   if(unleave) unleave.onclick=function(){
     busy("unleaveBtn","送出中…");
-    api({action:"register",userId:profile.userId}).then(after("已改為報名"));
+    api({action:"register",userId:profile.userId}).then(after("已改為參加"));
   };
-  var guestToggle=document.getElementById("guestToggle");
-  if(guestToggle) guestToggle.onclick=function(){ var f=document.getElementById("guestForm"); if(f) f.classList.toggle("hidden"); };
   var guestAdd=document.getElementById("guestAdd");
   if(guestAdd) guestAdd.onclick=function(){
     var nm=(val("guestName")||"").trim();
@@ -1207,19 +1247,9 @@ function wireMain(isFull, iAmIn){
   var seasonClose=document.getElementById("seasonClose");
   if(seasonClose) seasonClose.onclick=function(){ var md=document.getElementById("seasonModal"); if(md) md.classList.add("hidden"); };
   var saveEvent=document.getElementById("saveEvent");
-  if(saveEvent) saveEvent.onclick=function(){
-    var p={action:"updateEvent",userId:profile.userId};
-    document.querySelectorAll(".adm").forEach(function(el){p[el.dataset.k]=el.value;});
-    busy("saveEvent","儲存中…");
-    api(p).then(after("已更新活動資訊"));
-  };
+  if(saveEvent) saveEvent.onclick=function(){ saveAdm("saveEvent","已更新活動資訊"); };
   var saveTeam=document.getElementById("saveTeam");
-  if(saveTeam) saveTeam.onclick=function(){
-    var p={action:"updateEvent",userId:profile.userId};
-    document.querySelectorAll(".adm").forEach(function(el){p[el.dataset.k]=el.value;});
-    busy("saveTeam","儲存中…");
-    api(p).then(after("已更新球隊資料"));
-  };
+  if(saveTeam) saveTeam.onclick=function(){ saveAdm("saveTeam","已更新球隊資料"); };
   var clr=document.getElementById("clearBtn");
   if(clr) clr.onclick=function(){
     if(!confirm("確定清空整份出席名單?此動作無法復原。")) return;
@@ -1228,10 +1258,12 @@ function wireMain(isFull, iAmIn){
   };
   var mg=document.getElementById("makeGroups");
   if(mg) mg.onclick=function(){
-    busy("makeGroups","分組中…");
+    var has=state.groups && state.groups.groups && state.groups.groups.length;
+    if(has && !confirm("重新分組會覆蓋目前的分組,確定?")) return;
+    busy("makeGroups", has?"重新分組中…":"分組中…");
     api({action:"makeGroups",userId:profile.userId,
          size:val("gsize"),method:val("gmethod"),
-         start:val("gstart"),interval:val("ginterval")}).then(after("已完成分組"));
+         start:val("gstart"),interval:val("ginterval")}).then(after(has?"已重新分組":"已完成分組"));
   };
   var cg=document.getElementById("clearGroups");
   if(cg) cg.onclick=function(){
@@ -1240,12 +1272,7 @@ function wireMain(isFull, iAmIn){
     api({action:"clearGroups",userId:profile.userId}).then(after("已清除分組"));
   };
   var saveBalls=document.getElementById("saveBalls");
-  if(saveBalls) saveBalls.onclick=function(){
-    var p={action:"updateEvent",userId:profile.userId};
-    document.querySelectorAll(".adm").forEach(function(el){p[el.dataset.k]=el.value;});
-    busy("saveBalls","儲存中…");
-    api(p).then(after("已更新期初球數"));
-  };
+  if(saveBalls) saveBalls.onclick=function(){ saveAdm("saveBalls","已更新期初球數"); };
   var addRow=document.getElementById("addTechRow");
   if(addRow) addRow.onclick=function(){
     var div=document.createElement("div"); div.className="techrow";
@@ -1319,7 +1346,7 @@ function wireMain(isFull, iAmIn){
   };
   var seedT=document.getElementById("seedTest");
   if(seedT) seedT.onclick=function(){
-    if(!confirm("建立一批【測】開頭的測試會員與報名資料?")) return;
+    if(!confirm("建立一批【測】開頭的測試會員與出席資料?")) return;
     busy("seedTest","建立中…");
     api({action:"seedTestData",userId:profile.userId}).then(function(r){
       toast(r.ok?("已建立 "+r.seeded+" 筆測試資料"):(r.error||"失敗")); reload();
@@ -1327,7 +1354,7 @@ function wireMain(isFull, iAmIn){
   };
   var clearT=document.getElementById("clearTest");
   if(clearT) clearT.onclick=function(){
-    if(!confirm("清除所有【測】開頭的測試資料(名單/報名/成績/技術獎等)?此動作不影響正式資料。")) return;
+    if(!confirm("清除所有【測】開頭的測試資料(名單/出席/成績/技術獎等)?此動作不影響正式資料。")) return;
     busy("clearTest","清除中…");
     api({action:"clearTestData",userId:profile.userId}).then(function(r){
       toast(r.ok?("已清除 "+r.removed+" 筆測試資料"):(r.error||"失敗")); reload();
@@ -1453,24 +1480,32 @@ function wireMain(isFull, iAmIn){
   if(rl) rl.onclick=reload;
 }
 
-// 修改報名:差點由系統管理,這裡只改用餐與備註
-function showEdit(m){
-  renderMain();
-  var cart=confirm("擊球後是否用餐?(確定=用餐,取消=不用餐)")?"用餐":"不用餐";
-  var note=prompt("備註",m.note||""); if(note===null) note=m.note||"";
-  toast("更新中…");
-  api({action:"register",userId:profile.userId,cart:cart,note:note}).then(after("已更新"));
-}
-
 function after(msg){
   return function(r){
-    if(r && r.ok===false){ toast(r.error||"操作失敗"); }
-    else { toast(msg); }
-    reload();
+    if(r && r.ok===false){ toast("⚠ "+(r.error||"操作失敗,請再試一次")); reload(); }
+    else { toast("✓ "+msg); reload(); }
   };
 }
 function val(id){var el=document.getElementById(id);return el?el.value:"";}
-function busy(id,txt){var b=document.getElementById(id);if(b){b.disabled=true;b.textContent=txt;}}
+function busy(id,txt){var b=document.getElementById(id);if(b){if(!b.dataset.orig)b.dataset.orig=b.textContent;b.disabled=true;b.textContent=txt;}}
+// 設定類儲存(收集所有 .adm 欄位):按鈕會顯示「儲存中…→✓ 已儲存」,失敗會還原並提示
+function saveAdm(btnId, okMsg){
+  var b=document.getElementById(btnId);
+  var orig=b?(b.dataset.orig||b.textContent):"";
+  if(b){b.dataset.orig=orig;b.disabled=true;b.textContent="儲存中…";}
+  var p={action:"updateEvent",userId:profile.userId};
+  document.querySelectorAll(".adm").forEach(function(el){p[el.dataset.k]=el.value;});
+  api(p).then(function(r){
+    if(r && r.ok===false){
+      if(b){b.disabled=false;b.textContent=orig;}
+      toast("⚠ "+(r.error||"儲存失敗,請再試一次"));
+    }else{
+      if(b){b.textContent="✓ 已儲存";}
+      toast("✓ "+okMsg);
+      setTimeout(reload,800);
+    }
+  });
+}
 
 var toastTimer;
 function toast(msg){
