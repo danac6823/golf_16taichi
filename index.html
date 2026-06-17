@@ -500,13 +500,15 @@ function renderSetup(){
   '</div>'+
   '<div class="section-label">初次設定 · 建立個人資料</div>'+
   '<div class="panel">'+
-    '<div class="field"><label>球隊名單上的姓名(會員請填與名單相同的全名)</label>'+
-    '<input id="nm" type="text" maxlength="20" value="'+esc(profile.displayName)+'"></div>'+
+    '<div class="field"><label>LINE 名稱(系統自動帶入,不可修改)</label>'+
+    '<input type="text" value="'+esc(profile.displayName)+'" disabled style="opacity:.65;background:#efece3"></div>'+
+    '<div class="field"><label>姓名(本名,會員請填與球隊名單相同的全名)</label>'+
+    '<input id="nm" type="text" maxlength="20" placeholder="請填你的本名"></div>'+
     '<div class="field"><label>聯絡電話(必填,建立個人資料用)</label><input id="phone" type="tel" inputmode="numeric" maxlength="20" placeholder="如 0912345678"></div>'+
     '<div class="field"><label>性別(會員可不填,系統自動帶;來賓請選)</label><select id="gender"><option value="">請選擇</option><option value="男">男</option><option value="女">女</option></select></div>'+
     '<div class="field"><label>出生年(西元,必填,排名平手比序用)</label><input id="birth" type="text" inputmode="numeric" maxlength="4" placeholder="如 1965"></div>'+
     '<button class="btn" id="saveName">確認,開始登記</button>'+
-    '<p class="formnote">系統會用姓名自動比對會員名單:對到 → 綁定為會員並帶入性別/差點;查無 → 以來賓加入。電話與出生年會一起存進你的個人資料。</p>'+
+    '<p class="formnote">系統會用「姓名」自動比對會員名單:對到 → 綁定為會員並帶入性別/差點;查無 → 以來賓加入。LINE 名稱僅供核對身分,不影響比對。電話與出生年會一起存進你的個人資料。</p>'+
   '</div>';
   document.getElementById("saveName").onclick = onSaveName;
 }
@@ -685,6 +687,8 @@ function adminPanel(){
   '<div class="panel">'+
     '<p class="formnote" style="text-align:left">會員名單請直接在試算表「會員名單」分頁建立/編輯(每行:姓名、性別、年初差點、出生年)。下方為 LINE 綁定狀態。</p>'+
     bindingHtml()+
+    '<p class="formnote" style="text-align:left;margin-top:12px">若有人當初用 LINE 暱稱誤綁定,改好 Members 的「姓名」後,按下面這顆把出席名單裡的名字一併更新(依 LINE 帳號對應,不必大家重報)。</p>'+
+    '<button class="btn ghost sm" id="syncNames" style="width:100%">🔄 同步出席名單姓名</button>'+
   '</div></details>';
 
   var secBalls='<details class="admsec"><summary>管理員 · 送球庫存</summary>'+
@@ -997,13 +1001,13 @@ function bindingHtml(){
   var html='<div class="feesum" style="margin-top:14px"><span>已綁定 '+b.bound+'/'+b.total+' 人</span><b>未綁定 '+(b.total-b.bound)+'</b></div>';
   html+=b.list.map(function(x){
     return '<div class="bindrow '+(x.bound?"on":"")+'">'+
-      '<span class="bn">'+gname(x.name)+(x.hcp?'<small> HCP '+esc(x.hcp)+'</small>':'')+(x.phone?'<small> 📞 '+esc(x.phone)+'</small>':'')+'</span>'+
+      '<span class="bn">'+gname(x.name)+(x.bound&&x.lineName?'<small> · LINE:'+esc(x.lineName)+'</small>':'')+(x.hcp?'<small> HCP '+esc(x.hcp)+'</small>':'')+(x.phone?'<small> 📞 '+esc(x.phone)+'</small>':'')+'</span>'+
       '<span class="bs">'+(x.bound?'✓ 已綁定':'未綁定')+'</span>'+
     '</div>';
   }).join('');
   if(b.extra && b.extra.length){
     html+='<div style="font-size:13px;color:var(--ink-soft);margin-top:8px">已綁定但不在主檔(來賓等):</div>';
-    html+=b.extra.map(function(x){return '<div class="bindrow on"><span class="bn">'+gname(x.name)+'<small> '+esc(x.role)+'</small>'+(x.phone?'<small> 📞 '+esc(x.phone)+'</small>':'')+'</span><span class="bs">✓</span></div>';}).join('');
+    html+=b.extra.map(function(x){return '<div class="bindrow on"><span class="bn">'+gname(x.name)+'<small> '+esc(x.role)+'</small>'+(x.lineName?'<small> · LINE:'+esc(x.lineName)+'</small>':'')+(x.phone?'<small> 📞 '+esc(x.phone)+'</small>':'')+'</span><span class="bs">✓</span></div>';}).join('');
   }
   return html;
 }
@@ -1453,7 +1457,7 @@ function onSaveName(){
   if(!phone){ toast("請輸入聯絡電話"); return; }
   if(!/^\d{4}$/.test(birth)){ toast("請輸入西元出生年(4 位數字,如 1965)"); return; }
   busy("saveName","比對中…");
-  api({action:"setName",userId:profile.userId,name:nm,gender:gender,birthYear:birth,phone:phone}).then(function(r){
+  api({action:"setName",userId:profile.userId,name:nm,gender:gender,birthYear:birth,phone:phone,lineName:(profile.displayName||"")}).then(function(r){
     if(!r.ok){ toast(r.error||"設定失敗"); return reload(); }
     toast(r.matched?"已綁定為會員!":"查無此姓名,以來賓加入"); reload();
   }).catch(function(){ toast("連線失敗"); reload(); });
@@ -1659,6 +1663,15 @@ function wireMain(isFull, iAmIn){
     busy("importMembers","匯入中…");
     api({action:"importMembers",userId:profile.userId,text:txt}).then(function(r){
       toast(r.ok?("已匯入 "+r.imported+" 位會員"):(r.error||"匯入失敗")); reload();
+    });
+  };
+  var syn=document.getElementById("syncNames");
+  if(syn) syn.onclick=function(){
+    busy("syncNames","同步中…");
+    api({action:"syncRosterNames",userId:profile.userId}).then(function(r){
+      var e0=document.getElementById("syncNames"); if(e0){e0.disabled=false;e0.textContent="🔄 同步出席名單姓名";}
+      if(!r.ok){ toast(r.error||"同步失敗"); return; }
+      toast(r.changed>0?("✓ 已更新 "+r.changed+" 筆名單姓名"):"名單姓名已是最新,無需更新"); reload();
     });
   };
   var ih=document.getElementById("importHcp");
