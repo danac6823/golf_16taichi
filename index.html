@@ -551,6 +551,7 @@ function renderMain(){
   '</div>'+
 
   (iAmLeave ? leavePanel() : (iAmPlaying ? registeredPanel(mine) : registerPanel(isFull)))+
+  (state.isAdmin && canShareCard() ? '<button class="btn sm" id="shareCard" style="width:100%;margin-top:8px">📤 分享例賽卡到群組</button>' : '')+
 
   '<div class="section-label">出席名單 · '+total+' 人</div>'+
   (total===0
@@ -1279,6 +1280,51 @@ function progressStrip(){
     '<div class="pg warn"><span>尚未登記</span><b>'+p.notYet+'/'+p.members+'</b></div>'+
   '</div>';
 }
+// ===== 例賽卡(Flex Message)分享到 LINE 群組:用 shareTargetPicker,卡片按鈕連回系統 =====
+function canShareCard(){
+  try{ return !!(window.liff && liff.isApiAvailable && liff.isApiAvailable("shareTargetPicker")); }catch(e){ return false; }
+}
+function buildEventFlex(){
+  var ev=state.eventView||{}, e=state.event||{};
+  var team=(e.teamName||'').trim()||'意象太極高爾夫球隊';
+  var teamLine=team+(e.term?' 第'+e.term+'屆':'');
+  var date=ev.date||e.date||'';
+  var course=ev.course||e.course||'';
+  var tee=ev.tee||e.tee||'';
+  var deadline=ev.deadline||e.deadline||'';
+  var mo=(String(date).match(/(\d{1,2})\s*[\/月]/)||[])[1];
+  var title=(mo?mo+'月':'')+'例賽報名';
+  var liffUrl='https://liff.line.me/'+LIFF_ID;
+  function row(k,v){ return { type:'box', layout:'baseline', spacing:'sm', contents:[
+    { type:'text', text:k, color:'#7a8a72', size:'sm', flex:2 },
+    { type:'text', text:String(v||'—'), color:'#23301f', size:'sm', weight:'bold', flex:5, wrap:true } ]}; }
+  var rows=[row('日期',date),row('球場',course),row('開球',tee)];
+  if(deadline) rows.push(row('截止',deadline));
+  return {
+    type:'flex',
+    altText:teamLine+' '+title+'(點開報名/請假)',
+    contents:{
+      type:'bubble', size:'kilo',
+      header:{ type:'box', layout:'vertical', backgroundColor:'#14532d', paddingAll:'16px', contents:[
+        { type:'text', text:teamLine, color:'#cdebd6', size:'xs', weight:'bold', wrap:true },
+        { type:'text', text:'⛳ '+title, color:'#ffffff', size:'xl', weight:'bold', margin:'sm' } ]},
+      body:{ type:'box', layout:'vertical', spacing:'sm', paddingAll:'16px', backgroundColor:'#f7f4ec', contents:rows },
+      footer:{ type:'box', layout:'vertical', paddingAll:'12px', paddingTop:'2px', contents:[
+        { type:'button', style:'primary', color:'#bc4b3c', height:'md',
+          action:{ type:'uri', label:'📋 我要報名 / 請假', uri:liffUrl } } ]}
+    }
+  };
+}
+function shareEventCard(){
+  if(!canShareCard()){ toast("此功能需在 LINE App 內使用"); return; }
+  busy("shareCard","開啟分享…");
+  function restore(){ var b=document.getElementById("shareCard"); if(b){ b.disabled=false; b.textContent="📤 分享例賽卡到群組"; } }
+  liff.shareTargetPicker([buildEventFlex()]).then(function(res){
+    restore();
+    if(res){ toast("✓ 已送出例賽卡"); } else { toast("已取消分享"); }
+  }).catch(function(){ restore(); toast("分享失敗,請再試一次"); });
+}
+
 // 當月出席名單純文字(傳給球隊/球場用):球隊名稱(第X屆)/日期/球場/開球 + 編號名單 + 請假
 function buildAttText(playing){
   var ev=state.eventView||{}, e=state.event||{};
@@ -1409,6 +1455,8 @@ function onSaveName(){
 }
 
 function wireMain(isFull, iAmIn){
+  var sc2=document.getElementById("shareCard");
+  if(sc2) sc2.onclick=shareEventCard;
   var reg=document.getElementById("regBtn");
   if(reg) reg.onclick=function(){
     busy("regBtn", isFull?"加入中…":"送出中…");
