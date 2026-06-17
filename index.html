@@ -45,23 +45,16 @@
   .meta-v{flex:1;font-size:16.5px;font-weight:600}
   .meta-v.fee{color:var(--fairway-2)}
   .meta-v.tee{color:var(--flag)}
-  .meta-input{flex:1;font-size:16.5px;font-weight:600;font-family:inherit;color:var(--ink);background:#fbfdf8;border:1px solid var(--line);border-radius:6px;padding:5px 8px;width:100%}
 
   .countstrip{display:flex;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin:16px 0}
   .cstat{flex:1;background:var(--paper-2);padding:14px 6px;text-align:center}
   .cstat b{display:block;font-size:24px;font-family:Georgia,serif;color:var(--fairway);line-height:1}
   .cstat span{display:block;margin-top:3px;font-size:12px;color:var(--ink-soft);letter-spacing:.02em;line-height:1.25}
-  .cstat.mem{background:var(--green-soft)}
-  .cstat.mem b{color:var(--fairway)}
-  .cstat.mem span{color:var(--fairway-2)}
   .cstat.full b{color:var(--flag)}
 
   .youbar{display:flex;flex-wrap:wrap;align-items:center;gap:11px;background:var(--green-soft);border:1px solid #cfe0d2;border-radius:12px;padding:12px 14px;margin:16px 0}
   .youbar .who{min-width:0}
   .youbar .badge{margin-left:auto}
-  .hcpmini{flex:0 0 auto;text-align:center;background:var(--paper);border:1px solid #cfe0d2;border-radius:12px;padding:5px 22px;line-height:1.1}
-  .hcpmini span{display:block;font-size:12px;color:var(--ink-soft)}
-  .hcpmini b{font-family:Georgia,serif;font-size:21.5px;color:var(--fairway)}
   .ava{flex:0 0 38px;height:38px;border-radius:50%;background:var(--fairway);color:#fff;display:grid;place-items:center;font-weight:700;font-size:17.5px;overflow:hidden}
   .ava img{width:100%;height:100%;object-fit:cover}
   .youbar .who{flex:1;min-width:0}
@@ -77,7 +70,6 @@
   .admsec>summary::-webkit-details-marker{display:none}
   .admsec>summary::after{content:"展開 ▾";margin-left:auto;font-size:12px;letter-spacing:.02em;text-transform:none;color:var(--fairway)}
   .admsec[open]>summary::after{content:"收合 ▴"}
-  .subhd{font-size:14px;font-weight:700;color:var(--fairway);border-bottom:1px solid var(--line);padding-bottom:5px;margin-bottom:10px}
   .adminzone{background:#e9eef2;border:1px solid #ccdae3;border-radius:14px;padding:6px 12px 14px;margin:22px 0}
   .adminzone::before{content:"🔒 管理員專區(僅你看得到)";display:block;font-size:13px;font-weight:700;color:#42637a;letter-spacing:.04em;margin:8px 2px 2px}
   .adminzone .section-label{margin-top:16px;color:#52708a}
@@ -130,14 +122,9 @@
   .grpp{display:flex;align-items:center;gap:8px;padding:9px 13px;border-top:1px solid #efece0;font-size:15.5px}
   .grpp small{color:var(--ink-soft);font-size:13px}
   .grpp .tag.me{font-size:12px;font-weight:600;color:var(--fairway-2)}
-  .hcpbox{display:flex;flex-direction:column;align-items:center;background:var(--green-soft);border:1px solid #cfe0d2;border-radius:12px;padding:12px;margin-bottom:14px}
-  .hcpbox span{font-size:13px;color:var(--ink-soft);letter-spacing:.04em}
-  .hcpbox b{font-size:32.5px;font-family:Georgia,serif;color:var(--fairway);line-height:1.1}
-  .hcpbox small{font-size:12px;color:var(--ink-soft)}
   .hcplist{font-size:14px;color:var(--ink-soft);margin:8px 0 0;max-height:160px;overflow:auto}
   .hcplist div{display:flex;justify-content:space-between;padding:4px 2px;border-bottom:1px solid #efece0}
   .hcplist b{color:var(--ink);font-weight:600}
-  textarea.big{min-height:90px;font-family:inherit;font-size:15px;width:100%;background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:10px}
   .rankhead,.rankrow{display:flex;align-items:center;gap:6px;font-size:15px;padding:8px 10px}
   .rankhead{font-size:13px;color:var(--ink-soft);letter-spacing:.04em}
   .rankrow{background:var(--paper-2);border:1px solid var(--line);border-radius:10px;margin-bottom:6px;box-shadow:var(--shadow)}
@@ -148,11 +135,6 @@
   .rankhead .rc,.rankrow .rc{flex:0 0 38px;text-align:right}
   .rankhead .rc2,.rankrow .rc2{flex:0 0 46px;text-align:right}
   .rankrow .rc2.up{color:var(--flag);font-weight:700}
-  .seasonmatch{margin:0 0 8px}
-  .seasonmatch>summary{cursor:pointer;list-style:none;padding:10px 12px;font-size:15px;font-weight:600;color:var(--ink);background:var(--paper-2);border:1px solid var(--line);border-radius:10px}
-  .seasonmatch>summary::-webkit-details-marker{display:none}
-  .seasonmatch>summary::after{content:"▾";float:right;color:var(--ink-soft);font-weight:400}
-  .seasonmatch[open]>summary::after{content:"▴"}
   .ssgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
   .ssrow{display:flex;align-items:center;gap:7px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--paper-2);font-size:14px;min-width:0}
   .ssrow.gross{background:#fbf3e0;border-color:#e9d6a8}
@@ -305,8 +287,6 @@
   .pvbar.pv{background:#bc4b3c}
   .pvbar button{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:8px;padding:6px 10px;font-size:14px;cursor:pointer;white-space:nowrap}
   .badge.leave{background:#f3e0dc;color:#bc4b3c}
-  .leaverow{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border:1px solid var(--line);border-radius:10px;margin-bottom:5px;background:var(--paper-2);font-weight:600;font-size:15px}
-  .leaverow span{font-size:13px;font-weight:700;color:var(--flag)}
   .progress{display:flex;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin:0 0 16px}
   .progress .pg{flex:1;background:var(--paper);padding:9px 4px;text-align:center}
   .progress .pg b{font-family:Georgia,serif;font-size:19.5px;color:var(--fairway);margin-left:6px}
@@ -553,8 +533,13 @@ function renderMain(){
   '</div>'+
 
   (iAmLeave ? leavePanel() : (iAmPlaying ? registeredPanel(mine) : registerPanel(isFull)))+
-  (state.isAdmin ? '<button class="btn sm" id="shareCard" style="width:100%;margin-top:8px">📤 分享例賽卡到群組</button>' : '')+
-  (state.isAdmin ? '<button class="btn ghost sm" id="shareRoster" style="width:100%;margin-top:6px">📤 分享報名狀況到群組(催報名)</button>' : '')+
+  (state.isAdmin ?
+    '<button class="btn sm" id="shareMenu" style="width:100%;margin-top:8px">📤 分享到群組</button>'+
+    '<div id="shareChoose" style="display:none;gap:8px;margin-top:6px">'+
+      '<button class="btn ghost sm" id="shareCard" style="flex:1">🏌️ 例賽卡</button>'+
+      '<button class="btn ghost sm" id="shareRoster" style="flex:1">📋 報名狀況</button>'+
+    '</div>'
+  : '')+
 
   '<div class="section-label">出席名單 · '+total+' 人</div>'+
   (total===0
@@ -1001,8 +986,9 @@ function bindingHtml(){
   if(!b || !b.list || !b.list.length) return '<p class="formnote" style="text-align:left">尚無主檔資料,請先到試算表「會員名單」分頁建立。</p>';
   var html='<div class="feesum" style="margin-top:14px"><span>已綁定 '+b.bound+'/'+b.total+' 人</span><b>未綁定 '+(b.total-b.bound)+'</b></div>';
   html+=b.list.map(function(x){
+    var nt=(x.memberType&&x.memberType.indexOf("新")>=0)?'<small style="color:var(--flag)"> · 新會員</small>':'';
     return '<div class="bindrow '+(x.bound?"on":"")+'">'+
-      '<span class="bn">'+gname(x.name)+(x.bound&&x.lineName?'<small> · LINE:'+esc(x.lineName)+'</small>':'')+(x.hcp?'<small> HCP '+esc(x.hcp)+'</small>':'')+(x.phone?'<small> 📞 '+esc(x.phone)+'</small>':'')+'</span>'+
+      '<span class="bn">'+gname(x.name)+nt+(x.bound&&x.lineName?'<small> · LINE:'+esc(x.lineName)+'</small>':'')+(x.hcp?'<small> HCP '+esc(x.hcp)+'</small>':'')+(x.phone?'<small> 📞 '+esc(x.phone)+'</small>':'')+'</span>'+
       '<span class="bs">'+(x.bound?'✓ 已綁定':'未綁定')+'</span>'+
     '</div>';
   }).join('');
@@ -1037,17 +1023,6 @@ function ballMonthlyHtml(){
   return html;
 }
 // 技術獎清單(本年度)
-function techListHtml(){
-  if(state.techList===undefined) return '<p class="formnote">載入中…</p>';
-  var t=state.techList;
-  if(!t || !t.length) return '';
-  var html='<div style="font-size:13px;color:var(--ink-soft);margin:12px 0 6px">本年度技術獎登錄('+t.length+' 筆)</div>';
-  html+=t.map(function(x){
-    return '<div class="bindrow"><span class="bn"><small>'+esc(x.date)+'</small> '+esc(x.award)+' · '+gname(x.winner)+'</span><span class="bs">'+x.tiao+' 條</span></div>';
-  }).join('');
-  return html;
-}
-
 // 技術獎點選列
 var TECH_OPTS=["近洞獎","二近洞獎","三近洞獎","BIRDIE獎","Eagle獎","一桿進洞獎","來賓獎"];
 var TECH_SEED=[["近洞獎",4],["二近洞獎",2],["三近洞獎",2],["BIRDIE獎",2]];   // 每月固定預帶的列
@@ -1219,16 +1194,18 @@ function rankingSection(){
     else if(x.rankType==="幸運獎") awd="幸運獎";
     else if(x.rankType==="逢五跳獎") awd="跳獎";
     else if(x.rankType==="BB") awd="BB獎";
+    else if(x.rankType==="新會員") awd="新會員";
     else if(x.rankType==="淨桿") awd=(x.rank==="1"?"淨桿冠軍":x.rank==="2"?"淨桿亞軍":x.rank==="3"?"淨桿季軍":"");
     var me=(x.name===state.member.name);
-    var changed=(x.newHcp!=null && String(x.newHcp)!==String(x.hcp));
+    var changed=(x.newHcp!=null && String(x.newHcp)!=="" && String(x.newHcp)!==String(x.hcp));
+    var dash=function(v){ return (v===""||v==null)?"—":esc(v); };
     return '<div class="rankrow '+(me?"me ":"")+(x.rankType==="總桿"?"gross":"")+'">'+
       '<span class="rl">'+esc(awd)+'</span>'+
-      '<span class="rn">'+gname(x.name)+(me?' <i>你</i>':'')+'</span>'+
+      '<span class="rn">'+gname(x.name)+(me?' <i>你</i>':'')+(x.rankType==="新會員"?' <small style="color:var(--ink-soft)">首場·待第2場</small>':'')+'</span>'+
       '<span class="rc">'+esc(x.gross)+'</span>'+
-      '<span class="rc">'+esc(x.hcp)+'</span>'+
-      '<span class="rc">'+esc(x.net)+'</span>'+
-      '<span class="rc2'+(changed?" up":"")+'">'+esc(x.newHcp)+'</span>'+
+      '<span class="rc">'+dash(x.hcp)+'</span>'+
+      '<span class="rc">'+dash(x.net)+'</span>'+
+      '<span class="rc2'+(changed?" up":"")+'">'+dash(x.newHcp)+'</span>'+
     '</div>';
   }).join('');
   html+='</div>';   // /scorebox 桿數排名
@@ -1278,13 +1255,6 @@ function guestSection(){
     }).join('')+'</div>';
 }
 
-function progressStrip(){
-  var p=state.progress; if(!p || !p.members) return "";
-  return '<div class="progress">'+
-    '<div class="pg"><span>會員人數</span><b>'+p.members+'</b></div>'+
-    '<div class="pg warn"><span>尚未登記</span><b>'+p.notYet+'/'+p.members+'</b></div>'+
-  '</div>';
-}
 // ===== 例賽卡(Flex Message)分享到 LINE 群組:用 shareTargetPicker,卡片按鈕連回系統 =====
 function canShareCard(){
   try{ return !!(window.liff && liff.isApiAvailable && liff.isApiAvailable("shareTargetPicker")); }catch(e){ return false; }
@@ -1328,7 +1298,7 @@ function shareEventCard(){
     toast("分享功能尚未開啟:請到 LINE Developers → LIFF 分頁啟用 shareTargetPicker"); return;
   }
   busy("shareCard","開啟分享…");
-  function restore(){ var b=document.getElementById("shareCard"); if(b){ b.disabled=false; b.textContent="📤 分享例賽卡到群組"; } }
+  function restore(){ var b=document.getElementById("shareCard"); if(b){ b.disabled=false; b.textContent="🏌️ 例賽卡"; } }
   liff.shareTargetPicker([buildEventFlex()]).then(function(res){
     restore();
     if(res){ toast("✓ 已送出例賽卡"); } else { toast("已取消分享"); }
@@ -1340,6 +1310,7 @@ function buildRosterFlex(){
   var team=(e.teamName||'').trim()||'意象太極高爾夫球隊';
   var teamLine=team+(e.term?' 第'+e.term+'屆':'');
   var date=ev.date||e.date||'';
+  var course=ev.course||e.course||'';
   var deadline=ev.deadline||e.deadline||'';
   var cap=ev.cap||e.cap||'';
   var mo=(String(date).match(/(\d{1,2})\s*[\/月]/)||[])[1];
@@ -1349,6 +1320,7 @@ function buildRosterFlex(){
   var names=playing.map(function(p,i){ return (i+1)+'. '+p.name; }).join('　');
   var body=[ { type:'text', text:'已報名 '+playing.length+' 人'+(cap?(' / 名額 '+cap):''), color:'#14532d', size:'xl', weight:'bold' } ];
   if(date) body.push({ type:'text', text:'日期 '+date, color:'#23301f', size:'sm', margin:'sm' });
+  if(course) body.push({ type:'text', text:'球場 '+course, color:'#23301f', size:'sm' });
   if(deadline) body.push({ type:'text', text:'報名截止 '+deadline, color:'#bc4b3c', size:'sm', weight:'bold' });
   body.push({ type:'separator', margin:'md' });
   body.push({ type:'text', text:(names||'目前還沒有人報名,快來搶頭香!'), wrap:true, size:'sm', color:'#23301f', margin:'md' });
@@ -1375,7 +1347,7 @@ function shareRosterCard(){
     toast("分享功能尚未開啟:請到 LINE Developers → LIFF 分頁啟用 shareTargetPicker"); return;
   }
   busy("shareRoster","開啟分享…");
-  function restore(){ var b=document.getElementById("shareRoster"); if(b){ b.disabled=false; b.textContent="📤 分享報名狀況到群組"; } }
+  function restore(){ var b=document.getElementById("shareRoster"); if(b){ b.disabled=false; b.textContent="📋 報名狀況"; } }
   liff.shareTargetPicker([buildRosterFlex()]).then(function(res){
     restore();
     if(res){ toast("✓ 已送出報名狀況"); } else { toast("已取消分享"); }
@@ -1428,11 +1400,6 @@ function playerChip(p,i,c){
   if(!isGuest && p.note) tag+='<i class="ct note">備</i>';
   return '<div class="rchip'+(isMe?' me':'')+(isWait?' wait':'')+'"><span class="rnum">'+(isWait?'候':(i+1))+'</span><span class="rnm">'+gname(p.name)+'</span>'+tag+'</div>';
 }
-function cutoffKey(key, months){
-  var y=Math.floor(key/10000), m=Math.floor(key/100)%100, d=key%100;
-  m+=months; while(m>12){ m-=12; y++; }
-  return y*10000+m*100+d;
-}
 function schItem(e,isNext,past){
   var booked=e.status==="已訂", typecls=e.type==="月例賽"?"":"alt";
   var badge=state.isAdmin?('<span class="schb '+(booked?"on":"")+'">'+(booked?"已訂":"未訂")+'</span>'):'';
@@ -1479,18 +1446,6 @@ function scheduleModalHtml(){
 
 // ---- 小元件 ----
 function metaRow(k,v,cls){return '<div class="meta-row"><div class="meta-k">'+k+'</div><div class="meta-v '+(cls||"")+'">'+esc(v)+'</div></div>';}
-function playerRow(p,i,c){
-  var isWait=c>0&&i>=c, isMe=p.userId===profile.userId, bits=[];
-  if(p.hcp) bits.push("HCP "+esc(p.hcp));
-  if(p.cart) bits.push(esc(p.cart));
-  if(p.note) bits.push(esc(p.note));
-  return '<div class="player '+(isMe?"me ":"")+(isWait?"wait":"")+'">'+
-    '<div class="pnum">'+(isWait?"候":(i+1))+'</div>'+
-    '<div class="pinfo"><div class="pname">'+gname(p.name)+
-      (isMe?'<span class="tag me">你</span>':'')+(isWait?'<span class="tag wait">候補</span>':'')+'</div>'+
-      (bits.length?'<div class="pmeta">'+bits.join(" · ")+'</div>':'')+'</div>'+
-  '</div>';
-}
 function avatar(){
   if(profile.pictureUrl) return '<div class="ava"><img src="'+esc(profile.pictureUrl)+'" alt=""></div>';
   return '<div class="ava">'+esc((profile.displayName||"?").slice(0,1))+'</div>';
@@ -1512,6 +1467,11 @@ function onSaveName(){
 }
 
 function wireMain(isFull, iAmIn){
+  var smn=document.getElementById("shareMenu");
+  if(smn) smn.onclick=function(){
+    if(!(window.liff && liff.isInClient && liff.isInClient())){ toast("請在 LINE App 內開啟系統再分享(主畫面捷徑/瀏覽器不支援)"); return; }
+    var c=document.getElementById("shareChoose"); if(c) c.style.display=(!c.style.display||c.style.display==="none")?"flex":"none";
+  };
   var sc2=document.getElementById("shareCard");
   if(sc2) sc2.onclick=shareEventCard;
   var sr=document.getElementById("shareRoster");
