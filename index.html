@@ -300,6 +300,7 @@
   .modal-card.full .sctab-wrap{overflow-x:auto;overflow-y:visible}
   .modal-card.full .smfoot{flex:0 0 auto;background:var(--paper);padding:8px 0 calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
   .modal-card.full .smfoot .btn{padding:11px;font-size:16px}
+  #schedModal .modal-card.full .sctab-wrap{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;margin:4px 0;padding-bottom:calc(8px + env(safe-area-inset-bottom))}
   .pvbar{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#14532d;color:#eaf3ec;border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:14px}
   .pvbar.pv{background:#bc4b3c}
   .pvbar button{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:8px;padding:6px 10px;font-size:14px;cursor:pointer;white-space:nowrap}
@@ -500,15 +501,14 @@ function renderSetup(){
   '</div>'+
   '<div class="section-label">初次設定 · 建立個人資料</div>'+
   '<div class="panel">'+
-    '<div class="field"><label>LINE 名稱(系統自動帶入,不可修改)</label>'+
+    '<div class="field"><label>LINE 名稱</label>'+
     '<input type="text" value="'+esc(profile.displayName)+'" disabled style="opacity:.65;background:#efece3"></div>'+
-    '<div class="field"><label>姓名(本名,會員請填與球隊名單相同的全名)</label>'+
+    '<div class="field"><label>姓名 (中文全名)</label>'+
     '<input id="nm" type="text" maxlength="20" placeholder="請填你的本名"></div>'+
     '<div class="field"><label>聯絡電話(必填,建立個人資料用)</label><input id="phone" type="tel" inputmode="numeric" maxlength="20" placeholder="如 0912345678"></div>'+
-    '<div class="field"><label>性別(會員可不填,系統自動帶;來賓請選)</label><select id="gender"><option value="">請選擇</option><option value="男">男</option><option value="女">女</option></select></div>'+
+    '<div class="field"><label>性別 (會員可不填;來賓請選)</label><select id="gender"><option value="">請選擇</option><option value="男">男</option><option value="女">女</option></select></div>'+
     '<div class="field"><label>出生年(西元,必填,排名平手比序用)</label><input id="birth" type="text" inputmode="numeric" maxlength="4" placeholder="如 1965"></div>'+
     '<button class="btn" id="saveName">確認,開始登記</button>'+
-    '<p class="formnote">系統會用「姓名」自動比對會員名單:對到 → 綁定為會員並帶入性別/差點;查無 → 以來賓加入。LINE 名稱僅供核對身分,不影響比對。電話與出生年會一起存進你的個人資料。</p>'+
   '</div>';
   document.getElementById("saveName").onclick = onSaveName;
 }
@@ -1423,7 +1423,7 @@ function scheduleModalHtml(){
   var s=state.schedule||[], todayKey=state.todayKey||0;
   var nextSort=-1; for(var i=0;i<s.length;i++){ if(s[i].sortKey>=todayKey){ nextSort=s[i].sortKey; break; } }
   var rows=s.map(function(e){return schItem(e, e.sortKey===nextSort, e.sortKey<todayKey);}).join('');
-  return '<div id="schedModal" class="modal hidden"><div class="modal-card">'+
+  return '<div id="schedModal" class="modal hidden"><div class="modal-card full">'+
     '<div class="modal-head"><span>整年度賽程'+(seasonLabel()?' '+esc(seasonLabel()):'')+'</span><button class="mclose" id="schedClose">✕</button></div>'+
     '<div class="sctab-wrap" style="padding:4px">'+rows+'</div>'+
   '</div></div>';
