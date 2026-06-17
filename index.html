@@ -554,6 +554,7 @@ function renderMain(){
 
   (iAmLeave ? leavePanel() : (iAmPlaying ? registeredPanel(mine) : registerPanel(isFull)))+
   (state.isAdmin ? '<button class="btn sm" id="shareCard" style="width:100%;margin-top:8px">📤 分享例賽卡到群組</button>' : '')+
+  (state.isAdmin ? '<button class="btn ghost sm" id="shareRoster" style="width:100%;margin-top:6px">📤 分享報名狀況到群組(催報名)</button>' : '')+
 
   '<div class="section-label">出席名單 · '+total+' 人</div>'+
   (total===0
@@ -1333,6 +1334,53 @@ function shareEventCard(){
     if(res){ toast("✓ 已送出例賽卡"); } else { toast("已取消分享"); }
   }).catch(function(){ restore(); toast("分享失敗,請再試一次"); });
 }
+// 報名狀況卡:目前已報名名單 + 人數 + 截止 + 報名按鈕(催報名用)
+function buildRosterFlex(){
+  var ev=state.eventView||{}, e=state.event||{};
+  var team=(e.teamName||'').trim()||'意象太極高爾夫球隊';
+  var teamLine=team+(e.term?' 第'+e.term+'屆':'');
+  var date=ev.date||e.date||'';
+  var deadline=ev.deadline||e.deadline||'';
+  var cap=ev.cap||e.cap||'';
+  var mo=(String(date).match(/(\d{1,2})\s*[\/月]/)||[])[1];
+  var title=(mo?mo+'月':'')+'報名狀況';
+  var liffUrl='https://liff.line.me/'+LIFF_ID;
+  var playing=(state.roster||[]).filter(function(p){ return p.status==='報名'; });
+  var names=playing.map(function(p,i){ return (i+1)+'. '+p.name; }).join('　');
+  var body=[ { type:'text', text:'已報名 '+playing.length+' 人'+(cap?(' / 名額 '+cap):''), color:'#14532d', size:'xl', weight:'bold' } ];
+  if(date) body.push({ type:'text', text:'日期 '+date, color:'#23301f', size:'sm', margin:'sm' });
+  if(deadline) body.push({ type:'text', text:'報名截止 '+deadline, color:'#bc4b3c', size:'sm', weight:'bold' });
+  body.push({ type:'separator', margin:'md' });
+  body.push({ type:'text', text:(names||'目前還沒有人報名,快來搶頭香!'), wrap:true, size:'sm', color:'#23301f', margin:'md' });
+  return {
+    type:'flex',
+    altText:teamLine+' '+title+'(已報名 '+playing.length+' 人,點開報名)',
+    contents:{
+      type:'bubble', size:'kilo',
+      header:{ type:'box', layout:'vertical', backgroundColor:'#14532d', paddingAll:'16px', contents:[
+        { type:'text', text:teamLine, color:'#cdebd6', size:'xs', weight:'bold', wrap:true },
+        { type:'text', text:'📋 '+title, color:'#ffffff', size:'xl', weight:'bold', margin:'sm' } ]},
+      body:{ type:'box', layout:'vertical', spacing:'sm', paddingAll:'16px', backgroundColor:'#f7f4ec', contents:body },
+      footer:{ type:'box', layout:'vertical', paddingAll:'12px', paddingTop:'2px', contents:[
+        { type:'button', style:'primary', color:'#bc4b3c', height:'md',
+          action:{ type:'uri', label:'📋 還沒報名?點我報名/請假', uri:liffUrl } } ]}
+    }
+  };
+}
+function shareRosterCard(){
+  if(!(window.liff && liff.isInClient && liff.isInClient())){
+    toast("請在 LINE App 內開啟系統再分享(主畫面捷徑/瀏覽器不支援)"); return;
+  }
+  if(!canShareCard()){
+    toast("分享功能尚未開啟:請到 LINE Developers → LIFF 分頁啟用 shareTargetPicker"); return;
+  }
+  busy("shareRoster","開啟分享…");
+  function restore(){ var b=document.getElementById("shareRoster"); if(b){ b.disabled=false; b.textContent="📤 分享報名狀況到群組"; } }
+  liff.shareTargetPicker([buildRosterFlex()]).then(function(res){
+    restore();
+    if(res){ toast("✓ 已送出報名狀況"); } else { toast("已取消分享"); }
+  }).catch(function(){ restore(); toast("分享失敗,請再試一次"); });
+}
 
 // 當月出席名單純文字(傳給球隊/球場用):球隊名稱(第X屆)/日期/球場/開球 + 編號名單 + 請假
 function buildAttText(playing){
@@ -1466,6 +1514,8 @@ function onSaveName(){
 function wireMain(isFull, iAmIn){
   var sc2=document.getElementById("shareCard");
   if(sc2) sc2.onclick=shareEventCard;
+  var sr=document.getElementById("shareRoster");
+  if(sr) sr.onclick=shareRosterCard;
   var reg=document.getElementById("regBtn");
   if(reg) reg.onclick=function(){
     busy("regBtn", isFull?"加入中…":"送出中…");
