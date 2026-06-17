@@ -551,7 +551,7 @@ function renderMain(){
   '</div>'+
 
   (iAmLeave ? leavePanel() : (iAmPlaying ? registeredPanel(mine) : registerPanel(isFull)))+
-  (state.isAdmin && canShareCard() ? '<button class="btn sm" id="shareCard" style="width:100%;margin-top:8px">📤 分享例賽卡到群組</button>' : '')+
+  (state.isAdmin ? '<button class="btn sm" id="shareCard" style="width:100%;margin-top:8px">📤 分享例賽卡到群組</button>' : '')+
 
   '<div class="section-label">出席名單 · '+total+' 人</div>'+
   (total===0
@@ -1316,7 +1316,12 @@ function buildEventFlex(){
   };
 }
 function shareEventCard(){
-  if(!canShareCard()){ toast("此功能需在 LINE App 內使用"); return; }
+  if(!(window.liff && liff.isInClient && liff.isInClient())){
+    toast("請在 LINE App 內開啟系統再分享(主畫面捷徑/瀏覽器不支援)"); return;
+  }
+  if(!canShareCard()){
+    toast("分享功能尚未開啟:請到 LINE Developers → LIFF 分頁啟用 shareTargetPicker"); return;
+  }
   busy("shareCard","開啟分享…");
   function restore(){ var b=document.getElementById("shareCard"); if(b){ b.disabled=false; b.textContent="📤 分享例賽卡到群組"; } }
   liff.shareTargetPicker([buildEventFlex()]).then(function(res){
