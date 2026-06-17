@@ -1311,17 +1311,20 @@ function buildRosterFlex(){
   var teamLine=team+(e.term?' 第'+e.term+'屆':'');
   var date=ev.date||e.date||'';
   var course=ev.course||e.course||'';
-  var deadline=ev.deadline||e.deadline||'';
+  var tee=ev.tee||e.tee||'';
   var cap=ev.cap||e.cap||'';
   var mo=(String(date).match(/(\d{1,2})\s*[\/月]/)||[])[1];
-  var title=(mo?mo+'月':'')+'報名狀況';
+  var title=(mo?mo+'月':'')+'例賽報名狀況';
   var liffUrl='https://liff.line.me/'+LIFF_ID;
   var playing=(state.roster||[]).filter(function(p){ return p.status==='報名'; });
   var names=playing.map(function(p,i){ return (i+1)+'. '+p.name; }).join('　');
+  function row(k,v){ return { type:'box', layout:'baseline', spacing:'sm', contents:[
+    { type:'text', text:k, color:'#7a8a72', size:'sm', flex:2 },
+    { type:'text', text:String(v||'—'), color:'#23301f', size:'sm', weight:'bold', flex:5, wrap:true } ]}; }
   var body=[ { type:'text', text:'已報名 '+playing.length+' 人'+(cap?(' / 名額 '+cap):''), color:'#14532d', size:'xl', weight:'bold' } ];
-  if(date) body.push({ type:'text', text:'日期 '+date, color:'#23301f', size:'sm', margin:'sm' });
-  if(course) body.push({ type:'text', text:'球場 '+course, color:'#23301f', size:'sm' });
-  if(deadline) body.push({ type:'text', text:'報名截止 '+deadline, color:'#bc4b3c', size:'sm', weight:'bold' });
+  if(date) body.push(row('日期',date));
+  if(course) body.push(row('球場',course));
+  if(tee) body.push(row('開球',tee));
   body.push({ type:'separator', margin:'md' });
   body.push({ type:'text', text:(names||'目前還沒有人報名,快來搶頭香!'), wrap:true, size:'sm', color:'#23301f', margin:'md' });
   return {
