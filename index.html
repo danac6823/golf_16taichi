@@ -377,6 +377,11 @@ function myRow(){return state.roster.filter(function(p){return p.userId===profil
 // ---- 啟動 ----
 var previewMember=false;
 (async function init(){
+  // ① 提早暖機:用上次存的 userId,在 liff.init「之前」就平行送出 bootstrap。
+  //    重複登入時,GAS 冷啟動會與 LIFF 初始化同時進行,不必先等 LIFF 再等資料。
+  var cachedUid=""; try{ cachedUid=localStorage.getItem("liff_uid")||""; }catch(e){}
+  var pWarm = cachedUid ? api({ action:"bootstrap", userId:cachedUid, asMember:"" }) : null;
+
   try{
     await liff.init({ liffId: LIFF_ID });
   }catch(e){
@@ -386,23 +391,29 @@ var previewMember=false;
 
   try{ ID_TOKEN = liff.getIDToken() || ""; }catch(e){ ID_TOKEN = ""; }   // 寫入動作驗證用(需頻道開啟 openid scope)
 
-  // 用 getContext() 立刻取得 userId(免一次網路往返),
-  // 讓「取個人資料」與「bootstrap」平行進行,縮短登入等待。
   var ctx=null; try{ ctx=liff.getContext(); }catch(e){}
   var uid = ctx && ctx.userId;
-  var pProfile = liff.getProfile().catch(function(){ return null; });
-  var pBoot = uid ? api({ action:"bootstrap", userId:uid, asMember: previewMember?"1":"" }) : null;
+  // ② 首次或未命中暖機時,用 getContext 的 uid 盡早起跑 bootstrap(與「取個人資料」平行)
+  var pBootCtx = (!pWarm && uid) ? api({ action:"bootstrap", userId:uid, asMember: previewMember?"1":"" }) : null;
 
+  var pProfile = liff.getProfile().catch(function(){ return null; });
   profile = await pProfile;
   if(!profile){
     if(uid){ profile = { userId:uid, displayName:"", pictureUrl:"" }; }   // 拿不到 profile 但有 uid,仍可運作
     else { return fatal("無法取得 LINE 個人資料,請重新開啟。"); }
   }
+  try{ localStorage.setItem("liff_uid", profile.userId); }catch(e){}   // 存起來,下次提早暖機用
 
   try{
-    state = await (pBoot || api({ action:"bootstrap", userId:profile.userId, asMember: previewMember?"1":"" }));
+    // ③ 挑選正確使用者的那一趟 bootstrap:優先重用已平行跑的暖機/起跑趟,否則現在才抓
+    var pBoot;
+    if(pWarm && cachedUid === profile.userId)        pBoot = pWarm;       // 重用暖機那趟(最快)
+    else if(pBootCtx && uid === profile.userId)       pBoot = pBootCtx;    // 重用 getContext 起跑那趟
+    else  pBoot = api({ action:"bootstrap", userId: profile.userId, asMember: previewMember?"1":"" });
+    state = await pBoot;
     if(!state || !state.ok) return fatal((state&&state.error) || "讀取失敗");
     render();
+    loadMyStats();
   }catch(e){
     fatal(e.message || "連線失敗,請確認 GAS_URL 設定並稍後再試。");
   }
@@ -547,7 +558,7 @@ function renderMain(){
       : '<div class="rgrid">'+playing.map(function(p,i){return playerChip(p,i,c);}).join("")+'</div>')+
   (leave.length? '<div class="section-label">請假名單 · '+leave.length+' 人</div><div class="rgrid">'+
       leave.map(function(p){return '<div class="rchip leave"><span class="rnm">'+gname(p.name)+'</span><i class="ct leave">請假</i></div>';}).join("")+'</div>' : '')+
-  (state.isAdmin && total>0 ? '<button class="btn ghost sm" id="openAttList" style="width:100%;margin-top:4px">📋 匯出當月出席名單(傳球場)</button>'+attListModalHtml(playing) : '')+
+  (state.isAdmin && total>0 ? '<button class="btn ghost sm" id="openAttList" style="width:100%;margin-top:4px">📋 匯出出席名單(傳球場)</button>'+attListModalHtml(playing) : '')+
 
   groupsSection()+
   (state.isAdmin ? groupAdminPanel() : "")+
@@ -695,6 +706,8 @@ function adminPanel(){
     '<p class="formnote" style="text-align:left;margin-top:0">建立一批「【測】」開頭的測試會員(含報名),可用來試分組、表格輸入成績、排名、PDF。測完按「清除測試資料」一鍵移除所有【測】開頭資料,不影響正式資料。</p>'+
     '<div class="btnrow"><button class="btn sm" id="seedTest" style="flex:1">建立測試資料</button>'+
       '<button class="btn ghost sm" id="clearTest" style="flex:1">清除測試資料</button></div>'+
+    '<p class="formnote" style="text-align:left;margin-top:10px">若你「直接在試算表」改了設定/名單/差點等資料,按下面這顆可立刻讓 App 讀到最新(平常用 App 操作會自動更新,不必按)。</p>'+
+    '<button class="btn ghost sm" id="flushCache" style="width:100%">🔄 清除快取(改完試算表後按)</button>'+
   '</div></details>';
 
   var secMaint='<details class="admsec"><summary>管理員 · 名單維護</summary>'+
@@ -1266,15 +1279,16 @@ function progressStrip(){
     '<div class="pg warn"><span>尚未登記</span><b>'+p.notYet+'/'+p.members+'</b></div>'+
   '</div>';
 }
-// 當月出席名單純文字(傳球場用):球隊/日期/球場/開球 + 編號名單
+// 當月出席名單純文字(傳給球隊/球場用):球隊名稱(第X屆)/日期/球場/開球 + 編號名單 + 請假
 function buildAttText(playing){
   var ev=state.eventView||{}, e=state.event||{};
-  var team=e.teamName||e.title||"";
+  var team=(e.teamName||'').trim() || '意象太極高爾夫球隊';   // 確保一定有隊名(沒設定時用預設)
+  var head=team + (e.term ? ' 第'+e.term+'屆' : '');
   var date=ev.date||e.date||"";
   var course=ev.course||e.course||"";
   var tee=ev.tee||e.tee||"";
   var L=[];
-  if(team) L.push(team);
+  L.push(head);                          // 隊名固定放第一行
   if(date) L.push("日期:"+date);
   if(course) L.push("球場:"+course);
   if(tee) L.push("開球時間:"+tee);
@@ -1287,6 +1301,9 @@ function buildAttText(playing){
     var isGuest=(p.userId && p.userId.indexOf("G:")===0) || (state.roleMap && state.roleMap[p.name]==="來賓");
     L.push((i+1)+". "+p.name+(isGuest?"(來賓)":""));
   });
+  var sec=(e.secretary||'').trim();
+  L.push("");
+  L.push("承辦:總幹事 "+(sec||'張凌華')+" 0905361633");
   return L.join("\n");
 }
 function attListModalHtml(playing){
@@ -1614,6 +1631,15 @@ function wireMain(isFull, iAmIn){
     busy("clearTest","清除中…");
     api({action:"clearTestData",userId:profile.userId}).then(function(r){
       toast(r.ok?("已清除 "+r.removed+" 筆測試資料"):(r.error||"失敗")); reload();
+    });
+  };
+  var fc=document.getElementById("flushCache");
+  if(fc) fc.onclick=function(){
+    busy("flushCache","清除中…");
+    api({action:"flushCache",userId:profile.userId}).then(function(r){
+      var e0=document.getElementById("flushCache"); if(e0){e0.disabled=false;e0.textContent="🔄 清除快取(改完試算表後按)";}
+      if(!r.ok){ toast(r.error||"清除失敗"); return; }
+      toast("✓ 已清除快取,正在讀取最新資料…"); reload();
     });
   };
   var openScore=document.getElementById("openScore");
