@@ -47,9 +47,9 @@
   .meta-v.tee{color:var(--flag)}
 
   .countstrip{display:flex;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin:16px 0}
-  .cstat{flex:1;background:var(--paper-2);padding:14px 6px;text-align:center}
+  .cstat{flex:1;background:var(--paper-2);padding:8px 6px;text-align:center}
   .cstat b{display:block;font-size:24px;font-family:Georgia,serif;color:var(--fairway);line-height:1}
-  .cstat span{display:block;margin-top:3px;font-size:12px;color:var(--ink-soft);letter-spacing:.02em;line-height:1.25}
+  .cstat span{display:block;margin-top:2px;font-size:12px;color:var(--ink-soft);letter-spacing:.02em;line-height:1.2}
   .cstat.full b{color:var(--flag)}
 
   .youbar{display:flex;flex-wrap:wrap;align-items:center;gap:11px;background:var(--green-soft);border:1px solid #cfe0d2;border-radius:12px;padding:12px 14px;margin:16px 0}
@@ -535,13 +535,13 @@ function renderMain(){
       metaRow("截止",ev().deadline)+ metaRow("名額",ev().cap)+
     '</div>'+
   '</div>'+
-  (state.notices&&state.notices.event ? '<div class="notice event"><div class="nttl">📌 本場好康</div><div class="nbody">'+noticeHtml(state.notices.event)+'</div></div>' : '')+
 
   '<div class="countstrip">'+
     '<div class="cstat"><b>'+confirmed+'</b><span>參加</span></div>'+
     '<div class="cstat"><b>'+leave.length+'</b><span>請假</span></div>'+
     (state.progress&&state.progress.members?'<div class="cstat"><b>'+state.progress.notYet+'</b><span>尚未登記</span></div>':'')+
   '</div>'+
+  (state.notices&&state.notices.event ? '<div class="notice event"><div class="nttl">📌 本場好康</div><div class="nbody">'+noticeHtml(state.notices.event)+'</div></div>' : '')+
 
   '<div class="youbar">'+ avatar() +
     '<div class="who"><b>'+gname(state.member.name)+'</b><small>｜'+identitySmall()+'｜差點 '+esc((state.myHcp&&state.myHcp!=="")?state.myHcp:"—")+'</small></div>'+
