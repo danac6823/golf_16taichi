@@ -253,6 +253,21 @@
   .mystat .ms b{display:block;font-family:Georgia,serif;font-size:18.5px;color:var(--fairway)}
   .mystat .ms span{font-size:12px;color:var(--ink-soft)}
   .perfect{margin-top:10px;text-align:center;font-size:14px;font-weight:700;color:var(--gold);background:#fbf3e0;border:1px solid #e9d6a8;border-radius:9px;padding:7px}
+  .notice{border-radius:12px;padding:12px 14px;margin:12px 0;border:1px solid}
+  .notice .nttl{font-weight:700;font-size:14px;margin-bottom:5px}
+  .notice .nbody{font-size:14px;line-height:1.6;color:var(--ink);word-break:break-word}
+  .notice .nbody a{color:#1f6feb;text-decoration:underline}
+  .notice.announce{background:#eef6ff;border-color:#bcd8f5}
+  .notice.announce .nttl{color:#1c5fb0}
+  .notice.event{background:#fff6ec;border-color:#f0d3ac}
+  .notice.event .nttl{color:#a5631f}
+  .feeline{display:flex;justify-content:space-between;align-items:center;padding:6px 2px;font-size:15px}
+  .feeline b.paidok{color:#2d7d46}
+  .feeline b.paidno{color:var(--flag)}
+  .bankbox{margin-top:10px;background:#f2f8f3;border:1px solid #cfe6d5;border-radius:11px;padding:11px 12px}
+  .bankbox .bankttl{font-weight:700;color:#2d6a4f;font-size:14px;margin-bottom:5px}
+  .bankbox .nbody{font-size:14px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
+  .bankbox .copyBank{margin-top:9px;width:100%}
   .techrow{display:grid;grid-template-columns:1.1fr 1.3fr 56px;gap:6px;margin-bottom:6px}
   .techrow select,.techrow input{width:100%;padding:8px 6px;border:1px solid var(--line);border-radius:8px;background:var(--paper-2);font-size:14px}
   .techrow .tr-tiao{text-align:center}
@@ -508,6 +523,7 @@ function renderMain(){
 
   app.innerHTML =
   previewBar()+
+  (state.notices&&state.notices.announce ? '<div class="notice announce"><div class="nttl">📣 最新消息</div><div class="nbody">'+noticeHtml(state.notices.announce)+'</div></div>' : '')+
   '<div class="card">'+
     '<div class="masthead">'+flagSvg()+
       '<p class="eyebrow">'+teamLine()+'</p>'+
@@ -541,6 +557,8 @@ function renderMain(){
     '</div>'
   : '')+
 
+  (state.notices&&state.notices.event ? '<div class="notice event"><div class="nttl">📌 本場注意</div><div class="nbody">'+noticeHtml(state.notices.event)+'</div></div>' : '')+
+
   '<div class="section-label">出席名單 · '+total+' 人</div>'+
   (total===0
       ? '<div class="empty">還沒有人登記,當第一個開球的人吧 ⛳</div>'
@@ -557,6 +575,7 @@ function renderMain(){
   seasonSection()+
   scheduleSection()+
   myStatsSection()+
+  myFeeSection()+
   officersSection()+
 
   (state.isAdmin ? adminPanel() : "")+
@@ -719,8 +738,21 @@ function adminPanel(){
   '</div></details>';
 
   // 順序:每場營運(會費/行事曆、送球)→ 設定(活動、差點)→ 基本資料(球隊、會員)→ 工具
+  var taStyle='width:100%;box-sizing:border-box;border:1px solid #cfd8df;border-radius:10px;padding:8px 10px;font:inherit;resize:vertical';
+  var secNotice='<details class="admsec"><summary>公告 · 本場注意 · 匯款資訊</summary><div class="panel">'+
+    '<div class="field"><label>📣 最新消息 / 外地賽(首頁上方常駐,可貼網址)</label>'+
+      '<textarea class="adm" data-k="announce" rows="3" style="'+taStyle+'">'+esc(e.announce||"")+'</textarea></div>'+
+    '<div class="field" style="margin-top:10px"><label>📌 本場注意事項(報名卡下方;換月自動清空)</label>'+
+      '<textarea class="adm" data-k="noticeEvent" rows="3" style="'+taStyle+'">'+esc(e.noticeEvent||"")+'</textarea></div>'+
+    '<div class="field" style="margin-top:10px"><label>💳 匯款資訊(只對「未繳」會員顯示;可多行:銀行/戶名/帳號)</label>'+
+      '<textarea class="adm" data-k="bankInfo" rows="3" style="'+taStyle+'">'+esc(e.bankInfo||"")+'</textarea></div>'+
+    '<button class="btn sm" id="saveNotice" style="margin-top:8px">儲存公告 / 匯款</button>'+
+    '<p class="formnote" style="text-align:left">網址會自動變成可點連結。本場注意事項換月會自動清空;匯款資訊只有還沒繳會費的人看得到,帳號可一鍵複製。</p>'+
+  '</div></details>';
+
   return '<div class="adminzone">'+
     feePanel()+    // 會費收款 + 行事曆
+    secNotice+
     secBalls+
     secMaint+
     secHcp+
@@ -998,6 +1030,45 @@ function myStatsSection(){
       '<div class="ms"><b>'+rate+'%</b><span>出席率</span></div>'+
       '<div class="ms"><b>NT$'+Number(s.prize||0).toLocaleString()+'</b><span>獎金累計</span></div>'+
     '</div>'+(s.perfect?'<div class="perfect">★ 本年度全勤!</div>':'')+'</div>';
+}
+// 公告文字:跳脫 HTML → 網址自動變連結 → 換行保留
+function noticeHtml(t){
+  var s=esc(String(t||''));
+  s=s.replace(/(https?:\/\/[^\s<]+)/g,function(u){return '<a href="'+u+'" target="_blank" rel="noopener">'+u+'</a>';});
+  return s.replace(/\n/g,'<br>');
+}
+// 複製文字(LINE 內建瀏覽器相容:優先 clipboard API,失敗退回 execCommand)
+function copyText(t){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(function(){toast("✓ 已複製");},function(){fallbackCopy(t);});
+  } else fallbackCopy(t);
+}
+function fallbackCopy(t){
+  var ta=document.createElement("textarea"); ta.value=t;
+  ta.style.position="fixed"; ta.style.top="0"; ta.style.opacity="0";
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try{ document.execCommand("copy"); toast("✓ 已複製"); }catch(e){ toast("複製失敗,請長按選取"); }
+  document.body.removeChild(ta);
+}
+// 我的會費(含匯款資訊:只對「未繳」的會員顯示 + 一鍵複製帳號)
+function myFeeSection(){
+  if(!state.member) return '';
+  if(state.roleMap && state.roleMap[state.member.name]==='來賓') return '';   // 來賓無年費
+  var fee=state.myFee||'';
+  if(fee===''||fee==="0") return '';
+  var paid=!!state.myPaid;
+  var bank=(state.notices&&state.notices.bank)||'';
+  var html='<div class="section-label">我的會費'+(seasonLabel()?' '+esc(seasonLabel()):'')+'</div>'+
+    '<div class="panel">'+
+      '<div class="feeline"><span>本年度會費</span><b>NT$'+Number(fee).toLocaleString()+'</b></div>'+
+      '<div class="feeline"><span>繳費狀態</span><b class="'+(paid?"paidok":"paidno")+'">'+(paid?"已繳":"未繳")+'</b></div>';
+  if(!paid && bank){
+    var acct=(bank.match(/\d[\d-]{5,}\d/g)||[]).sort(function(a,b){return b.replace(/\D/g,"").length-a.replace(/\D/g,"").length;})[0]||"";
+    html+='<div class="bankbox"><div class="bankttl">💳 匯款資訊</div>'+
+          '<div class="nbody">'+noticeHtml(bank)+'</div>'+
+          '<button class="btn ghost sm copyBank" data-copy="'+esc(acct||bank)+'">'+(acct?"複製帳號":"複製匯款資訊")+'</button></div>';
+  }
+  return html+'</div>';
 }
 // 依性別把名字上色(男=藍、女=玫紅)
 function gname(name){
@@ -1627,6 +1698,11 @@ function wireMain(isFull, iAmIn){
   };
   var saveTeam=document.getElementById("saveTeam");
   if(saveTeam) saveTeam.onclick=function(){ saveAdm("saveTeam","已更新球隊資料"); };
+  var saveNotice=document.getElementById("saveNotice");
+  if(saveNotice) saveNotice.onclick=function(){ saveAdm("saveNotice","已儲存公告 / 匯款"); };
+  Array.prototype.forEach.call(document.querySelectorAll(".copyBank"), function(b){
+    b.onclick=function(){ copyText(b.getAttribute("data-copy")||""); };
+  });
   var clr=document.getElementById("clearBtn");
   if(clr) clr.onclick=function(){
     if(!confirm("確定清空整份出席名單?此動作無法復原。")) return;

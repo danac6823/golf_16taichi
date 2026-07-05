@@ -26,6 +26,7 @@ var SHEET_SCORES  = 'Scores';     // date | name | out | in | gross | hcp | net 
 var SHEET_PAY     = 'Payments';   // name | paid        (本年度會費是否已收)
 var SHEET_SCHED   = '行事曆';      // 年|月|日期|星期|隊伍|類型|球場|開球時間|預訂狀態|可預約日|預約提醒|提前天數|提前月數|組數|擊球價
 var SHEET_TECH    = '技術獎';      // 日期 | 獎項 | 得獎者 | 條數  (送球以條計,1盒=4條)
+var SHEET_ROSTER_ARCHIVE = '報名紀錄'; // 場次 | 姓名 | 狀態 | 用餐 | 差點 | 備註 | userId | 報名時間  (每月報名封存)
 
 // ---- 活動資訊預設值 ----
 var DEFAULT_CONFIG = {
@@ -41,7 +42,12 @@ var DEFAULT_CONFIG = {
   hcpK:     '0.2',       // 差點更新平滑係數
   newHcpFactor: '0.9',   // 新會員第二場建立差點的倍率:((第一場+第二場)/2 − 標準桿)× 此值
   maxHcp:   '36',        // 差點上限(所有計算結果不超過此值)
-  eventGraceDays: '5',   // 賽後仍把「本場」當作目前場次顯示的天數
+  feeFemale: '10000',    // 女會員年費
+  feeMale:   '11000',    // 男會員年費
+  noticeEvent: '',       // 本場注意事項(報名卡下方;換月自動清空)
+  announce:  '',         // 最新消息 / 外地賽(首頁上方常駐)
+  bankInfo:  '',         // 匯款資訊(我的會費區,只對未繳者顯示)
+  eventGraceDays: '3',   // 賽後仍把「本場」當作目前場次顯示的天數
   adminUserId: ''
 };
 
@@ -228,6 +234,7 @@ function rosterWithHcp_() {
 
 function bootstrap(userId, p) {
   var cfg = getConfig();
+  rolloverRosterIfSwitched_(cfg);                 // 換場自動封存上一場 + 清空(常態只比對不寫入)
   var hmap = getHcpMap();
   var roster = rosterWithHcp_();
   var member = getMember(userId);
@@ -267,6 +274,9 @@ function bootstrap(userId, p) {
   // 管理員資料(差點/會費/綁定/球數/技術獎)改為「展開管理員專區時才抓」(adminData action),不在首屏 bootstrap 一次讀完,加快登入
   res.schedule = getSchedule();                   // 賽程(所有人可看)
   res.eventView = effectiveEvent(cfg, res.schedule); // 報名頁顯示用(自動帶下一場)
+  res.notices = { announce: cfg.announce || '', event: cfg.noticeEvent || '', bank: cfg.bankInfo || '' };
+  res.myPaid = true;                              // 匯款區只給未繳會員 → 有匯款資訊且為會員時才查繳費狀態
+  if (res.notices.bank && member && member.role === '會員') res.myPaid = !!getPaidMap()[member.name];
   var __mInfo = getMemberInfoMap();               // 一次讀會員資料,同時產生 性別/身分 對照
   res.genderMap = (function(){ var g={}; for(var k in __mInfo){ var gv=__mInfo[k].gender; if(gv==='男'||gv==='女') g[k]=gv; } return g; })(); // 姓名→性別(前端上色用)
   res.roleMap = (function(){ var r={}; for(var k in __mInfo){ r[k]=__mInfo[k].role; } return r; })();   // 姓名→身分(會員/來賓)
@@ -605,7 +615,7 @@ function updateEvent(userId, p) {
   if (!userId || userId !== cfg.adminUserId) {
     return { ok: false, error: '只有管理員可以修改活動資訊' };
   }
-  var fields = ['title','titleZh','date','course','tee','fee','deadline','cap','par','matchDate','groupRevealAt','scoreRevealAt','teamName','term','president','vicePresident','secretary','treasurer','seasonFrom','seasonTo','prizeGross','prizeNet1','prizeNet2','prizeNet3','prizeLucky','luckyPlace','prizeSkip5','skipStep','prizeBB','ballInitBoxes','ballInitNote'];
+  var fields = ['title','titleZh','date','course','tee','fee','deadline','cap','par','matchDate','groupRevealAt','scoreRevealAt','teamName','term','president','vicePresident','secretary','treasurer','seasonFrom','seasonTo','prizeGross','prizeNet1','prizeNet2','prizeNet3','prizeLucky','luckyPlace','prizeSkip5','skipStep','prizeBB','ballInitBoxes','ballInitNote','noticeEvent','announce','bankInfo'];
   fields.forEach(function (k) {
     if (p[k] !== undefined) setConfig(k, p[k]);
   });
@@ -2210,7 +2220,7 @@ function pad2(n) { return (n < 10 ? '0' : '') + n; }
 // 賽後寬限:把今天往前推 N 天當作挑「目前場次」的基準
 // → 比賽日起算 N 天內,仍把剛打完的這場當作目前場次(報名卡/成績/分組時間鎖都留在本場)
 function graceCutoffKey_(cfg) {
-  var grace = parseInt(cfg && cfg.eventGraceDays, 10); if (isNaN(grace)) grace = 5;
+  var grace = parseInt(cfg && cfg.eventGraceDays, 10); if (isNaN(grace)) grace = 3;
   var now = new Date();
   var cut = new Date(now.getFullYear(), now.getMonth(), now.getDate() - grace);
   return cut.getFullYear() * 10000 + (cut.getMonth() + 1) * 100 + cut.getDate();
@@ -2237,8 +2247,53 @@ function effectiveEvent(cfg, schedule) {
     type: next ? next.type : '',
     groups: next ? next.groups : '',
     price: next ? next.price : '',
+    key: next ? next.sortKey : 0,                                      // 目前場次的排序鍵(換場偵測用)
     fromSchedule: !!next
   };
+}
+
+// 換場自動處理:偵測「目前場次」是否已前進到新的一場 → 封存上一場報名 + 清空名單
+// 在 bootstrap 讀名單前呼叫;常態(沒換場)只做比對、不寫入
+function rolloverRosterIfSwitched_(cfg) {
+  var ev = effectiveEvent(cfg, getSchedule());
+  var curKey = ev && ev.key ? ev.key : 0;
+  if (!curKey) return;                                    // 沒有有效場次 → 不動
+  var storedKey = parseInt(cfg.rosterEventKey, 10) || 0;
+  if (!storedKey) {                                       // 第一次:只記錄,不清空
+    setConfig('rosterEventKey', String(curKey));
+    setConfig('rosterEventDate', ev.date || '');
+    return;
+  }
+  if (curKey <= storedKey) return;                        // 沒前進到新場次 → 不動
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(3000); } catch (e) { return; }      // 拿不到鎖就跳過,下次 bootstrap 再處理
+  try {
+    var cfg2 = getConfig();
+    var storedKey2 = parseInt(cfg2.rosterEventKey, 10) || 0;
+    if (curKey <= storedKey2) return;                     // 鎖內再確認,避免多人同時重複封存
+    archiveRoster_(cfg2.rosterEventDate || '');           // 封存「上一場」名單
+    var sh = sheet(SHEET_ROSTER), last = sh.getLastRow();
+    if (last > 1) sh.deleteRows(2, last - 1);             // 清空名單
+    setConfig('noticeEvent', '');                         // 換月一併清掉上一場的注意事項
+    setConfig('rosterEventKey', String(curKey));
+    setConfig('rosterEventDate', ev.date || '');
+    __rosterCache = null; cacheDel_('roster');
+  } finally { lock.releaseLock(); }
+}
+
+// 把目前名單封存到「報名紀錄」分頁(每列加上場次日期),供分月留存查閱
+function archiveRoster_(eventDate) {
+  var sh = sheet(SHEET_ROSTER), data = sh.getDataRange().getValues();
+  if (data.length < 2) return;                            // 空名單不封存
+  var arch = sheet(SHEET_ROSTER_ARCHIVE), rows = [];
+  for (var i = 1; i < data.length; i++) {
+    if (!data[i][0]) continue;
+    // Roster: userId|name|hcp|cart|note|ts|status → 封存欄序:場次|姓名|狀態|用餐|差點|備註|userId|報名時間
+    rows.push([eventDate || '', String(data[i][1] || ''), String(data[i][6] || '報名'),
+               String(data[i][3] || ''), String(data[i][2] || ''), String(data[i][4] || ''),
+               String(data[i][0] || ''), data[i][5] ? new Date(Number(data[i][5])) : '']);
+  }
+  if (rows.length) arch.getRange(arch.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
 }
 
 // 解析「姓名 OUT IN」,容許逗號/空白/全形
@@ -2296,6 +2351,7 @@ function sheet(name) {
     if (name === SHEET_HCP)     sh.appendRow(['name','hcp','seasonStart']);
     if (name === SHEET_SCORES)  sh.appendRow(['date','name','out','in','gross','hcp','net','rankType','rank','hcpAfter','ts']);
     if (name === SHEET_PAY)     sh.appendRow(['name','paid']);
+    if (name === SHEET_ROSTER_ARCHIVE) sh.appendRow(['場次','姓名','狀態','用餐','差點','備註','userId','報名時間']);
   }
   return sh;
 }
@@ -2548,11 +2604,12 @@ function getBindingStatus() {
   return { list: list, total: list.length, bound: boundCount, extra: extra };
 }
 
-// 會費:會員依性別,女 9000、男 10000;來賓無年費
+// 會費:會員依性別,女 10000、男 11000(可由 Config feeFemale / feeMale 調整);來賓無年費
 function feeOf(member) {
   if (!member || member.role === '來賓') return '';
-  if (member.gender === '女') return 9000;
-  if (member.gender === '男') return 10000;
+  var cfg = getConfig();
+  if (member.gender === '女') return parseInt(cfg.feeFemale, 10) || 10000;
+  if (member.gender === '男') return parseInt(cfg.feeMale, 10) || 11000;
   return '';
 }
 
