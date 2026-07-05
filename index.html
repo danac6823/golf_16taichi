@@ -256,9 +256,9 @@
   .notice{border-radius:12px;padding:12px 14px;margin:12px 0;border:1px solid}
   .notice .nttl{font-weight:700;font-size:14px;margin-bottom:5px}
   .notice .nbody{font-size:14px;line-height:1.6;color:var(--ink);word-break:break-word}
-  .notice .nbody a{color:#1f6feb;text-decoration:underline}
-  .notice.announce{background:#eef6ff;border-color:#bcd8f5}
-  .notice.announce .nttl{color:#1c5fb0}
+  .notice .nbody a{color:#2d6a4f;text-decoration:underline}
+  .notice.announce{background:#edf4ee;border-color:#c3ddc8}
+  .notice.announce .nttl{color:#2d6a4f}
   .notice.event{background:#fff6ec;border-color:#f0d3ac}
   .notice.event .nttl{color:#a5631f}
   .feeline{display:flex;justify-content:space-between;align-items:center;padding:6px 2px;font-size:15px}
@@ -523,7 +523,6 @@ function renderMain(){
 
   app.innerHTML =
   previewBar()+
-  (state.notices&&state.notices.announce ? '<div class="notice announce"><div class="nttl">📣 最新消息</div><div class="nbody">'+noticeHtml(state.notices.announce)+'</div></div>' : '')+
   '<div class="card">'+
     '<div class="masthead">'+flagSvg()+
       '<p class="eyebrow">'+teamLine()+'</p>'+
@@ -536,6 +535,7 @@ function renderMain(){
       metaRow("截止",ev().deadline)+ metaRow("名額",ev().cap)+
     '</div>'+
   '</div>'+
+  (state.notices&&state.notices.event ? '<div class="notice event"><div class="nttl">📌 本場好康</div><div class="nbody">'+noticeHtml(state.notices.event)+'</div></div>' : '')+
 
   '<div class="countstrip">'+
     '<div class="cstat"><b>'+confirmed+'</b><span>參加</span></div>'+
@@ -557,8 +557,6 @@ function renderMain(){
     '</div>'
   : '')+
 
-  (state.notices&&state.notices.event ? '<div class="notice event"><div class="nttl">📌 本場注意</div><div class="nbody">'+noticeHtml(state.notices.event)+'</div></div>' : '')+
-
   '<div class="section-label">出席名單 · '+total+' 人</div>'+
   (total===0
       ? '<div class="empty">還沒有人登記,當第一個開球的人吧 ⛳</div>'
@@ -573,6 +571,7 @@ function renderMain(){
   rankingSection()+
   guestSection()+
   seasonSection()+
+  (state.notices&&state.notices.announce ? '<div class="notice announce"><div class="nttl">📣 最新消息</div><div class="nbody">'+noticeHtml(state.notices.announce)+'</div></div>' : '')+
   scheduleSection()+
   myStatsSection()+
   myFeeSection()+
@@ -739,15 +738,15 @@ function adminPanel(){
 
   // 順序:每場營運(會費/行事曆、送球)→ 設定(活動、差點)→ 基本資料(球隊、會員)→ 工具
   var taStyle='width:100%;box-sizing:border-box;border:1px solid #cfd8df;border-radius:10px;padding:8px 10px;font:inherit;resize:vertical';
-  var secNotice='<details class="admsec"><summary>公告 · 本場注意 · 匯款資訊</summary><div class="panel">'+
-    '<div class="field"><label>📣 最新消息 / 外地賽(首頁上方常駐,可貼網址)</label>'+
+  var secNotice='<details class="admsec"><summary>公告 · 本場好康 · 匯款資訊</summary><div class="panel">'+
+    '<div class="field"><label>📣 最新消息 / 外地賽(顯示在近期賽程前,可貼網址)</label>'+
       '<textarea class="adm" data-k="announce" rows="3" style="'+taStyle+'">'+esc(e.announce||"")+'</textarea></div>'+
-    '<div class="field" style="margin-top:10px"><label>📌 本場注意事項(報名卡下方;換月自動清空)</label>'+
+    '<div class="field" style="margin-top:10px"><label>📌 本場好康(報名卡下方;換月自動清空)</label>'+
       '<textarea class="adm" data-k="noticeEvent" rows="3" style="'+taStyle+'">'+esc(e.noticeEvent||"")+'</textarea></div>'+
     '<div class="field" style="margin-top:10px"><label>💳 匯款資訊(只對「未繳」會員顯示;可多行:銀行/戶名/帳號)</label>'+
       '<textarea class="adm" data-k="bankInfo" rows="3" style="'+taStyle+'">'+esc(e.bankInfo||"")+'</textarea></div>'+
     '<button class="btn sm" id="saveNotice" style="margin-top:8px">儲存公告 / 匯款</button>'+
-    '<p class="formnote" style="text-align:left">網址會自動變成可點連結。本場注意事項換月會自動清空;匯款資訊只有還沒繳會費的人看得到,帳號可一鍵複製。</p>'+
+    '<p class="formnote" style="text-align:left">網址會自動變成可點連結。本場好康換月會自動清空;匯款資訊只有還沒繳會費的人看得到,帳號可一鍵複製。</p>'+
   '</div></details>';
 
   return '<div class="adminzone">'+
