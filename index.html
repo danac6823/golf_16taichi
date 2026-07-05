@@ -675,6 +675,7 @@ function adminPanel(){
     bindingHtml()+
     '<p class="formnote" style="text-align:left;margin-top:12px">若有人當初用 LINE 暱稱誤綁定,改好 Members 的「姓名」後,按下面這顆把出席名單裡的名字一併更新(依 LINE 帳號對應,不必大家重報)。</p>'+
     '<button class="btn ghost sm" id="syncNames" style="width:100%">🔄 同步出席名單姓名</button>'+
+    proxyRegisterHtml()+
   '</div></details>';
 
   var secBalls='<details class="admsec"><summary>管理員 · 送球庫存</summary>'+
@@ -781,7 +782,32 @@ function groupAdminPanel(){
     '<button class="btn sm" id="makeGroups">'+(hasGroups?"重新分組(重新洗牌)":"產生分組")+'</button>'+
     (hasGroups ? '<div class="btnrow"><button class="btn ghost sm" id="clearGroups" style="flex:1">清除分組</button></div>' : '')+
   '</div></details>'+
+  groupTweakPanel()+
   '</div>';   // /adminzone
+}
+
+// 微調分組:交換兩人 / 移動一人 / 改開球時間(僅在已有分組時顯示)
+function groupTweakPanel(){
+  var g=state.groups;
+  if(!(g && g.groups && g.groups.length)) return '';
+  var opts='';
+  g.groups.forEach(function(grp,gi){
+    grp.forEach(function(pl){
+      opts+='<option value="'+esc(pl.userId)+'">第'+(gi+1)+'組 · '+esc(pl.name)+'</option>';
+    });
+  });
+  var grpOpts=g.groups.map(function(_,gi){ return '<option value="'+gi+'">第'+(gi+1)+'組</option>'; }).join('');
+  return '<details class="admsec"><summary>微調分組(交換 / 移動 / 時間)</summary><div class="panel">'+
+    '<div class="field"><label>交換兩人(對調組別)</label>'+
+      '<div class="row2"><select id="swapA">'+opts+'</select><select id="swapB">'+opts+'</select></div></div>'+
+    '<button class="btn ghost sm" id="doSwap">交換</button>'+
+    '<div class="field" style="margin-top:14px"><label>移動一人到指定組</label>'+
+      '<div class="row2"><select id="moveWho">'+opts+'</select><select id="moveTo">'+grpOpts+'</select></div></div>'+
+    '<button class="btn ghost sm" id="doMove">移動</button>'+
+    '<div class="field" style="margin-top:14px"><label>重設開球時間(起始＋間隔,套用到各組)</label>'+
+      '<div class="row2"><input id="adjStart" placeholder="11:00"><input id="adjInterval" placeholder="8"></div></div>'+
+    '<button class="btn ghost sm" id="doTimes">重算各組時間</button>'+
+  '</div></details>';
 }
 
 function feePanel(){
@@ -980,6 +1006,34 @@ function gname(name){
   return '<span class="'+cls+'">'+esc(name)+'</span>';
 }
 // 綁定狀態:主檔每人是否已綁定 LINE
+// 代會員報名 UI:下拉只列「未綁定且未在出席名單」的會員 + 用餐選擇 + 目前代報名清單
+function proxyRegisterHtml(){
+  var inRoster={};
+  (state.roster||[]).forEach(function(r){ inRoster[r.name]=true; });
+  var cands=[];
+  if(state.binding && state.binding.list){
+    state.binding.list.forEach(function(x){ if(!x.bound && !inRoster[x.name]) cands.push(x.name); });
+  }
+  var proxies=(state.roster||[]).filter(function(r){ return r.userId && r.userId.indexOf("M:")===0; });
+  var opts=cands.length ? cands.map(function(n){ return '<option value="'+esc(n)+'">'+esc(n)+'</option>'; }).join('')
+                        : '<option value="">(沒有未綁定且未報名的會員)</option>';
+  var html='<p class="formnote" style="text-align:left;margin-top:14px">幫還沒綁定 LINE 的會員登記出席(身分算會員、成績照算)。他日後綁定會自動接上。</p>'+
+    '<div class="field"><label>代會員報名</label><select id="proxyName">'+opts+'</select></div>'+
+    '<div style="margin:6px 0 8px">'+
+      '<label><input type="radio" name="proxyCart" value="用餐" checked> 用餐</label>'+
+      '<label style="margin-left:16px"><input type="radio" name="proxyCart" value="不用餐"> 不用餐</label>'+
+    '</div>'+
+    '<button class="btn ghost sm" id="doProxyReg" style="width:100%"'+(cands.length?'':' disabled')+'>加入報名</button>';
+  if(proxies.length){
+    html+='<div style="font-size:13px;color:var(--ink-soft);margin-top:12px">目前代報名('+proxies.length+'):</div>';
+    html+=proxies.map(function(r){
+      return '<div class="bindrow"><span class="bn">'+gname(r.name)+'<small> '+esc(r.cart||"")+'</small></span>'+
+        '<span class="bs"><button class="btn ghost sm proxyDel" data-name="'+esc(r.name)+'" style="padding:2px 10px">移除</button></span></div>';
+    }).join('');
+  }
+  return html;
+}
+
 function bindingHtml(){
   if(state.binding===undefined) return '<p class="formnote">載入中…</p>';
   var b=state.binding;
@@ -1377,7 +1431,8 @@ function buildAttText(playing){
   L.push("用餐 "+dine+" 人 · 不用餐 "+noDine+" 人");
   playing.forEach(function(p,i){
     var isGuest=(p.userId && p.userId.indexOf("G:")===0) || (state.roleMap && state.roleMap[p.name]==="來賓");
-    L.push((i+1)+". "+p.name+(isGuest?"(來賓)":""));
+    var isProxy=(p.userId && p.userId.indexOf("M:")===0);
+    L.push((i+1)+". "+p.name+(isGuest?"(來賓)":(isProxy?"(代)":"")));
   });
   var sec=(e.secretary||'').trim();
   L.push("");
@@ -1593,6 +1648,32 @@ function wireMain(isFull, iAmIn){
     busy("clearGroups","清除中…");
     api({action:"clearGroups",userId:profile.userId}).then(after("已清除分組"));
   };
+  function afterAdjust(msg){ return function(r){
+    if(r && r.ok===false){ toast("⚠ "+(r.error||"操作失敗")); reload(); }
+    else { toast((r.warnings&&r.warnings.length)?("⚠ "+r.warnings.join("、")):("✓ "+msg)); reload(); }
+  };}
+  var ds=document.getElementById("doSwap");
+  if(ds) ds.onclick=function(){
+    var a=val("swapA"), b=val("swapB");
+    if(!a||!b){ toast("請選擇要交換的兩人"); return; }
+    if(a===b){ toast("請選不同的兩人"); return; }
+    busy("doSwap","交換中…");
+    api({action:"adjustGroups",userId:profile.userId,op:"swap",a:a,b:b}).then(afterAdjust("已交換"));
+  };
+  var dm=document.getElementById("doMove");
+  if(dm) dm.onclick=function(){
+    var who=val("moveWho"), to=val("moveTo");
+    if(!who){ toast("請選擇要移動的人"); return; }
+    busy("doMove","移動中…");
+    api({action:"adjustGroups",userId:profile.userId,op:"move",who:who,to:to}).then(afterAdjust("已移動"));
+  };
+  var dt=document.getElementById("doTimes");
+  if(dt) dt.onclick=function(){
+    var s=(val("adjStart")||"").trim();
+    if(!s){ toast("請填起始時間(例 11:00)"); return; }
+    busy("doTimes","更新中…");
+    api({action:"adjustGroups",userId:profile.userId,op:"times",start:s,interval:val("adjInterval")}).then(afterAdjust("已更新開球時間"));
+  };
   var saveBalls=document.getElementById("saveBalls");
   if(saveBalls) saveBalls.onclick=function(){ saveAdm("saveBalls","已更新期初球數"); };
   var addRow=document.getElementById("addTechRow");
@@ -1687,6 +1768,27 @@ function wireMain(isFull, iAmIn){
       toast(r.changed>0?("✓ 已更新 "+r.changed+" 筆名單姓名"):"名單姓名已是最新,無需更新"); reload();
     });
   };
+  var dpr=document.getElementById("doProxyReg");
+  if(dpr) dpr.onclick=function(){
+    var nm=val("proxyName");
+    if(!nm){ toast("沒有可代報名的會員"); return; }
+    var c=document.querySelector('input[name="proxyCart"]:checked');
+    busy("doProxyReg","加入中…");
+    api({action:"proxyRegister",userId:profile.userId,name:nm,cart:c?c.value:"用餐"}).then(function(r){
+      if(!r||r.ok===false){ toast("⚠ "+((r&&r.error)||"代報名失敗")); reload(); return; }
+      toast("✓ 已代 "+nm+" 報名"); reload();
+    });
+  };
+  Array.prototype.forEach.call(document.querySelectorAll(".proxyDel"), function(btn){
+    btn.onclick=function(){
+      var nm=btn.getAttribute("data-name");
+      if(!confirm("移除代報名:"+nm+"?")) return;
+      api({action:"proxyRemove",userId:profile.userId,name:nm}).then(function(r){
+        if(!r||r.ok===false){ toast("⚠ "+((r&&r.error)||"移除失敗")); reload(); return; }
+        toast("✓ 已移除 "+nm); reload();
+      });
+    };
+  });
   var ih=document.getElementById("importHcp");
   if(ih) ih.onclick=function(){
     var txt=val("impHcp").trim();
