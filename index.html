@@ -47,6 +47,21 @@
   .meta-v.tee{color:var(--flag)}
 
   .countstrip{display:flex;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin:16px 0}
+  /* 首屏合併版:2欄資訊列(對齊 meta-k 寬)、統計併卡底、你的出席合併卡 */
+  .meta2{display:grid;grid-template-columns:1fr 1fr}
+  .meta2 .meta-row{border-bottom:1px solid #efece0}
+  .meta2 .meta-k{flex:0 0 60px}
+  .cardstat{display:flex;border-top:1px solid var(--line);background:var(--green-soft)}
+  .cardstat .cs{flex:1;text-align:center;padding:8px 4px}
+  .cardstat b{font-size:21px;font-family:Georgia,serif;color:var(--fairway);line-height:1;display:block}
+  .cardstat span{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:1px}
+  .cardstat .cs+.cs{border-left:1px solid #d3e0d3}
+  .mypanel{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin:14px 0}
+  .mypanel .myhead{display:flex;align-items:center;gap:10px;background:var(--green-soft);padding:10px 12px;border-bottom:1px solid #d8e4da}
+  .mypanel .myhead .who{min-width:0}
+  .mypanel .myhead .badge{margin-left:auto}
+  .mypanel .mybody{padding:13px 14px}
+  .btn small{display:block;font-size:11px;font-weight:400;color:var(--ink-soft);margin-top:2px;line-height:1.2}
   .cstat{flex:1;background:var(--paper-2);padding:8px 6px;text-align:center}
   .cstat b{display:block;font-size:24px;font-family:Georgia,serif;color:var(--fairway);line-height:1}
   .cstat span{display:block;margin-top:2px;font-size:12px;color:var(--ink-soft);letter-spacing:.02em;line-height:1.2}
@@ -253,6 +268,15 @@
   .mystat .ms b{display:block;font-family:Georgia,serif;font-size:18.5px;color:var(--fairway)}
   .mystat .ms span{font-size:12px;color:var(--ink-soft)}
   .perfect{margin-top:10px;text-align:center;font-size:14px;font-weight:700;color:var(--gold);background:#fbf3e0;border:1px solid #e9d6a8;border-radius:9px;padding:7px}
+  /* 功能方塊首頁 */
+  .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:6px 0 4px}
+  .tile{background:var(--paper-2);border:1px solid var(--line);border-radius:14px;padding:13px 4px 11px;text-align:center;box-shadow:0 1px 3px rgba(40,60,40,.05);position:relative;cursor:pointer}
+  .tile .ic{font-size:25px;line-height:1}
+  .tile .tl{margin-top:6px;font-size:14px;font-weight:700;color:var(--ink)}
+  .tile small{display:block;margin-top:2px;font-size:11px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 3px}
+  .tile.admin{background:#f0f5f0;border-color:#bcd3c0}
+  .tile .dot{position:absolute;top:8px;right:10px;width:8px;height:8px;border-radius:50%;background:var(--flag)}
+  .tmodal .modal-card.full .tmbody{overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;padding-bottom:20px}
   .notice{border-radius:12px;padding:12px 14px;margin:12px 0;border:1px solid}
   .notice .nttl{font-weight:700;font-size:14px;margin-bottom:5px}
   .notice .nbody{font-size:14px;line-height:1.6;color:var(--ink);word-break:break-word}
@@ -282,6 +306,7 @@
   .sctab td{padding:5px 4px;border-bottom:1px solid #eee;text-align:center;font-size:15px}
   .sctab td.sn{text-align:left;padding-left:10px;font-weight:600;white-space:nowrap}
   .sctab input{width:54px;text-align:center;padding:7px 2px;border:1px solid var(--line);border-radius:8px;font-size:16px}
+  .sctab input.sc-bird{width:40px;background:#fffbe9;border-color:#e5d5a0}
   .sctab .sc-tot{font-family:Georgia,serif;font-weight:700;color:var(--fairway);min-width:38px}
   .sctab .sc-hcp{color:var(--ink-soft)}
   .sctab .sc-net{font-family:Georgia,serif;font-weight:700;color:var(--flag)}
@@ -378,9 +403,23 @@ var previewMember=false;
   var cachedUid=""; try{ cachedUid=localStorage.getItem("liff_uid")||""; }catch(e){}
   var pWarm = cachedUid ? api({ action:"bootstrap", userId:cachedUid, asMember:"" }) : null;
 
+  // ①-2 快照秒開:上次成功畫面直接先畫(0 等待),背景抓最新、抓到後無感刷新
+  var snapRendered=false;
+  if(cachedUid && !previewMember){
+    try{
+      var snap=JSON.parse(localStorage.getItem("boot_snap")||"null");
+      if(snap && snap.uid===cachedUid && snap.state && snap.state.ok){
+        profile = snap.profile || { userId:cachedUid, displayName:"", pictureUrl:"" };
+        state = snap.state;
+        render(); snapRendered=true;
+      }
+    }catch(e){}
+  }
+
   try{
     await liff.init({ liffId: LIFF_ID });
   }catch(e){
+    if(snapRendered){ toast("⚠ LIFF 初始化失敗,顯示上次資料"); return; }
     return fatal("LIFF 初始化失敗,請確認 LIFF_ID 設定正確。");
   }
   if(!liff.isLoggedIn()){ liff.login(); return; }   // 外部瀏覽器會導向 LINE 登入
@@ -393,7 +432,7 @@ var previewMember=false;
   var pBootCtx = (!pWarm && uid) ? api({ action:"bootstrap", userId:uid, asMember: previewMember?"1":"" }) : null;
 
   var pProfile = liff.getProfile().catch(function(){ return null; });
-  profile = await pProfile;
+  profile = await pProfile || profile;
   if(!profile){
     if(uid){ profile = { userId:uid, displayName:"", pictureUrl:"" }; }   // 拿不到 profile 但有 uid,仍可運作
     else { return fatal("無法取得 LINE 個人資料,請重新開啟。"); }
@@ -406,14 +445,31 @@ var previewMember=false;
     if(pWarm && cachedUid === profile.userId)        pBoot = pWarm;       // 重用暖機那趟(最快)
     else if(pBootCtx && uid === profile.userId)       pBoot = pBootCtx;    // 重用 getContext 起跑那趟
     else  pBoot = api({ action:"bootstrap", userId: profile.userId, asMember: previewMember?"1":"" });
-    state = await pBoot;
-    if(!state || !state.ok) return fatal((state&&state.error) || "讀取失敗");
+    var fresh = await pBoot;
+    if(!fresh || !fresh.ok){
+      if(snapRendered){ toast("⚠ 連線失敗,顯示上次資料"); return; }
+      return fatal((fresh&&fresh.error) || "讀取失敗");
+    }
+    state = fresh;
     render();
+    saveSnap();
     loadMyStats();
   }catch(e){
+    if(snapRendered){ toast("⚠ 連線失敗,顯示上次資料"); return; }
     fatal(e.message || "連線失敗,請確認 GAS_URL 設定並稍後再試。");
   }
 })();
+
+// 存快照(登入秒開用):成功畫面 + 基本個人資料;過大或失敗就略過
+function saveSnap(){
+  if(previewMember) return;
+  try{
+    var s=JSON.stringify({ uid: profile.userId,
+      profile: { userId: profile.userId, displayName: profile.displayName||"", pictureUrl: profile.pictureUrl||"" },
+      state: state });
+    if(s.length < 900000) localStorage.setItem("boot_snap", s);
+  }catch(e){}
+}
 
 async function reload(){
   try{
@@ -430,6 +486,7 @@ async function reload(){
     state = s;
     if(prevMyStats !== undefined) state.myStats = prevMyStats;   // 沿用上次,重新整理時不閃爍
     render();
+    saveSnap();
     loadMyStats();           // 首屏畫好後再補抓「我的本年度」統計(不拖慢登入)
   }catch(e){
     fatal(e.message || "連線失敗,請確認 GAS_URL 設定並稍後再試。");
@@ -508,9 +565,69 @@ function renderSetup(){
   document.getElementById("saveName").onclick = onSaveName;
 }
 
+// ---- 功能方塊首頁 ----
+function tmWrap(id,title,content){
+  return '<div id="tm_'+id+'" class="modal hidden tmodal"><div class="modal-card full">'+
+    '<div class="modal-head"><span>'+esc(title)+'</span><button class="mclose tmClose" data-tm="'+id+'">✕</button></div>'+
+    '<div class="tmbody">'+(content||'<div class="empty">尚無資料</div>')+'</div>'+
+  '</div></div>';
+}
+function tile(id,ic,title,sub,cls,dot){
+  return '<div class="tile '+(cls||'')+'" data-tm="'+id+'">'+(dot?'<div class="dot"></div>':'')+
+    '<div class="ic">'+ic+'</div><div class="tl">'+esc(title)+'</div>'+(sub?'<small>'+esc(sub)+'</small>':'')+'</div>';
+}
+function tilesGrid(total){
+  var g=state.groups && state.groups.groups && state.groups.groups.length;
+  var groupSub = g ? '已公布' : (state.groupsLocked ? state.groupsLocked : '尚未產生');
+  var r=state.ranking && state.ranking.results && state.ranking.results.length;
+  var scoreSub = r ? ('已公布 '+(state.ranking.date||'')) : (state.scoreLocked ? state.scoreLocked : '尚未公布');
+  var feeSub = (state.myFee&&state.myFee!=="")? (state.myPaid?'已繳':'未繳') : '';
+  var schedSub = (state.schedule&&state.schedule.length)? (state.schedule.length+' 場') : '';
+  var hasGuests = !!(state.ranking&&state.ranking.results&&state.ranking.results.some(function(x){return x.rankType==="來賓";}));
+  var t='';
+  t+=tile('att','👥','出席名單', total+' 人');
+  t+=tile('groups','🏌️','分組表', groupSub, '', !!g);
+  t+=tile('score','🏆','本場成績', scoreSub, '', !!r);
+  t+=tile('season','📈','年度總表','逐月成績');
+  t+=tile('sched','📅','年度賽程', schedSub);
+  t+=tile('mystats','📊','我的統計','出席·獎金');
+  if(state.myFee&&state.myFee!=="") t+=tile('myfee','💰','我的會費', feeSub, '', feeSub==='未繳');
+  t+=tile('guest','🤝','幫來賓報名', hasGuests?'含來賓成績':'幫朋友報名');
+  if(state.notices&&state.notices.announce) t+=tile('announce','📣','最新消息','外地賽/公告','', true);
+  if(state.isAdmin) t+=tile('share','📤','分享群組','例賽卡/報名狀況','admin');
+  if(state.isAdmin) t+=tile('admin','🛠️','管理','總幹事專區','admin');
+  return '<div class="section-label">功能</div><div class="tiles">'+t+'</div>';
+}
+function tileModals(playing,leave,total,c){
+  var att =
+    (total===0
+      ? '<div class="empty">還沒有人登記,當第一個開球的人吧 ⛳</div>'
+      : '<div class="rgrid">'+playing.map(function(p,i){return playerChip(p,i,c);}).join("")+'</div>')+
+    (leave.length? '<div class="section-label">請假名單 · '+leave.length+' 人</div><div class="rgrid">'+
+        leave.map(function(p){return '<div class="rchip leave"><span class="rnm">'+gname(p.name)+'</span><i class="ct leave">請假</i></div>';}).join("")+'</div>' : '')+
+    (state.isAdmin && total>0 ? '<button class="btn ghost sm" id="openAttList" style="width:100%;margin-top:8px">📋 匯出出席名單(傳球場)</button>' : '');
+  var groupsC = groupsSection() + (state.isAdmin ? groupAdminPanel() : "");
+  var scoreC  = rankingSection() + (state.isAdmin ? matchScoreAdminPanel() : "");
+  var html='';
+  html+=tmWrap('att','出席名單 · '+total+' 人',att);
+  html+=tmWrap('groups','分組 · Tee Sheet',groupsC);
+  html+=tmWrap('score','本場成績',scoreC);
+  html+=tmWrap('season','逐場成績 / 年度總表',seasonSection());
+  html+=tmWrap('sched','賽程',scheduleSection());
+  html+=tmWrap('mystats','我的統計', myStatsSection()||'<div class="empty">本年度尚無出賽紀錄。</div>');
+  html+=tmWrap('myfee','我的會費', myFeeSection()||'<div class="empty">無會費資料。</div>');
+  html+=tmWrap('guest','來賓', guestPanelHtml()+guestSection());
+  html+=tmWrap('announce','最新消息', (state.notices&&state.notices.announce)?('<div class="notice announce" style="margin:4px 0"><div class="nbody">'+noticeHtml(state.notices.announce)+'</div></div>'):'' );
+  if(state.isAdmin) html+=tmWrap('share','分享到 LINE 群組',
+    '<p class="smnote" style="margin-top:4px">選擇要分享的卡片,會開啟 LINE 的選擇畫面(限 LINE App 內;不支援 OpenChat)。</p>'+
+    '<button class="btn" id="shareCard" style="width:100%;margin-top:6px">🏌️ 例賽卡<small>日期/球場/開球/截止 + 報名按鈕</small></button>'+
+    '<button class="btn ghost" id="shareRoster" style="width:100%;margin-top:10px">📋 報名狀況<small>已報名人數與名單(催報名用)</small></button>');
+  if(state.isAdmin) html+=tmWrap('admin','管理 · 總幹事專區', adminPanel());
+  return html;
+}
+
 function renderMain(){
-  var c=capNum();
-  var playing=state.roster.filter(function(r){return r.status!=="請假";});
+  var c=capNum();  var playing=state.roster.filter(function(r){return r.status!=="請假";});
   var leave=state.roster.filter(function(r){return r.status==="請假";});
   var total=playing.length;
   var confirmed=c>0?Math.min(total,c):total, waiting=c>0?Math.max(0,total-c):0;
@@ -521,106 +638,93 @@ function renderMain(){
   var myIdx=playing.indexOf(mine);
   var iAmWaiting=iAmPlaying&&c>0&&myIdx>=c;
 
+  // 保留重繪前開著的方塊頁(重新整理/操作後不彈回首頁)
+  var openTm=[]; document.querySelectorAll(".tmodal:not(.hidden)").forEach(function(m){ openTm.push(m.id); });
+
   app.innerHTML =
   previewBar()+
   '<div class="card">'+
     '<div class="masthead">'+flagSvg()+
-      '<p class="eyebrow">'+teamLine()+'</p>'+
-      '<h1 class="title">'+esc(state.event.title)+'</h1>'+
-      '<p class="title-zh">'+esc(state.event.titleZh)+'</p>'+
+      '<p class="eyebrow">'+teamLine()+(state.event.titleZh?' · '+esc(state.event.titleZh):'')+'</p>'+
+      '<h1 class="title" style="font-size:26px">'+esc((ev().date||'').trim())+(ev().course?' · '+esc(courseShort(ev().course)):'')+'</h1>'+
     '</div>'+
     '<div class="meta">'+
-      metaRow("日期",ev().date)+ metaRow("球場",ev().course)+
-      metaRow("開球",ev().tee,"tee")+ metaRow("費用",ev().fee,"fee")+
-      metaRow("截止",ev().deadline)+ metaRow("名額",ev().cap)+
+      metaRow("球場",ev().course)+
+      metaRow("開球",ev().tee,"tee")+
+      '<div class="meta2">'+ metaRow("費用",ev().fee,"fee")+ metaRow("名額",ev().cap)+ '</div>'+
+      '<div class="meta-row"><div class="meta-k">截止</div><div class="meta-v">'+esc(ev().deadline||'')+
+        (deadlineLeft(ev().deadline)?' <span style="color:var(--flag);font-weight:700">'+deadlineLeft(ev().deadline)+'</span>':'')+'</div></div>'+
     '</div>'+
-  '</div>'+
-
-  '<div class="countstrip">'+
-    '<div class="cstat"><b>'+confirmed+'</b><span>參加</span></div>'+
-    '<div class="cstat"><b>'+leave.length+'</b><span>請假</span></div>'+
-    (state.progress&&state.progress.members?'<div class="cstat"><b>'+state.progress.notYet+'</b><span>尚未登記</span></div>':'')+
+    '<div class="cardstat">'+
+      '<div class="cs"><b>'+confirmed+'</b><span>參加</span></div>'+
+      '<div class="cs"><b>'+leave.length+'</b><span>請假</span></div>'+
+      (state.progress&&state.progress.members?'<div class="cs"><b>'+state.progress.notYet+'</b><span>尚未登記</span></div>':'')+
+    '</div>'+
   '</div>'+
   (state.notices&&state.notices.event ? '<div class="notice event"><div class="nttl">📌 本場好康</div><div class="nbody">'+noticeHtml(state.notices.event)+'</div></div>' : '')+
 
-  '<div class="youbar">'+ avatar() +
-    '<div class="who"><b>'+gname(state.member.name)+'</b><small>｜'+identitySmall()+'｜差點 '+esc((state.myHcp&&state.myHcp!=="")?state.myHcp:"—")+'</small></div>'+
-    '<span class="badge '+(iAmLeave?"leave":(iAmPlaying?"in":"out"))+'">'+(iAmLeave?"請假":(iAmPlaying?(iAmWaiting?"候補":"本場已登記參加"):"尚未登記"))+'</span>'+
+  '<div class="mypanel">'+
+    '<div class="myhead">'+ avatar() +
+      '<div class="who"><b>'+gname(state.member.name)+'</b><small>｜'+identitySmall()+'｜差點 '+esc((state.myHcp&&state.myHcp!=="")?state.myHcp:"—")+'</small></div>'+
+      '<span class="badge '+(iAmLeave?"leave":(iAmPlaying?"in":"out"))+'">'+(iAmLeave?"請假":(iAmPlaying?(iAmWaiting?"候補":"本場已登記參加"):"尚未登記"))+'</span>'+
+    '</div>'+
+    '<div class="mybody">'+
+      (iAmLeave ? leavePanel() : (iAmPlaying ? registeredPanel(mine) : registerPanel(isFull)))+
+    '</div>'+
   '</div>'+
 
-  (iAmLeave ? leavePanel() : (iAmPlaying ? registeredPanel(mine) : registerPanel(isFull)))+
-  (state.isAdmin ?
-    '<button class="btn sm" id="shareMenu" style="width:100%;margin-top:8px">📤 分享到群組</button>'+
-    '<div id="shareChoose" style="display:none;gap:8px;margin-top:6px">'+
-      '<button class="btn ghost sm" id="shareCard" style="flex:1">🏌️ 例賽卡</button>'+
-      '<button class="btn ghost sm" id="shareRoster" style="flex:1">📋 報名狀況</button>'+
-    '</div>'
-  : '')+
-
-  '<div class="section-label">出席名單 · '+total+' 人</div>'+
-  (total===0
-      ? '<div class="empty">還沒有人登記,當第一個開球的人吧 ⛳</div>'
-      : '<div class="rgrid">'+playing.map(function(p,i){return playerChip(p,i,c);}).join("")+'</div>')+
-  (leave.length? '<div class="section-label">請假名單 · '+leave.length+' 人</div><div class="rgrid">'+
-      leave.map(function(p){return '<div class="rchip leave"><span class="rnm">'+gname(p.name)+'</span><i class="ct leave">請假</i></div>';}).join("")+'</div>' : '')+
-  (state.isAdmin && total>0 ? '<button class="btn ghost sm" id="openAttList" style="width:100%;margin-top:4px">📋 匯出出席名單(傳球場)</button>'+attListModalHtml(playing) : '')+
-
-  groupsSection()+
-  (state.isAdmin ? groupAdminPanel() : "")+
-  (state.isAdmin ? matchScoreAdminPanel() : "")+
-  rankingSection()+
-  guestSection()+
-  seasonSection()+
-  (state.notices&&state.notices.announce ? '<div class="notice announce"><div class="nttl">📣 最新消息</div><div class="nbody">'+noticeHtml(state.notices.announce)+'</div></div>' : '')+
-  scheduleSection()+
-  myStatsSection()+
-  myFeeSection()+
+  tilesGrid(total)+
   officersSection()+
-
-  (state.isAdmin ? adminPanel() : "")+
+  tileModals(playing,leave,total,c)+
+  (state.isAdmin && total>0 ? attListModalHtml(playing) : '')+
 
   '<div class="footer">'+
     (!state.hasAdmin ? '<button id="claim">設我為管理員</button>' : '')+
     '<button id="reloadBtn">重新整理</button>'+
   '</div>';
 
+  // 還原重繪前開著的方塊頁
+  openTm.forEach(function(id){ var m=document.getElementById(id); if(m) m.classList.remove("hidden"); });
+
   wireMain(isFull, iAmPlaying, iAmLeave);
 }
 
 function registerPanel(isFull){
-  return '<div class="section-label">'+(isFull?"加入候補":"出席登記")+'</div>'+
-  '<div class="panel">'+
-    '<div class="btnrow">'+
+  return '<div class="btnrow">'+
       '<button class="btn" id="regBtn" style="flex:2">'+(isFull?"加入候補名單":"參加")+'</button>'+
       '<button class="btn ghost" id="leaveBtn" style="flex:1">請假</button>'+
     '</div>'+
     '<div class="field" style="margin-top:12px"><label>擊球後是否用餐?</label><select id="cart"><option>用餐</option><option>不用餐</option></select></div>'+
     '<div class="field"><label>備註(同組、其他需求)</label><textarea id="note" maxlength="60" placeholder="想同組請寫對方姓名(會優先排同組)/ 其他需求"></textarea></div>'+
-    (isFull?'<p class="formnote">目前額滿,送出後列入候補,有人取消會依序遞補。</p>':'')+
-  '</div>';
+    (isFull?'<p class="formnote">目前額滿,送出後列入候補,有人取消會依序遞補。</p>':'');
 }
 
 function leavePanel(){
-  return '<div class="section-label">你已請假</div>'+
-  '<div class="panel">'+
-    '<p style="margin:0 0 12px;font-size:15px;color:var(--ink-soft)">已記錄你本場<b style="color:var(--flag)">請假</b>,不列入擊球與分組。</p>'+
+  return '<p style="margin:0 0 12px;font-size:15px;color:var(--ink-soft)">已記錄你本場<b style="color:var(--flag)">請假</b>,不列入擊球與分組。</p>'+
     '<div class="btnrow">'+
       '<button class="btn sm" id="unleaveBtn" style="flex:1">改為參加</button>'+
-      '<button class="btn ghost sm" id="cancelBtn" style="flex:1">清除狀態</button>'+
-    '</div>'+
-  '</div>';
+      '<button class="btn ghost sm" id="cancelBtn" style="flex:1">清除狀態<small>收回回覆,回到未登記</small></button>'+
+    '</div>';
 }
 
-function registeredPanel(mine){
-  var dine=(mine.cart!=="不用餐");
+function guestPanelHtml(){
   var myGuests=(state.roster||[]).filter(function(r){return r.userId && r.userId.indexOf("G:"+profile.userId+":")===0;});
   var glist=myGuests.map(function(g){
     return '<div class="grow">'+gname(g.name)+'<span class="gtag">來賓</span>'+
       '<button class="glnk" data-gname="'+esc(g.name)+'">移除</button></div>';
   }).join('');
-  return '<div class="section-label">你的出席</div>'+
-  '<div class="panel">'+
-    '<details class="editbox">'+
+  return '<details class="guestbox" open>'+
+      '<summary>➕ 幫來賓登記出席'+(myGuests.length?'('+myGuests.length+')':'')+'</summary>'+
+      '<div class="field"><label>來賓姓名</label><input id="guestName" maxlength="20" placeholder="例:王先生"></div>'+
+      '<div class="field"><label>擊球後是否用餐?</label><select id="guestCart"><option>用餐</option><option>不用餐</option></select></div>'+
+      '<button class="btn sm" id="guestAdd" style="width:100%">送出</button>'+
+      (myGuests.length?'<div class="guestlist"><div class="gl-h">你登記的來賓('+myGuests.length+')</div>'+glist+'</div>':'')+
+    '</details>';
+}
+
+function registeredPanel(mine){
+  var dine=(mine.cart!=="不用餐");
+  return '<details class="editbox">'+
       '<summary><b class="reg-ok">本場已登記參加</b>｜'+(dine?"用餐":"不用餐")+(mine.note?('｜'+esc(mine.note)):'')+'</summary>'+
       '<div class="field" style="margin-top:10px"><label>擊球後是否用餐?</label>'+
         '<div class="seg" id="cartSeg">'+
@@ -632,17 +736,9 @@ function registeredPanel(mine){
       '<button class="btn sm" id="saveEdit" style="width:100%">儲存變更</button>'+
     '</details>'+
     '<div class="btnrow" style="margin-top:8px">'+
-      '<button class="btn ghost sm" id="leaveBtn" style="flex:1">改為請假</button>'+
-      '<button class="btn ghost sm" id="cancelBtn" style="flex:1">取消參加</button>'+
-    '</div>'+
-    '<details class="guestbox">'+
-      '<summary>➕ 幫來賓登記出席'+(myGuests.length?'('+myGuests.length+')':'')+'</summary>'+
-      '<div class="field"><label>來賓姓名</label><input id="guestName" maxlength="20" placeholder="例:王先生"></div>'+
-      '<div class="field"><label>擊球後是否用餐?</label><select id="guestCart"><option>用餐</option><option>不用餐</option></select></div>'+
-      '<button class="btn sm" id="guestAdd" style="width:100%">送出</button>'+
-      (myGuests.length?'<div class="guestlist"><div class="gl-h">你登記的來賓('+myGuests.length+')</div>'+glist+'</div>':'')+
-    '</details>'+
-  '</div>';
+      '<button class="btn ghost sm" id="leaveBtn" style="flex:1">改為請假<small>不打了,先告知</small></button>'+
+      '<button class="btn ghost sm" id="cancelBtn" style="flex:1">取消參加<small>收回登記,回到未登記</small></button>'+
+    '</div>';
 }
 
 function adminPanel(){
@@ -926,6 +1022,22 @@ function teamLine(){
   if(!t) return 'Tee Sheet · 出席表';
   return esc(t)+(e.term?' · 第 '+esc(e.term)+' 屆':'');
 }
+// 球場短名(標題用):去掉「高爾夫球場/高爾夫俱樂部/球場/俱樂部」等字尾,最長取 4 字
+function courseShort(c){
+  var s=String(c||'').trim().replace(/(國際)?(高爾夫)?(鄉村)?(球場|俱樂部|球club)+$/,'').trim();
+  if(!s) s=String(c||'').trim();
+  return s.length>4 ? s.slice(0,4) : s;
+}
+// 截止倒數:「剩 N 天 / 今天截止」;解析不到或已過就回空字串
+function deadlineLeft(dl){
+  var m=String(dl||'').match(/(\d{1,2})\s*\/\s*(\d{1,2})/); if(!m) return '';
+  var now=new Date(), y=now.getFullYear();
+  var mo=parseInt(m[1],10), d=parseInt(m[2],10);
+  if(mo<now.getMonth()+1-6) y+=1;                       // 跨年(12月看1月截止)
+  var t=new Date(y,mo-1,d,23,59,59), days=Math.floor((t-now)/86400000);
+  if(days<0||days>14) return '';
+  return days===0 ? '· 今天截止' : ('· 剩 '+days+' 天');
+}
 // 管理員「會員檢視」切換
 function togglePreview(){ previewMember=!previewMember; reload(); }
 function previewBar(){
@@ -1149,7 +1261,7 @@ function ballMonthlyHtml(){
 // 技術獎清單(本年度)
 // 技術獎點選列
 var TECH_OPTS=["近洞獎","二近洞獎","三近洞獎","BIRDIE獎","Eagle獎","一桿進洞獎","來賓獎"];
-var TECH_SEED=[["近洞獎",4],["二近洞獎",2],["三近洞獎",2],["BIRDIE獎",2]];   // 每月固定預帶的列
+var TECH_SEED=[["近洞獎",4],["二近洞獎",2],["三近洞獎",2]];   // 每月固定預帶的列(BIRDIE獎改由成績表 Birdie 欄自動產生)
 function techRowInner(award){
   var ao=TECH_OPTS.map(function(a){return '<option'+(a===award?' selected':'')+'>'+a+'</option>';}).join('');
   return '<select class="tr-award">'+ao+'</select>'+
@@ -1261,6 +1373,7 @@ function scoreModalHtml(){
       '<td class="sc-tot">—</td>'+
       '<td class="sc-hcp">'+(h===''?'—':esc(h))+'</td>'+
       '<td class="sc-net">—</td>'+
+      '<td><input class="sc-bird" inputmode="numeric" maxlength="2" placeholder=""></td>'+
     '</tr>';
   }).join('');
   var d=((state.eventView&&state.eventView.date)||'').replace(/\(.*\)/,'').trim();
@@ -1268,9 +1381,9 @@ function scoreModalHtml(){
     '<div class="modal-head"><span id="smTitle">表格輸入成績</span><button class="mclose" id="scoreClose">✕</button></div>'+
     '<div id="smInput">'+
       '<div class="field"><label>比賽日期(如 7/21)</label><input id="smDate" value="'+esc(d)+'" placeholder="7/21"></div>'+
-      '<p class="smnote">差點自動帶入,淨桿 = 總桿 − 差點(即時計算)。</p>'+
-      '<div class="sctab-wrap"><table class="sctab"><thead><tr><th>姓名</th><th>OUT</th><th>IN</th><th>總桿</th><th>差點</th><th>淨桿</th></tr></thead>'+
-      '<tbody id="smBody">'+(rows||'<tr><td colspan="6" class="muted" style="text-align:center;padding:14px">尚無出席名單</td></tr>')+'</tbody></table></div>'+
+      '<p class="smnote">差點自動帶入,淨桿 = 總桿 − 差點(即時計算)。Birdie 欄填該員本場 birdie 數,送出時自動列入 BIRDIE獎(每人最多 2 條)。</p>'+
+      '<div class="sctab-wrap"><table class="sctab"><thead><tr><th>姓名</th><th>OUT</th><th>IN</th><th>總桿</th><th>差點</th><th>淨桿</th><th>Birdie</th></tr></thead>'+
+      '<tbody id="smBody">'+(rows||'<tr><td colspan="7" class="muted" style="text-align:center;padding:14px">尚無出席名單</td></tr>')+'</tbody></table></div>'+
       '<div class="field" style="margin-top:18px"><label>技術獎(下拉選獎項+得獎者,可＋新增;未選人的列會略過)</label></div>'+
       '<div id="smTechRows">'+techRowsSeed()+'</div>'+
       '<button class="btn ghost sm" id="smAddTech" style="margin-top:6px">+ 新增一列</button>'+
@@ -1422,7 +1535,7 @@ function shareEventCard(){
     toast("分享功能尚未開啟:請到 LINE Developers → LIFF 分頁啟用 shareTargetPicker"); return;
   }
   busy("shareCard","開啟分享…");
-  function restore(){ var b=document.getElementById("shareCard"); if(b){ b.disabled=false; b.textContent="🏌️ 例賽卡"; } }
+  function restore(){ var b=document.getElementById("shareCard"); if(b){ b.disabled=false; b.innerHTML='🏌️ 例賽卡<small>日期/球場/開球/截止 + 報名按鈕</small>'; } }
   liff.shareTargetPicker([buildEventFlex()]).then(function(res){
     restore();
     if(res){ toast("✓ 已送出例賽卡"); } else { toast("已取消分享"); }
@@ -1474,7 +1587,7 @@ function shareRosterCard(){
     toast("分享功能尚未開啟:請到 LINE Developers → LIFF 分頁啟用 shareTargetPicker"); return;
   }
   busy("shareRoster","開啟分享…");
-  function restore(){ var b=document.getElementById("shareRoster"); if(b){ b.disabled=false; b.textContent="📋 報名狀況"; } }
+  function restore(){ var b=document.getElementById("shareRoster"); if(b){ b.disabled=false; b.innerHTML='📋 報名狀況<small>已報名人數與名單(催報名用)</small>'; } }
   liff.shareTargetPicker([buildRosterFlex()]).then(function(res){
     restore();
     if(res){ toast("✓ 已送出報名狀況"); } else { toast("已取消分享"); }
@@ -1595,15 +1708,24 @@ function onSaveName(){
 }
 
 function wireMain(isFull, iAmIn){
-  var smn=document.getElementById("shareMenu");
-  if(smn) smn.onclick=function(){
-    if(!(window.liff && liff.isInClient && liff.isInClient())){ toast("請在 LINE App 內開啟系統再分享(主畫面捷徑/瀏覽器不支援)"); return; }
-    var c=document.getElementById("shareChoose"); if(c) c.style.display=(!c.style.display||c.style.display==="none")?"flex":"none";
-  };
+  // 功能方塊:開/關對應滿版頁
+  document.querySelectorAll(".tile[data-tm]").forEach(function(t){
+    t.onclick=function(){ var m=document.getElementById("tm_"+t.getAttribute("data-tm")); if(m) m.classList.remove("hidden"); };
+  });
+  document.querySelectorAll(".tmClose").forEach(function(b){
+    b.onclick=function(){ var m=document.getElementById("tm_"+b.getAttribute("data-tm")); if(m) m.classList.add("hidden"); };
+  });
+  function inLine(){ return !!(window.liff && liff.isInClient && liff.isInClient()); }
   var sc2=document.getElementById("shareCard");
-  if(sc2) sc2.onclick=shareEventCard;
+  if(sc2) sc2.onclick=function(){
+    if(!inLine()){ toast("請在 LINE App 內開啟系統再分享(主畫面捷徑/瀏覽器不支援)"); return; }
+    shareEventCard();
+  };
   var sr=document.getElementById("shareRoster");
-  if(sr) sr.onclick=shareRosterCard;
+  if(sr) sr.onclick=function(){
+    if(!inLine()){ toast("請在 LINE App 內開啟系統再分享(主畫面捷徑/瀏覽器不支援)"); return; }
+    shareRosterCard();
+  };
   var reg=document.getElementById("regBtn");
   if(reg) reg.onclick=function(){
     busy("regBtn", isFull?"加入中…":"送出中…");
@@ -1977,18 +2099,37 @@ function wireMain(isFull, iAmIn){
     var d=(val("smDate")||"").trim();
     if(!d){ toast("請填比賽日期"); return; }
     var lines=[];
+    var birdieOf={};                                       // 姓名 → birdie 數(成績表 Birdie 欄)
     document.querySelectorAll("#smBody tr[data-name]").forEach(function(tr){
       var o=(tr.querySelector(".sc-out").value||"").trim();
       var i=(tr.querySelector(".sc-in").value||"").trim();
       if(o!==""&&i!==""){ lines.push(tr.getAttribute("data-name")+" "+o+" "+i); }
+      var bEl=tr.querySelector(".sc-bird");
+      var b=bEl?parseInt((bEl.value||"").trim(),10):0;
+      if(b>0) birdieOf[tr.getAttribute("data-name")]=b;
     });
     if(!lines.length){ toast("請至少輸入一位的 OUT/IN"); return; }
     var techLines=[];
+    var birdieManual={};                                   // 手動列也算進每人上限
     document.querySelectorAll("#smTechRows .techrow").forEach(function(row){
       var aw=row.querySelector(".tr-award").value;
       var nm=row.querySelector(".tr-name").value;
       var ti=(row.querySelector(".tr-tiao").value||"1").trim();
-      if(nm) techLines.push(aw+" "+nm+" "+ti);
+      if(!nm) return;
+      if(aw==="BIRDIE獎"){
+        var t=parseInt(ti,10)||1;
+        birdieManual[nm]=(birdieManual[nm]||0)+t;          // 先彙總,和 Birdie 欄合併後再上限
+      } else {
+        techLines.push(aw+" "+nm+" "+ti);
+      }
+    });
+    // BIRDIE獎 = Birdie 欄 + 手動列 合併,每人最多 2 條
+    var birdieAll={};
+    Object.keys(birdieOf).forEach(function(n){ birdieAll[n]=(birdieAll[n]||0)+birdieOf[n]; });
+    Object.keys(birdieManual).forEach(function(n){ birdieAll[n]=(birdieAll[n]||0)+birdieManual[n]; });
+    Object.keys(birdieAll).forEach(function(n){
+      var t=Math.min(birdieAll[n],2);                      // 每人最多領 2 個 birdie 獎
+      if(t>0) techLines.push("BIRDIE獎 "+n+" "+t);
     });
     if(state.matchLocked && state.matchLockDate===d){ toast("本場成績已鎖定,請先在下方「🔓 解鎖」再編輯"); return; }
     var resubmit = !!(state.ranking && state.ranking.date===d);

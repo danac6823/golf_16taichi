@@ -155,7 +155,7 @@ function doGet(e) {
 function handle(p) {
   __cfgCache = null;   // 每次請求開始先清快取,避免暖啟動殘留舊設定
   __memInfoCache = __hcpMapCache = __masterListCache = __masterMapCache = null;
-  __schedCache = __rosterCache = __membersDataCache = null;
+  __schedCache = __rosterCache = __membersDataCache = __payCache = null;
   var action = p.action || 'bootstrap';
   var userId = p.userId || '';
 
@@ -1740,7 +1740,7 @@ function clearTestData(userId) {
   total += delByPrefix(SHEET_SCORES, 1);
   total += delByPrefix(SHEET_PAY, 0);
   total += delByPrefix(SHEET_TECH, 2);
-  __memInfoCache = __hcpMapCache = __masterListCache = __masterMapCache = __rosterCache = __membersDataCache = null; flushWarmCache();
+  __memInfoCache = __hcpMapCache = __masterListCache = __masterMapCache = __rosterCache = __membersDataCache = __payCache = null; flushWarmCache();
   return { ok: true, removed: total };
 }
 function indexByName(arr, name) {
@@ -2274,7 +2274,8 @@ function rolloverRosterIfSwitched_(cfg) {
     archiveRoster_(cfg2.rosterEventDate || '');           // 封存「上一場」名單
     var sh = sheet(SHEET_ROSTER), last = sh.getLastRow();
     if (last > 1) sh.deleteRows(2, last - 1);             // 清空名單
-    setConfig('noticeEvent', '');                         // 換月一併清掉上一場的注意事項
+    setConfig('noticeEvent', '');                         // 換月一併清掉上一場的好康
+    setConfig('groups', '');                              // 換月一併清掉上一場分組(避免新場次顯示舊組)
     setConfig('rosterEventKey', String(curKey));
     setConfig('rosterEventDate', ev.date || '');
     __rosterCache = null; cacheDel_('roster');
@@ -2636,20 +2637,27 @@ function ensurePayList(userId) {
     if (!existing[name]) { newRows.push([name, '']); existing[name] = true; added++; }
   }
   if (newRows.length) sh.getRange(sh.getLastRow() + 1, 1, newRows.length, 2).setValues(newRows);  // 一次補齊
+  __payCache = null; cacheDel_('pay');
   return { ok: true, count: count, added: added };
 }
 
 // ---------- 會費收款(本年度)----------
+var __payCache = null;
 function getPaidMap() {
+  if (__payCache) return __payCache;
+  var cached = cacheGet_('pay');
+  if (cached) { __payCache = cached; return cached; }
   var data = sheet(SHEET_PAY).getDataRange().getValues(), map = {};
   for (var i = 1; i < data.length; i++) {
     if (data[i][0] !== '') map[String(data[i][0])] = (String(data[i][1]) === 'v');
   }
-  return map;
+  cachePut_('pay', map);
+  return (__payCache = map);
 }
 function setPaid(name, paid) {
   var sh = sheet(SHEET_PAY), data = sh.getDataRange().getValues();
   var val = paid ? 'v' : '';
+  __payCache = null; cacheDel_('pay');                          // 收款異動 → 失效快取
   for (var i = 1; i < data.length; i++) {
     if (String(data[i][0]) === name) { sh.getRange(i + 1, 2).setValue(val); return; }
   }
@@ -2657,6 +2665,7 @@ function setPaid(name, paid) {
 }
 function clearPaid() {
   var sh = sheet(SHEET_PAY), last = sh.getLastRow();
+  __payCache = null; cacheDel_('pay');
   if (last > 1) sh.getRange(2, 2, last - 1, 1).clearContent();   // 只清收款欄,保留姓名
 }
 // 會員的會費/收款清單(給管理員勾選用)
