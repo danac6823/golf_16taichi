@@ -2824,12 +2824,12 @@ function getConfig() {
   for (var i = 1; i < data.length; i++) {
     if (data[i][0]) cfg[String(data[i][0])] = fmtConfigVal_(String(data[i][0]), data[i][1]);
   }
-  // 第一次跑時把預設值寫進表裡,方便之後直接在試算表編輯
-  if (data.length <= 1) {
-    Object.keys(DEFAULT_CONFIG).forEach(function (k) {
-      sh.appendRow([k, DEFAULT_CONFIG[k]]);
-    });
-  }
+  // 補寫「試算表尚未有」的預設 key(新版新增欄位也會自動補上,方便直接在試算表編輯)
+  var existing = {};
+  for (var j = 1; j < data.length; j++) { if (data[j][0]) existing[String(data[j][0])] = true; }
+  var toAdd = [];
+  Object.keys(DEFAULT_CONFIG).forEach(function (k) { if (!existing[k]) toAdd.push([k, DEFAULT_CONFIG[k]]); });
+  if (toAdd.length) sh.getRange(sh.getLastRow() + 1, 1, toAdd.length, 2).setValues(toAdd);
   __cfgCache = cfg;
   cachePut_('cfg', cfg);
   return cfg;
