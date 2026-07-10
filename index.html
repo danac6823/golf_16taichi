@@ -1481,6 +1481,8 @@ function noticeHtml(t){
 }
 // 金額格式化(全站共用):-$1,234 / $1,234
 function fmtMoney(n){ return (n<0?'-$':'$')+Math.abs(n).toLocaleString(); }
+// 電話格式化:試算表把 0905… 存成數字會掉開頭的 0,顯示時補回
+function fmtPhone(p){ p=String(p||'').trim(); if(/^9\d{8}$/.test(p)) p='0'+p; return p; }
 // 複製文字(LINE 內建瀏覽器相容:優先 clipboard API,失敗退回 execCommand)
 function copyText(t){
   if(navigator.clipboard && navigator.clipboard.writeText){
@@ -1739,7 +1741,7 @@ function membersAdminHtml(){
   html+='<div style="font-size:13px;color:var(--ink-soft);margin:10px 2px 6px">'+(f==='all'?('會員('+ma.rows.length+' 人 · '+ma.unbound+' 未綁定)'):('符合篩選 '+listRows.length+' 人'))+'</div>';
   html+=listRows.map(function(r){
     return '<details class="mbcard'+(r.status?' off':(r.bound?'':' unb'))+'"><summary>'+
-        '<b>'+gname(r.name)+'</b><small>'+esc(r.gender||'')+(r.memberType?' · '+esc(r.memberType):'')+'</small>'+
+        '<b>'+gname(r.name)+'</b><small>'+esc(r.gender||'')+(r.memberType?' · '+esc(r.memberType):'')+(r.phone?' · '+esc(fmtPhone(r.phone)):'')+'</small>'+
         (r.status?'<span class="mbtag off">'+esc(r.status)+'</span>':'')+
         '<span class="mbtag '+(r.bound?'ok':'no')+'">'+(r.bound?'已綁定':'未綁定')+'</span>'+
       '</summary>'+
@@ -1749,7 +1751,7 @@ function membersAdminHtml(){
           '<span>出席 <b>'+r.played+'</b> · 請假 <b>'+r.leaves+'</b></span>'+
           '<span>會費 <b class="'+(r.paid?'ok':'no')+'">'+(r.paid?'已繳':'未繳')+'</b></span>'+
         '</div>'+
-        (r.bound?'<div class="mbinfo"><span>LINE:'+esc(r.lineName||'—')+'</span><span>電話:'+esc(r.phone||'—')+'</span></div>':'')+
+        (r.bound?'<div class="mbinfo"><span>LINE:'+esc(r.lineName||'—')+'</span><span>電話:'+esc(fmtPhone(r.phone)||'—')+'</span></div>':'')+
         (r.bound?'<button class="btn ghost sm mb-unbind" data-name="'+esc(r.name)+'" style="width:100%;margin:8px 0 4px">解除 LINE 綁定<small>綁錯帳號時使用,解除後可重新綁定</small></button>':'')+
         (!r.bound&&!r.status?'<button class="btn ghost sm mb-invite" data-name="'+esc(r.name)+'" style="width:100%;margin:8px 0 4px">📨 複製綁定邀請<small>貼給他,點連結輸入姓名即完成綁定</small></button>':'')+
         form(r)+
