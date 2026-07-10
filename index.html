@@ -333,7 +333,7 @@
   .perfect{margin-top:10px;text-align:center;font-size:14px;font-weight:700;color:var(--gold);background:#fbf3e0;border:1px solid #e9d6a8;border-radius:9px;padding:7px}
   /* 功能方塊首頁 */
   .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:6px 0 4px}
-  .tile{background:var(--paper-2);border:1px solid var(--line);border-radius:14px;padding:15px 4px 13px;text-align:center;box-shadow:0 1px 3px rgba(40,60,40,.05);position:relative;cursor:pointer}
+  .tile{background:var(--paper-2);border:1px solid var(--line);border-radius:14px;padding:15px 4px 13px;text-align:center;box-shadow:0 1px 3px rgba(40,60,40,.05);position:relative;cursor:pointer;min-width:0;overflow:hidden}
   .tile .ic{font-size:28px;line-height:1}
   .tile .tl{margin-top:6px;font-size:15.5px;font-weight:700;color:var(--ink)}
   .tile small{display:block;margin-top:3px;font-size:12.5px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 3px}
@@ -776,6 +776,7 @@ function renderMain(){
   '<div class="footer">'+
     (!state.hasAdmin ? '<button id="claim">設我為管理員</button>' : '')+
     '<button id="reloadBtn">重新整理</button>'+
+    (state.version ? '<div style="margin-top:8px;font-size:11px;color:var(--ink-soft);opacity:.6">'+esc(String(state.version).replace(/^v/,'').split(/[-+]/)[0])+'</div>' : '')+
   '</div>';
 
   // 還原重繪前開著的方塊頁
