@@ -27,7 +27,7 @@
     font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
     color:var(--ink); font-size:17px; line-height:1.55; -webkit-font-smoothing:antialiased; -webkit-text-size-adjust:100%;
   }
-  .wrap{max-width:540px;margin:0 auto;padding:18px 16px calc(48px + env(safe-area-inset-bottom));}
+  .wrap{max-width:540px;margin:0 auto;padding:calc(18px + env(safe-area-inset-top)) 16px calc(48px + env(safe-area-inset-bottom));}   /* 頂部避開 iPhone 瀏海/動態島 */
   .center{text-align:center;color:var(--ink-soft);padding:70px 20px;}
   .spinner{width:34px;height:34px;border:3px solid var(--green-soft);border-top-color:var(--fairway-2);border-radius:50%;margin:0 auto 16px;animation:spin .8s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
@@ -69,7 +69,7 @@
   @media (prefers-reduced-motion:reduce){.taiji-load *{animation:none!important}}
 
   .card{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
-  .masthead{background:linear-gradient(160deg,var(--fairway),var(--fairway-2));color:#f4f7f0;padding:calc(20px + env(safe-area-inset-top)) 20px 22px;position:relative}
+  .masthead{background:linear-gradient(160deg,var(--fairway),var(--fairway-2));color:#f4f7f0;padding:20px 20px 22px;position:relative}   /* safe-area 改由 .wrap 統一處理,避免重複留白 */
   .masthead .flag{position:absolute;top:16px;right:18px;width:30px;height:30px}
   .eyebrow{font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:#b9d3c0;margin:0 0 6px}
   .title{font-family:Georgia,"Times New Roman","Noto Serif TC",serif;font-size:27px;font-weight:700;margin:0;line-height:1.25}
@@ -527,7 +527,7 @@
   .smnote{font-size:13px;color:var(--ink-soft);margin:2px 0 8px;text-align:left}
   .smfoot .btn{width:100%}
   /* 成績輸入:滿版 + 內容可捲動 + 送出鍵固定底部 */
-  .modal-card.full{max-width:560px;width:100%;height:100dvh;height:100%;max-height:none;border-radius:0;padding:12px 14px 0}
+  .modal-card.full{max-width:560px;width:100%;height:100dvh;height:100%;max-height:none;border-radius:0;padding:calc(12px + env(safe-area-inset-top)) 14px 0}   /* 全螢幕視窗的標題/關閉鈕避開瀏海 */
   .modal-card.full #smInput{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
   .modal-card.full #smResult{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
   .modal-card.full .sctab-wrap{overflow-x:auto;overflow-y:visible}
@@ -1017,11 +1017,9 @@ function adminPanel(){
     '</div>'+
     '<div class="row2">'+
       '<div class="field"><label>財務長</label><input class="adm" data-k="treasurer" value="'+esc(e.treasurer||"")+'"></div>'+
-      '<div class="field"><label>帳務起始月份(1~12,空=不啟用財務報表)</label><input class="adm" data-k="ledgerStartMonth" inputmode="numeric" value="'+esc(e.ledgerStartMonth||"")+'"></div>'+
-      '<div class="field"><label>起始餘額(首月前期餘額,通常=年度會費總收入)</label><input class="adm" data-k="ledgerStartBalance" inputmode="numeric" value="'+esc(e.ledgerStartBalance||"")+'"></div>'+
       '<div class="field"><label>總幹事</label><input class="adm" data-k="secretary" value="'+esc(e.secretary||"張凌華")+'"></div>'+
-      '<div class="field"><label>總幹事電話</label><input class="adm" data-k="secretaryPhone" inputmode="tel" value="'+esc(e.secretaryPhone||"")+'"></div>'+
     '</div>'+
+    '<div class="field"><label>總幹事電話</label><input class="adm" data-k="secretaryPhone" inputmode="tel" value="'+esc(e.secretaryPhone||"")+'"></div>'+
     '<div class="row2">'+
       '<div class="field"><label>年度起(YYYY/M)</label><input class="adm" data-k="seasonFrom" value="'+esc(e.seasonFrom||"2026/7")+'"></div>'+
       '<div class="field"><label>年度迄(YYYY/M)</label><input class="adm" data-k="seasonTo" value="'+esc(e.seasonTo||"2027/6")+'"></div>'+
@@ -1044,6 +1042,9 @@ function adminPanel(){
       '<div class="field"><label>跳獎間隔</label><input class="adm" data-k="skipStep" value="'+esc(e.skipStep||"5")+'" placeholder="5"></div>'+
     '</div>'+
     '<div class="field"><label>BB獎金額(淨桿倒數第二)</label><input class="adm" data-k="prizeBB" value="'+esc(e.prizeBB||"")+'" placeholder="500"></div>'+
+    '<div style="font-size:13px;color:var(--ink-soft);margin:10px 0 4px">財務報表設定</div>'+
+    '<div class="field"><label>帳務起始月份(1~12,空=不啟用財務報表)</label><input class="adm" data-k="ledgerStartMonth" inputmode="numeric" value="'+esc(e.ledgerStartMonth||"")+'"></div>'+
+    '<div class="field"><label>起始餘額(首月前期餘額,通常=年度會費總收入)</label><input class="adm" data-k="ledgerStartBalance" inputmode="numeric" value="'+esc(e.ledgerStartBalance||"")+'"></div>'+
     '<button class="btn sm" id="saveTeam">儲存球隊資料</button>'+
   '</div></details>';
 
