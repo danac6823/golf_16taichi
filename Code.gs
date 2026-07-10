@@ -21,13 +21,17 @@ var SHEET_ROSTER  = 'Roster';     // userId | name | hcp | cart | note | ts
 var SHEET_MEMBERS = 'Members';    // userId | name | role(會員/來賓) | gender(男/女) | birthYear | phone  (LINE 綁定)
 var SHEET_MASTER  = '會員名單';   // 姓名 | 性別 | 年初差點 | 出生年  (主檔,管理員維護)
 var SHEET_CONFIG  = 'Config';     // key | value
+var APP_VERSION   = 'v2026.07.13-ledger-fast';   // 部署版本標記
 var SHEET_HCP     = 'Handicaps';  // name | hcp         (跟著姓名走的差點)
 var SHEET_SCORES  = 'Scores';     // date | name | out | in | gross | hcp | net | rankType | rank | hcpAfter | ts
 var SHEET_PAY     = 'Payments';   // name | paid        (本年度會費是否已收)
 var SHEET_SCHED   = '行事曆';      // 年|月|日期|星期|隊伍|類型|球場|開球時間|預訂狀態|可預約日|預約提醒|提前天數|提前月數|組數|擊球價
 var SHEET_TECH    = '技術獎';      // 日期 | 獎項 | 得獎者 | 條數  (送球以條計,1盒=4條)
+var SHEET_ADDON   = '加碼獎';      // 場次 | 獎項 | 得獎者 | 金額 | 出資者 | 計入球隊(v) | 建立時間
 var SHEET_ROSTER_ARCHIVE = '報名紀錄'; // 場次 | 姓名 | 狀態 | 用餐 | 差點 | 備註 | userId | 報名時間  (每月報名封存)
 var SHEET_ANNOUNCE = '公告';       // 日期 | 內容 | 建立時間ts  (累積式最新消息)
+var SHEET_PURCHASE = '採購紀錄';   // 場次 | 類別 | 品項 | 單價 | 數量 | 小計 | 請款(該列) | 已請款(整場) | 建立時間
+var SHEET_LEDGER   = '帳務';       // 月份 | 本月收入 | 餐費 | 其他 | 備註 | 更新時間 | 其他說明  (獎金/採購自動抓;餘額結轉自動算)
 
 // ---- 活動資訊預設值 ----
 var DEFAULT_CONFIG = {
@@ -51,6 +55,8 @@ var DEFAULT_CONFIG = {
   teamMaster: '陳慶華老師', // 意象太極 老師/創辦人
   taichiUrl: 'https://taichi.net.tw/',  // 意象太極官網
   secretaryPhone: '0905361633', // 總幹事聯絡電話
+  ledgerStartMonth: '',  // 帳務起始月份(1~12);空=不啟用財務報表
+  ledgerStartBalance: '', // 起始餘額(首月前期餘額,通常=年度會費總收入)
   eventGraceDays: '3',   // 賽後仍把「本場」當作目前場次顯示的天數
   adminUserId: ''
 };
@@ -158,6 +164,7 @@ function doGet(e) {
 
 function handle(p) {
   if ((p.action || '') === 'ping') return { ok: true, t: Date.now() };   // 超輕量保溫:不清快取、不讀分頁,只讓腳本保持熱機
+  if ((p.action || '') === 'ver')  return { ok: true, version: APP_VERSION };   // 版本查詢:瀏覽器打 /exec?action=ver 即可確認線上版本
   __cfgCache = null;   // 每次請求開始先清快取,避免暖啟動殘留舊設定
   __memInfoCache = __hcpMapCache = __masterListCache = __masterMapCache = null;
   __schedCache = __rosterCache = __membersDataCache = __payCache = null;
@@ -168,7 +175,8 @@ function handle(p) {
   // 用 LINE ID Token 本地驗章取得真實 userId,忽略前端帶來的 userId,防止假冒。
   var VERIFY = {
     setName:1, register:1, requestLeave:1, addGuest:1, removeGuest:1, cancel:1, claimAdmin:1,
-    proxyRegister:1, proxyRemove:1, addAnnouncement:1, removeAnnouncement:1,
+    proxyRegister:1, proxyRemove:1, addAnnouncement:1, removeAnnouncement:1, savePurchase:1, saveAddon:1, saveMember:1, removeBinding:1,
+    getLedger:1, saveLedger:1,
     updateEvent:1, clearRoster:1, makeGroups:1, clearGroups:1, adjustGroups:1, importHcp:1, submitScores:1,
     submitMatch:1, seasonReset:1, buildSeason:1, buildSeasonMatrix:1, setPaid:1, ensurePayList:1, buildSchedule:1,
     importMembers:1, recordTech:1, buildBalls:1, clearTechDate:1, exportPdf:1,
@@ -191,6 +199,15 @@ function handle(p) {
     case 'proxyRemove':   return proxyRemove(userId, p);
     case 'addAnnouncement':    return addAnnouncement(userId, p);
     case 'removeAnnouncement': return removeAnnouncement(userId, p);
+    case 'getPurchase':  return getPurchase(userId, p);
+    case 'savePurchase': return savePurchase(userId, p);
+    case 'memberAdmin':  return memberAdmin(userId);
+    case 'saveMember':   return saveMember(userId, p);
+    case 'removeBinding':return removeBinding(userId, p);
+    case 'getAddon':     return getAddon(userId, p);
+    case 'saveAddon':    return saveAddon(userId, p);
+    case 'getLedger':    return getLedger(userId, p);
+    case 'saveLedger':   return saveLedger(userId, p);
     case 'cancel':      return cancel(userId);
     case 'updateEvent': return updateEvent(userId, p);
     case 'clearRoster': return clearRoster(userId);
@@ -265,9 +282,16 @@ function bootstrap(userId, p) {
   var res = {
     ok: true,
     event: cfg,
+    version: APP_VERSION,
     roster: roster,
     member: member,                              // {name, role, gender, birthYear} 或 null
     myHcp: String(myHcp),                        // 我目前的差點(系統管理)
+    myHcp0: (function () {                       // 我的期初差點(會員名單「年初差點」欄,給「我的差點」說明卡)
+      if (!member) return '';
+      var ml = getMasterList();
+      for (var mi = 0; mi < ml.length; mi++) { if (ml[mi].name === member.name) return String(ml[mi].hcp || ''); }
+      return '';
+    })(),
     myFee: String(feeOf(member)),                // 我的會費(來賓為空)
     groups: groups,                              // 分組結果或 null
     groupsLocked: groupsLocked,                  // 尚未到開放時間時的提示文字
@@ -283,6 +307,14 @@ function bootstrap(userId, p) {
   res.eventView = effectiveEvent(cfg, res.schedule); // 報名頁顯示用(自動帶下一場)
   res.notices = { announce: cfg.announce || '', event: cfg.noticeEvent || '', bank: cfg.bankInfo || '' };
   res.announcements = getAnnouncements();          // 累積式公告(最新消息),日期新→舊
+  res.isTreasurer = isTreasurer_(userId, cfg);      // 是否為財務長(可看帳務)
+  res.ledgerOn = !!parseInt(cfg.ledgerStartMonth, 10);
+  if (res.isAdmin) {
+    res.purchaseUnclaimed = purchaseUnclaimedTotal_(); res.purchaseHasClaims = purchaseHasClaims_();   // 採購未請款提醒
+    var __mb = {}; var __md = membersData_();
+    for (var __i = 1; __i < __md.length; __i++) { var __u = String(__md[__i][0]||''); if (__u && __u.indexOf('M:')!==0 && __u.indexOf('G:')!==0) __mb[String(__md[__i][1]||'')] = 1; }
+    res.membersUnbound = getMasterList().filter(function (m) { return !__mb[m.name]; }).length;   // 未綁定人數(會員管理方塊)
+  }
   res.myPaid = true;                              // 匯款區只給未繳會員 → 有匯款資訊且為會員時才查繳費狀態
   if (res.notices.bank && member && member.role === '會員') res.myPaid = !!getPaidMap()[member.name];
   var __mInfo = getMemberInfoMap();               // 一次讀會員資料,同時產生 性別/身分 對照
@@ -636,7 +668,7 @@ function updateEvent(userId, p) {
   if (!userId || userId !== cfg.adminUserId) {
     return { ok: false, error: '只有管理員可以修改活動資訊' };
   }
-  var fields = ['title','titleZh','date','course','tee','fee','deadline','cap','par','matchDate','groupRevealAt','scoreRevealAt','teamName','term','president','vicePresident','secretary','treasurer','seasonFrom','seasonTo','prizeGross','prizeNet1','prizeNet2','prizeNet3','prizeLucky','luckyPlace','prizeSkip5','skipStep','prizeBB','ballInitBoxes','ballInitNote','noticeEvent','announce','bankInfo','teamMaster','taichiUrl','secretaryPhone'];
+  var fields = ['title','titleZh','date','course','tee','fee','deadline','cap','par','matchDate','groupRevealAt','scoreRevealAt','teamName','term','president','vicePresident','secretary','treasurer','seasonFrom','seasonTo','prizeGross','prizeNet1','prizeNet2','prizeNet3','prizeLucky','luckyPlace','prizeSkip5','skipStep','prizeBB','ballInitBoxes','ballInitNote','noticeEvent','announce','bankInfo','teamMaster','taichiUrl','secretaryPhone','ledgerStartMonth','ledgerStartBalance'];
   fields.forEach(function (k) {
     if (p[k] !== undefined) setConfig(k, p[k]);
   });
@@ -1384,12 +1416,17 @@ function getBallStat(cfg) {
     byDate[r.date] += r.tiao;
   });
   dates.sort(function (a, b) { return order[a] - order[b]; });
-  var totalOut = 0, ledger = [];
+  var totalOut = 0, ledger = [], byMonth = {};
   dates.forEach(function (d) {
     totalOut += byDate[d];
     ledger.push({ date: d, out: byDate[d], balance: init - totalOut });
+    var mo = purMonthKey_(d); if (mo) byMonth[mo] = (byMonth[mo] || 0) + byDate[d];
   });
-  return { boxes: boxes, note: note, init: init, out: totalOut, balance: init - totalOut, ledger: ledger };
+  var months = Object.keys(byMonth).map(function (k) { return { mon: parseInt(k, 10), out: byMonth[k] }; })
+                     .sort(function (a, b) { return a.mon - b.mon; });
+  var curMon = new Date().getMonth() + 1, thisMonthOut = byMonth[curMon] || 0;
+  return { boxes: boxes, note: note, init: init, out: totalOut, balance: init - totalOut, ledger: ledger,
+           months: months, curMonth: curMon, thisMonthOut: thisMonthOut };
 }
 
 // 產生「球數庫存」分頁
@@ -1547,8 +1584,19 @@ function buildMatchReportHtml(date, cfg) {
   var champ = '';
   rows.forEach(function (r) { if (r.rankType === '總桿') champ = r.name; });
 
-  var LOW = members.length < 25;
-  var FS = pdfFontForCount_(members.length, LOW, cfg);
+  // 加碼獎筆數預掃(合併洞洞後的估計列數)
+  var __adnRaw = 0, __adnHoleKeys = {}, __adata0 = sheet(SHEET_ADDON).getDataRange().getValues();
+  for (var __a = 1; __a < __adata0.length; __a++) {
+    if (mdOf_(__adata0[__a][0]) !== mdOf_(date) || !String(__adata0[__a][2] || '')) continue;
+    var __aw = String(__adata0[__a][1] || '');
+    if (/^洞洞有獎/.test(__aw)) __adnHoleKeys[Number(__adata0[__a][3] || 0) + '|' + String(__adata0[__a][4] || '') + '|' + String(__adata0[__a][5] || '')] = 1;
+    else __adnRaw++;
+  }
+  var __adnEst = __adnRaw + Object.keys(__adnHoleKeys).length;   // 合併後估計列數
+  // 有加碼獎 → 一律密排版面(來賓移右欄、字級較小),確保單頁;無加碼維持原本人數判斷
+  var LOW = members.length < 25 && __adnEst === 0;
+  var FS = pdfFontForCount_(members.length + Math.min(__adnEst, 8), LOW, cfg);
+  if (__adnEst > 0) FS = Math.min(FS, 13);   // 加碼場密排:字級封頂,守住單頁
   var PAD = Math.round(FS * 0.42 * 10) / 10;
   var H1 = Math.round((FS * 1.18 + 3) * 10) / 10;
   var H2 = Math.round((FS * 1.02 + 1.5) * 10) / 10;
@@ -1588,13 +1636,61 @@ function buildMatchReportHtml(date, cfg) {
     (prizeSum ? '<tr><td class="p">合計</td><td></td><td class="r p">NT$' + prizeSum.toLocaleString() + '</td></tr>' : '') +
     '</table>';
 
-  // 技術獎(送球)+ 合計送球
-  var tdata = sheet(SHEET_TECH).getDataRange().getValues(), techRows = [], techSum = 0;
+  // 加碼獎(名次/技術/金額加碼、洞洞有獎…;分「計入球隊」與「自付代轉」兩小計)
+  // 洞洞有獎且同金額/出資/計入 → 自動合併一行,避免 18 洞佔 18 行
+  var adata = sheet(SHEET_ADDON).getDataRange().getValues(), addonItems = [], addTeam = 0, addSelf = 0;
+  var holeGroups = {};   // key=金額|出資|計入 → {amt,payer,team,list:[{hole,name}]}
+  for (var ai = 1; ai < adata.length; ai++) {
+    if (mdOf_(adata[ai][0]) !== mdOf_(date)) continue;
+    var aAward = String(adata[ai][1] || ''), aName = String(adata[ai][2] || '');
+    if (!aName) continue;
+    var aAmt = Number(adata[ai][3] || 0), aPayer = String(adata[ai][4] || ''), aTeam = String(adata[ai][5] || '') === 'v';
+    if (aTeam) addTeam += aAmt; else addSelf += aAmt;
+    var hm = aAward.match(/^洞洞有獎\s*第?\s*(\d+)\s*洞?/);
+    if (hm) {
+      var hk = aAmt + '|' + aPayer + '|' + (aTeam ? 1 : 0);
+      (holeGroups[hk] = holeGroups[hk] || { amt: aAmt, payer: aPayer, team: aTeam, list: [] }).list.push({ hole: parseInt(hm[1], 10), name: aName });
+    } else {
+      addonItems.push({ award: aAward, who: aName, amt: aAmt, payer: aPayer, team: aTeam });
+    }
+  }
+  Object.keys(holeGroups).forEach(function (hk) {
+    var g = holeGroups[hk]; g.list.sort(function (a, b) { return a.hole - b.hole; });
+    addonItems.push({ award: '洞洞有獎 ×' + g.list.length,
+      who: g.list.map(function (x) { return '第' + x.hole + '洞 ' + x.name; }).join('、'),
+      amt: g.amt * g.list.length, per: g.amt, payer: g.payer, team: g.team });
+  });
+  var addonRows = addonItems.map(function (it) {
+    var tag = it.payer ? (it.payer + (it.team ? '' : '·自付')) : (it.team ? '' : '自付');
+    return '<tr><td>' + esc_(it.award) + (tag ? '<div class="atag">' + esc_(tag) + '</div>' : '') + '</td>' +
+      '<td>' + (it.per ? '<div class="alist">' + esc_(it.who) + '</div><div class="atag">每洞 NT$' + it.per.toLocaleString() + '</div>' : esc_(it.who)) + '</td>' +
+      '<td class="r nw">' + (it.amt ? 'NT$' + it.amt.toLocaleString() : '') + '</td></tr>';
+  });
+  var addonHtml = addonRows.length
+    ? ('<h2>加碼獎</h2><table class="t addon"><tr><th>獎項</th><th>得獎者</th><th class="r">金額</th></tr>' +
+       addonRows.join('') +
+       (addTeam ? '<tr><td class="p">計入球隊</td><td></td><td class="r p nw">NT$' + addTeam.toLocaleString() + '</td></tr>' : '') +
+       (addSelf ? '<tr><td class="p">自付代轉(不列球隊支出)</td><td></td><td class="r p nw">NT$' + addSelf.toLocaleString() + '</td></tr>' : '') +
+       '</table>')
+    : '';
+
+  // 技術獎(送球)+ 合計送球:同獎項多人得獎 → 合併一列(BIRDIE 等多人獎不再一列一人)
+  var tdata = sheet(SHEET_TECH).getDataRange().getValues(), techSum = 0;
+  var techByAward = {}, techOrder = [];
   for (var j = 1; j < tdata.length; j++) {
     if (mdOf_(tdata[j][0]) !== mdOf_(date)) continue;
-    techSum += Number(tdata[j][3]) || 0;
-    techRows.push('<tr><td>' + esc_(tdata[j][1]) + '</td><td>' + esc_(tdata[j][2]) + '</td><td class="c">' + esc_(tdata[j][3]) + ' 條</td></tr>');
+    var tAward = String(tdata[j][1] || ''), tWho = String(tdata[j][2] || ''), tTiao = Number(tdata[j][3]) || 0;
+    techSum += tTiao;
+    if (!techByAward[tAward]) { techByAward[tAward] = []; techOrder.push(tAward); }
+    techByAward[tAward].push({ name: tWho, tiao: tTiao });
   }
+  var techRows = techOrder.map(function (aw) {
+    var list = techByAward[aw];
+    var total = list.reduce(function (x, w) { return x + w.tiao; }, 0);
+    var who = list.map(function (w) { return w.name + (w.tiao !== 1 ? ' ' + w.tiao : ''); }).join('、');
+    return '<tr><td>' + esc_(aw) + '</td><td>' + (list.length > 2 ? '<div class="alist">' + esc_(who) + '</div>' : esc_(who)) +
+      '</td><td class="c nw">' + total + ' 條</td></tr>';
+  });
   var techHtml = techRows.length
     ? ('<h2>技術獎項表(送球)</h2><table class="t"><tr><th>技術獎</th><th>得獎者</th><th class="c">送球</th></tr>' +
        techRows.join('') + '<tr><td class="p">合計送球</td><td></td><td class="c p">' + techSum + ' 條</td></tr></table>')
@@ -1637,10 +1733,12 @@ function buildMatchReportHtml(date, cfg) {
     countsHtml +
     '<h2>成績總表(會員 ' + members.length + ' 人)<span style="font-size:' + Math.round(FS * 0.62) + 'px;color:#888;font-weight:400">　差=賽前 · 調後=賽後</span></h2>' +
     pdfScoreFull_(members, champ) +
+    (LOW ? addonHtml : '') +               // 少人:左欄有空間,加碼放左欄平衡
     (LOW ? guestTbl : '');
 
   var rightCol =
     prizeHtml +
+    (LOW ? '' : addonHtml) +               // 多人:左欄已滿,加碼放較短的右欄,守住一頁
     techHtml +
     (LOW ? '' : guestTbl) +
     nextHtml +
@@ -1660,7 +1758,9 @@ function buildMatchReportHtml(date, cfg) {
   'table.t{border-collapse:collapse;width:100%;margin:2px 0 5px}' +
   '.t td,.t th{border:1px solid #cfcfc6;padding:' + PAD + 'px 6px;font-size:' + FS + 'px}' +
   '.t th{background:#eef3ee;color:#14532d;font-weight:700}' +
-  '.c{text-align:center}.r{text-align:right}.muted{color:#888}' +
+  '.c{text-align:center}.r{text-align:right}.muted{color:#888}.nw{white-space:nowrap}' +
+  '.addon td:first-child{width:34%}.atag{font-size:' + Math.round(FS * 0.72) + 'px;color:#8a7a55}' +
+  '.alist{font-size:' + Math.round(FS * 0.76) + 'px;line-height:1.35}' +
   '.info .lb{background:#f6f6f2;color:#555;width:46px;white-space:nowrap}' +
   '.cnt{border-collapse:collapse;width:100%;margin:6px 0 2px}' +
   '.cnt td{border:1px solid #e3e3da;background:#f7f7f2;text-align:center;padding:' + CPAD + 'px 0}' +
@@ -2384,6 +2484,9 @@ function sheet(name) {
     if (name === SHEET_PAY)     sh.appendRow(['name','paid']);
     if (name === SHEET_ROSTER_ARCHIVE) sh.appendRow(['場次','姓名','狀態','用餐','差點','備註','userId','報名時間']);
     if (name === SHEET_ANNOUNCE) sh.appendRow(['日期','內容','建立時間']);
+    if (name === SHEET_PURCHASE) sh.appendRow(['場次','類別','品項','單價','數量','小計','請款','已請款','建立時間']);
+    if (name === SHEET_ADDON) sh.appendRow(['場次','獎項','得獎者','金額','出資者','計入球隊','建立時間']);
+    if (name === SHEET_LEDGER) sh.appendRow(['月份','本月收入','餐費','其他','備註','更新時間','其他說明']);
   }
   return sh;
 }
@@ -2543,25 +2646,32 @@ function getMasterMap() {
   cachePut_('mastermap', map);
   return map;
 }
-function getMasterList() {
-  if (__masterListCache) return __masterListCache;
-  var cachedML = cacheGet_('master');
-  if (cachedML) { __masterListCache = cachedML; return cachedML; }
-  var data = sheet(SHEET_MASTER).getDataRange().getValues(), out = [];
-  // 以標題列偵測「會員身份」欄(放哪一欄都可)
-  var idIdx = -1;
-  if (data.length) {
-    for (var c = 0; c < data[0].length; c++) {
-      var hh = String(data[0][c] || '');
-      if (hh.indexOf('身份') >= 0 || hh.indexOf('身分') >= 0) { idIdx = c; break; }
-    }
+function masterCols_(headerRow) {   // 偵測「會員身份」與「狀態」欄位置
+  var idIdx = -1, stIdx = -1;
+  for (var c = 0; c < (headerRow || []).length; c++) {
+    var hh = String(headerRow[c] || '');
+    if (idIdx < 0 && (hh.indexOf('身份') >= 0 || hh.indexOf('身分') >= 0)) idIdx = c;
+    if (stIdx < 0 && hh.indexOf('狀態') >= 0) stIdx = c;
   }
+  return { idIdx: idIdx, stIdx: stIdx };
+}
+function masterAll_() {   // 全部會員(含停權/退隊),會員管理用
+  var data = sheet(SHEET_MASTER).getDataRange().getValues(), out = [];
+  var col = masterCols_(data[0]);
   for (var i = 1; i < data.length; i++) {
     var nm = String(data[i][0] || '').trim();
     if (nm) out.push({ name: nm, gender: String(data[i][1] || ''),
                       hcp: String(data[i][2] || ''), birthYear: String(data[i][3] || ''),
-                      memberType: idIdx >= 0 ? String(data[i][idIdx] || '').trim() : '' });
+                      memberType: col.idIdx >= 0 ? String(data[i][col.idIdx] || '').trim() : '',
+                      status: col.stIdx >= 0 ? String(data[i][col.stIdx] || '').trim() : '' });
   }
+  return out;
+}
+function getMasterList() {   // 只回「有效會員」:停權/退隊自動排除(尚未登記/會費/代報名等全部生效)
+  if (__masterListCache) return __masterListCache;
+  var cachedML = cacheGet_('master');
+  if (cachedML) { __masterListCache = cachedML; return cachedML; }
+  var out = masterAll_().filter(function (m) { return m.status !== '停權' && m.status !== '退隊'; });
   __masterListCache = out;
   cachePut_('master', out);
   return out;
@@ -2675,6 +2785,15 @@ function ensurePayList(userId) {
 // ---------- 會費收款(本年度)----------
 // ---------- 累積式公告(最新消息) ----------
 // 依「日期」新→舊排序(年份自動推斷,跨年正確),同日期再依建立時間;每則含唯一 id(=建立時間 ts)
+// 公告日期一律顯示成 M/D(試算表可能存成 Date 物件、或被顯示成完整日期字串)
+function fmtAnnDate_(v) {
+  if (v instanceof Date) return (v.getMonth() + 1) + '/' + v.getDate();
+  if (v && typeof v.getMonth === 'function') return (v.getMonth() + 1) + '/' + v.getDate();   // 跨環境 Date
+  var s = String(v == null ? '' : v).trim();
+  if (/^\d{1,2}\/\d{1,2}$/.test(s)) return s;                        // 已是 M/D
+  if (s.length > 6) { var d = new Date(s); if (!isNaN(d.getTime())) return (d.getMonth() + 1) + '/' + d.getDate(); }  // 完整日期字串 → M/D
+  return s;
+}
 function annDateKey_(md) {
   var m = String(md || '').match(/(\d{1,2})\s*[\/月]\s*(\d{1,2})/);
   if (!m) return 0;
@@ -2699,7 +2818,8 @@ function getAnnouncements() {
   for (var i = 1; i < data.length; i++) {
     if (!String(data[i][1] || '').trim()) continue;
     var ts = Number(data[i][2] || 0);
-    out.push({ id: ts, date: String(data[i][0] || ''), text: String(data[i][1] || ''), ts: ts, _k: annDateKey_(data[i][0]) });
+    var d = fmtAnnDate_(data[i][0]);                        // 日期一律格式化成 M/D(避免存成完整日期物件)
+    out.push({ id: ts, date: d, text: String(data[i][1] || ''), ts: ts, _k: annDateKey_(d) });
   }
   out.sort(function (a, b) { return (b._k - a._k) || (b.ts - a.ts); });   // 日期新→舊,同日期新建在前
   out.forEach(function (o) { delete o._k; });
@@ -2724,6 +2844,315 @@ function removeAnnouncement(userId, p) {
     if (String(data[i][2] || '') === id) { sh.deleteRow(i + 1); break; }
   }
   return { ok: true, announcements: getAnnouncements() };
+}
+
+// ---------- 每場採購紀錄(總幹事記帳) ----------
+var PURCHASE_CATS = ['點心','水果','飲料','其他'];
+function purMonthKey_(d) { var m = String(d || '').match(/(\d{1,2})\s*[\/月]\s*\d{1,2}/); return m ? parseInt(m[1], 10) : 0; }
+
+// 讀「本場」採購(沒有紀錄時回四類空列),外加常用品項與本月明細
+function getPurchase(userId, p) {
+  var cfg = getConfig();
+  var date = String((p && p.date) || (effectiveEvent(cfg, getSchedule()).date) || '').replace(/\(.*\)/, '').trim();
+  var sh = sheet(SHEET_PURCHASE), data = sh.getDataRange().getValues();
+  var rows = [], claimed = false, mon = purMonthKey_(date);
+  var monthItems = {}, itemBank = {}, byMon = {};
+  for (var i = 1; i < data.length; i++) {
+    if (!data[i][0] && !data[i][2]) continue;
+    var rDate = String(data[i][0] || '').trim();
+    var cat = String(data[i][1] || ''), item = String(data[i][2] || '');
+    var qty = Number(data[i][4] || 0), amt = Number(data[i][5] || 0);
+    if (item) itemBank[cat] = (itemBank[cat] || {}), itemBank[cat][item] = 1;   // 常用品項(依類別)
+    if (rDate === date) {
+      rows.push({ cat: cat, item: item, qty: qty, amt: amt, claim: String(data[i][6] || '') === 'v' });
+      if (String(data[i][7] || '') === 'v') claimed = true;
+    }
+    if (purMonthKey_(rDate) === mon && mon && item) {
+      var k = cat + '｜' + item;
+      monthItems[k] = monthItems[k] || { cat: cat, item: item, qty: 0, sum: 0, dates: {} };
+      monthItems[k].qty += qty; monthItems[k].sum += amt; monthItems[k].dates[rDate] = 1;
+    }
+    // 逐月總表:各月×類別金額+品項名 + 總計/請款(請款=勾「請款」列,與帳務 monthPurchaseTotal_ 同語意)
+    var rMon = purMonthKey_(rDate);
+    if (rMon && item) {
+      var bm = byMon[rMon] = byMon[rMon] || { mon: rMon, cats: {}, items: {}, total: 0, claim: 0 };
+      bm.cats[cat] = (bm.cats[cat] || 0) + amt; bm.total += amt;
+      (bm.items[cat] = bm.items[cat] || {})[item] = 1;
+      if (String(data[i][6] || '') === 'v') bm.claim += amt;
+    }
+  }
+  if (!rows.length) PURCHASE_CATS.forEach(function (c) { rows.push({ cat: c, item: '', qty: 0, amt: 0, claim: false }); });
+  // 常用品項整理成陣列
+  var common = {}; Object.keys(itemBank).forEach(function (c) { common[c] = Object.keys(itemBank[c]); });
+  // 本月明細(依類別分組)
+  var month = Object.keys(monthItems).map(function (k) {
+    var o = monthItems[k]; return { cat: o.cat, item: o.item, qty: o.qty, sum: o.sum, times: Object.keys(o.dates).length };
+  }).sort(function (a, b) { return PURCHASE_CATS.indexOf(a.cat) - PURCHASE_CATS.indexOf(b.cat) || b.sum - a.sum; });
+  var monthTotal = month.reduce(function (s, o) { return s + o.sum; }, 0);
+  // 逐月總表排序:從球季起始月(seasonFrom)往後繞一年(7,8,…,12,1,…,6)
+  var sf = parseYM(cfg.seasonFrom), startMon = sf ? sf.m : 1;
+  var byMonth = Object.keys(byMon).map(function (k) {
+    var o = byMon[k], it = {};
+    Object.keys(o.items).forEach(function (c) { it[c] = Object.keys(o.items[c]); });   // 品項集合 → 陣列
+    o.items = it; return o;
+  }).sort(function (a, b) { return ((a.mon - startMon + 12) % 12) - ((b.mon - startMon + 12) % 12); });
+  return { ok: true, date: date, rows: rows, claimed: claimed, common: common,
+           headcount: getReportProgress().reg,        // 本場報名人數(不含請假)
+           month: month, monthTotal: monthTotal, monthLabel: mon ? (mon + ' 月') : '',
+           byMonth: byMonth };
+}
+
+// 儲存「本場」採購(整場覆寫:先刪本場舊列,再寫入新列)
+function savePurchase(userId, p) {
+  var cfg = getConfig();
+  if (!userId || userId !== cfg.adminUserId) return { ok: false, error: '只有管理員可以記錄採購' };
+  var date = String(p.date || '').replace(/\(.*\)/, '').trim();
+  if (!date) return { ok: false, error: '缺少場次日期' };
+  var items = p.items || [];
+  var claimedAll = p.claimed ? 'v' : '';
+  var lock = LockService.getScriptLock(); lock.waitLock(8000);
+  try {
+    var sh = sheet(SHEET_PURCHASE), data = sh.getDataRange().getValues();
+    for (var i = data.length - 1; i >= 1; i--) { if (String(data[i][0] || '').trim() === date) sh.deleteRow(i + 1); }
+    var out = [];
+    items.forEach(function (r) {
+      var item = String(r.item || '').trim();
+      var qty = Number(r.qty || 0), amt = Number(r.amt || 0);
+      if (!item && !qty && !amt) return;                       // 全空列不存
+      out.push([date, String(r.cat || '其他'), item, '', qty, amt, r.claim ? 'v' : '', claimedAll, Date.now()]);
+    });
+    if (out.length) sh.getRange(sh.getLastRow() + 1, 1, out.length, 9).setValues(out);
+  } finally { lock.releaseLock(); }
+  var res = getPurchase(userId, { date: date });
+  res.purchaseUnclaimed = purchaseUnclaimedTotal_(); res.purchaseHasClaims = purchaseHasClaims_();   // 讓首頁「待請款」提醒即時更新
+  return res;
+}
+
+// ---------- 球隊帳務(財務長:每月收支 + 餘額結轉) ----------
+// 當月獎金總額(掃 Scores × prizeFor,自動)
+// 各月自動支出總額(一次掃描三張表,回 {prize:{月:額}, purch:{...}, addon:{...}})
+// 語意不變:採購只算「勾請款」列;加碼只算「勾計入球隊」列(規則 1/2)
+function monthTotalsMap_(cfg) {
+  var prize = {}, purch = {}, addon = {}, i, mo;
+  var s = sheet(SHEET_SCORES).getDataRange().getValues();
+  for (i = 1; i < s.length; i++) {
+    mo = purMonthKey_(s[i][0]); if (!mo) continue;
+    prize[mo] = (prize[mo] || 0) + prizeFor(String(s[i][7] || ''), String(s[i][8] || ''), cfg);
+  }
+  var p = sheet(SHEET_PURCHASE).getDataRange().getValues();
+  for (i = 1; i < p.length; i++) {
+    mo = purMonthKey_(p[i][0]);
+    if (mo && String(p[i][6] || '') === 'v') purch[mo] = (purch[mo] || 0) + Number(p[i][5] || 0);
+  }
+  var a = sheet(SHEET_ADDON).getDataRange().getValues();
+  for (i = 1; i < a.length; i++) {
+    mo = purMonthKey_(a[i][0]);
+    if (mo && String(a[i][5] || '') === 'v') addon[mo] = (addon[mo] || 0) + Number(a[i][3] || 0);
+  }
+  return { prize: prize, purch: purch, addon: addon };
+}
+// 當月採購總額(帳務認列;沿用單月介面,底層走一次性掃描)
+function monthPurchaseTotal_(mon) { return monthTotalsMap_(getConfig()).purch[mon] || 0; }
+// 帳務手動欄位(收入/餐費/其他/備註)→ 依月份
+function ledgerManual_() {
+  var data = sheet(SHEET_LEDGER).getDataRange().getValues(), m = {};
+  for (var i = 1; i < data.length; i++) {
+    var mo = parseInt(data[i][0], 10); if (!mo) continue;
+    m[mo] = { income: Number(data[i][1] || 0), meal: Number(data[i][2] || 0), other: Number(data[i][3] || 0), note: String(data[i][4] || ''), otherNote: String(data[i][6] || '') };
+  }
+  return m;
+}
+// 計算從起始月到 12 月的每月結轉表
+function computeLedger_(cfg) {
+  var startMon = parseInt(cfg.ledgerStartMonth, 10);
+  if (!startMon) return { enabled: false, months: [] };
+  var startBal = Number(cfg.ledgerStartBalance || 0);
+  var manual = ledgerManual_(), months = [], bal = startBal;
+  var auto = monthTotalsMap_(cfg);   // 一次掃描三張表(原本每月各掃一次,6 個月=18 次讀取 → 3 次)
+  for (var mo = startMon; mo <= 12; mo++) {
+    var man = manual[mo] || { income: 0, meal: 0, other: 0, note: '', otherNote: '' };
+    var prize = auto.prize[mo] || 0, purch = auto.purch[mo] || 0, addon = auto.addon[mo] || 0;
+    var expense = prize + purch + man.meal + man.other + addon;
+    var prev = bal;
+    bal = prev + man.income - expense;
+    months.push({ mon: mo, prev: prev, income: man.income, prize: prize, purchase: purch, addon: addon,
+                  meal: man.meal, other: man.other, otherNote: man.otherNote || '', expense: expense, balance: bal, note: man.note });
+  }
+  return { enabled: true, startMonth: startMon, startBalance: startBal, months: months };
+}
+function isTreasurer_(userId, cfg) {
+  if (!userId) return false;
+  var mem = getMember(userId);
+  return !!(mem && mem.name && cfg.treasurer && mem.name === String(cfg.treasurer).trim());
+}
+function getLedger(userId, p) {
+  var cfg = getConfig();
+  if (userId !== cfg.adminUserId && !isTreasurer_(userId, cfg)) return { ok: false, error: '只有財務長或管理員可以查看帳務' };
+  var L = computeLedger_(cfg);
+  var now = new Date(); var curMon = now.getMonth() + 1;
+  var sel = parseInt((p && p.month), 10) || curMon;
+  return { ok: true, enabled: L.enabled, startMonth: L.startMonth, startBalance: L.startBalance,
+           months: L.months, selMonth: sel, canEdit: true };
+}
+function saveLedger(userId, p) {
+  var cfg = getConfig();
+  if (userId !== cfg.adminUserId && !isTreasurer_(userId, cfg)) return { ok: false, error: '只有財務長或管理員可以記帳' };
+  var mo = parseInt(p.month, 10); if (!mo) return { ok: false, error: '缺少月份' };
+  var lock = LockService.getScriptLock(); lock.waitLock(8000);
+  try {
+    var sh = sheet(SHEET_LEDGER), data = sh.getDataRange().getValues(), row = -1;
+    for (var i = 1; i < data.length; i++) { if (parseInt(data[i][0], 10) === mo) { row = i + 1; break; } }
+    if (!String((data[0] || [])[6] || '')) sh.getRange(1, 7).setValue('其他說明');   // 舊表補欄名(既有資料不動)
+    var vals = [mo, Number(p.income || 0), Number(p.meal || 0), Number(p.other || 0), String(p.note || ''), new Date(), String(p.otherNote || '')];
+    if (row === -1) sh.appendRow(vals); else sh.getRange(row, 1, 1, 7).setValues([vals]);
+  } finally { lock.releaseLock(); }
+  return getLedger(userId, { month: mo });
+}
+
+// ---------- 加碼獎(名次/技術/金額加碼、洞洞有獎、黑白切…) ----------
+// 每筆:場次 | 獎項 | 得獎者 | 金額 | 出資者 | 計入球隊(v)
+function getAddon(userId, p) {
+  var cfg = getConfig();
+  var date = String((p && p.date) || (effectiveEvent(cfg, getSchedule()).date) || '').replace(/\(.*\)/, '').trim();
+  var sh = sheet(SHEET_ADDON), data = sh.getDataRange().getValues(), rows = [];
+  for (var i = 1; i < data.length; i++) {
+    if (mdOf_(data[i][0]) !== mdOf_(date)) continue;
+    rows.push({ id: Number(data[i][6] || 0), award: String(data[i][1] || ''), name: String(data[i][2] || ''),
+                amt: Number(data[i][3] || 0), payer: String(data[i][4] || ''), team: String(data[i][5] || '') === 'v' });
+  }
+  return { ok: true, date: date, rows: rows };
+}
+function saveAddon(userId, p) {
+  var cfg = getConfig();
+  if (!userId || userId !== cfg.adminUserId) return { ok: false, error: '只有管理員可以登錄加碼獎' };
+  var date = String(p.date || '').replace(/\(.*\)/, '').trim();
+  if (!date) return { ok: false, error: '缺少場次日期' };
+  var items = p.items || [];
+  var lock = LockService.getScriptLock(); lock.waitLock(8000);
+  try {
+    var sh = sheet(SHEET_ADDON), data = sh.getDataRange().getValues();
+    for (var i = data.length - 1; i >= 1; i--) { if (mdOf_(data[i][0]) === mdOf_(date)) sh.deleteRow(i + 1); }  // 整場覆寫
+    var out = [];
+    items.forEach(function (r) {
+      var award = String(r.award || '').trim(), name = String(r.name || '').trim();
+      if (!award && !name) return;                          // 空列不存
+      out.push([date, award, name, Number(r.amt || 0), String(r.payer || ''), r.team ? 'v' : '', Date.now() + out.length]);
+    });
+    if (out.length) sh.getRange(sh.getLastRow() + 1, 1, out.length, 7).setValues(out);
+  } finally { lock.releaseLock(); }
+  return getAddon(userId, { date: date });
+}
+// 當月加碼獎「計入球隊」總額(帳務認列;沿用單月介面,底層走一次性掃描)
+function monthAddonTeamTotal_(mon) { return monthTotalsMap_(getConfig()).addon[mon] || 0; }
+
+// 未請款提醒:各場「已請款」未勾、但有勾「請款」的金額加總(給採購方塊顯示)
+function purchaseUnclaimedTotal_() {
+  var data = sheet(SHEET_PURCHASE).getDataRange().getValues(), byDate = {}, claimedDate = {};
+  for (var i = 1; i < data.length; i++) {
+    var d = String(data[i][0] || '').trim(); if (!d) continue;
+    if (String(data[i][7] || '') === 'v') claimedDate[d] = true;                 // 整場已請款
+    if (String(data[i][6] || '') === 'v') byDate[d] = (byDate[d] || 0) + Number(data[i][5] || 0);  // 該列標請款的金額
+  }
+  var sum = 0; Object.keys(byDate).forEach(function (d) { if (!claimedDate[d]) sum += byDate[d]; });
+  return sum;
+}
+function purchaseHasClaims_() {
+  var data = sheet(SHEET_PURCHASE).getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) { if (String(data[i][6] || '') === 'v') return true; }
+  return false;
+}
+
+// ---------- 會員管理(方塊化:App 內編輯/解綁/檔案卡) ----------
+// 總覽:主檔 + 綁定 + 差點 + 會費 + 今年出席場數
+function memberAdmin(userId) {
+  var cfg = getConfig();
+  if (!userId || userId !== cfg.adminUserId) return { ok: false, error: '只有管理員可以管理會員' };
+  var master = masterAll_(), md = membersData_(), hmap = getHcpMap(), paid = getPaidMap();
+  var bound = {};                                              // name → {uid, phone, lineName}
+  for (var i = 1; i < md.length; i++) {
+    var uid = String(md[i][0] || ''), nm = String(md[i][1] || '');
+    if (uid && uid.indexOf('M:') !== 0 && uid.indexOf('G:') !== 0) bound[nm] = { uid: uid, phone: String(md[i][5] || ''), lineName: String(md[i][6] || '') };
+  }
+  // 今年出席場數(Scores 內有成績的場次數)
+  var range = seasonRange(cfg), sdata = sheet(SHEET_SCORES).getDataRange().getValues(), playedBy = {};
+  for (var j = 1; j < sdata.length; j++) {
+    var d = mdOf_(sdata[j][0]); if (!d) continue;
+    if (range && !inCurrentSeason(d, range)) continue;
+    var pn = String(sdata[j][1] || ''); (playedBy[pn] = playedBy[pn] || {})[d] = 1;
+  }
+  // 請假次數:封存(報名紀錄)+ 本場名單
+  var leavesBy = {};
+  var arch = sheet(SHEET_ROSTER_ARCHIVE).getDataRange().getValues();
+  for (var a = 1; a < arch.length; a++) { if (String(arch[a][2] || '') === '請假') { var an = String(arch[a][1] || ''); leavesBy[an] = (leavesBy[an] || 0) + 1; } }
+  getRoster().forEach(function (r) { if (r.status === '請假') leavesBy[r.name] = (leavesBy[r.name] || 0) + 1; });
+  var rows = master.map(function (m) {
+    var b = bound[m.name];
+    return { name: m.name, gender: m.gender, birthYear: m.birthYear, hcp0: m.hcp, memberType: m.memberType, status: m.status || '',
+             hcp: hmap.hasOwnProperty(m.name) ? String(hmap[m.name]) : '',
+             bound: !!b, phone: b ? b.phone : '', lineName: b ? b.lineName : '',
+             paid: !!paid[m.name], played: Object.keys(playedBy[m.name] || {}).length, leaves: leavesBy[m.name] || 0 };
+  });
+  return { ok: true, rows: rows,
+           unbound: rows.filter(function (r) { return !r.bound && !r.status; }).length };
+}
+// 新增/編輯會員主檔(oldName 有值=編輯;改名會同步 Members 綁定與本場名單,歷史成績保留舊名)
+function saveMember(userId, p) {
+  var cfg = getConfig();
+  if (!userId || userId !== cfg.adminUserId) return { ok: false, error: '只有管理員可以編輯會員' };
+  var name = String(p.name || '').trim();
+  if (!name) return { ok: false, error: '請填姓名' };
+  var oldName = String(p.oldName || '').trim();
+  var lock = LockService.getScriptLock(); lock.waitLock(8000);
+  try {
+    var sh = sheet(SHEET_MASTER), data = sh.getDataRange().getValues(), row = -1;
+    var findName = oldName || name;
+    for (var i = 1; i < data.length; i++) { if (String(data[i][0] || '').trim() === findName) { row = i + 1; break; } }
+    if (!oldName && row !== -1) return { ok: false, error: '「' + name + '」已存在' };
+    // 會員身份欄位置偵測(與 getMasterList 同邏輯,找不到用第 5 欄)
+    var idIdx = 4;
+    for (var c = 0; c < (data[0] || []).length; c++) { var hh = String(data[0][c] || ''); if (hh.indexOf('身份') >= 0 || hh.indexOf('身分') >= 0) { idIdx = c; break; } }
+    var col = masterCols_(data[0] || []);
+    if (col.idIdx < 0) col.idIdx = idIdx;
+    var stIdx = col.stIdx;
+    if (stIdx < 0 && p.status !== undefined) {   // 沒有「狀態」欄 → 自動在最後補一欄
+      stIdx = Math.max((data[0] || []).length, col.idIdx + 1);
+      sh.getRange(1, stIdx + 1).setValue('狀態');
+    }
+    var vals = [name, String(p.gender || ''), String(p.hcp0 || ''), String(p.birthYear || '')];
+    if (row === -1) {
+      var nr = vals.slice(); while (nr.length < col.idIdx + 1) nr.push(''); nr[col.idIdx] = String(p.memberType || '');
+      if (stIdx >= 0) { while (nr.length < stIdx + 1) nr.push(''); nr[stIdx] = String(p.status || ''); }
+      sh.appendRow(nr);
+    } else {
+      sh.getRange(row, 1, 1, 4).setValues([vals]);
+      sh.getRange(row, col.idIdx + 1).setValue(String(p.memberType || ''));
+      if (stIdx >= 0) sh.getRange(row, stIdx + 1).setValue(String(p.status || ''));
+    }
+    // 改名:同步 Members 綁定 + 本場名單(歷史 Scores/報名紀錄 保留舊名)
+    if (oldName && oldName !== name) {
+      var ms = sheet(SHEET_MEMBERS), mdata = ms.getDataRange().getValues();
+      for (var k = 1; k < mdata.length; k++) { if (String(mdata[k][1] || '') === oldName) ms.getRange(k + 1, 2).setValue(name); }
+      var rs = sheet(SHEET_ROSTER), rdata = rs.getDataRange().getValues();
+      for (var t = 1; t < rdata.length; t++) { if (String(rdata[t][1] || '') === oldName) rs.getRange(t + 1, 2).setValue(name); }
+    }
+  } finally { lock.releaseLock(); }
+  __masterListCache = __masterMapCache = __memInfoCache = __membersDataCache = __rosterCache = __hcpMapCache = null;
+  cacheDel_('master'); cacheDel_('mastermap'); cacheDel_('members'); cacheDel_('roster'); cacheDel_('hcp');
+  return memberAdmin(userId);
+}
+// 解除綁定:刪除該會員的 Members 綁定列(主檔與歷史保留;之後可重新綁定)
+function removeBinding(userId, p) {
+  var cfg = getConfig();
+  if (!userId || userId !== cfg.adminUserId) return { ok: false, error: '只有管理員可以解除綁定' };
+  var name = String(p.name || '').trim();
+  var sh = sheet(SHEET_MEMBERS), data = sh.getDataRange().getValues(), removed = 0;
+  for (var i = data.length - 1; i >= 1; i--) {
+    var uid = String(data[i][0] || '');
+    if (String(data[i][1] || '') === name && uid.indexOf('M:') !== 0 && uid.indexOf('G:') !== 0) { sh.deleteRow(i + 1); removed++; }
+  }
+  if (!removed) return { ok: false, error: '「' + name + '」沒有綁定紀錄' };
+  __memInfoCache = __membersDataCache = null; cacheDel_('members');
+  return memberAdmin(userId);
 }
 
 var __payCache = null;
@@ -2783,6 +3212,11 @@ function setPaidAction(userId, p) {
 // 把試算表存成日期/時間物件的設定值,依欄位格式化成乾淨字串
 function fmtClock_(d) { var h = d.getHours(), m = d.getMinutes(); return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m; }
 function fmtConfigVal_(key, v) {
+  if (key === 'secretaryPhone') {                          // 電話:試算表當數字會吃掉前導 0,補回
+    var s = String(v == null ? '' : v).replace(/[^\d]/g, '');
+    if (s.length === 9) s = '0' + s;                       // 09xxxxxxxx / 0x-xxxxxxx 被吃 0 → 補回
+    return s;
+  }
   if (v instanceof Date) {
     if (key === 'seasonFrom' || key === 'seasonTo') return v.getFullYear() + '/' + (v.getMonth() + 1);
     if (key === 'groupRevealAt' || key === 'scoreRevealAt' || key === 'tee') return fmtClock_(v);

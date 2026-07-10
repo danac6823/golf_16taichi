@@ -1,0 +1,12 @@
+{
+  "name": "意象太極高爾夫球隊",
+  "short_name": "意象太極",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f7f4ec",
+  "theme_color": "#14532d",
+  "icons": [
+    { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
