@@ -534,6 +534,8 @@
   .modal-card.full .smfoot{flex:0 0 auto;background:var(--paper);padding:8px 0 calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
   .modal-card.full .smfoot .btn{padding:11px;font-size:16px}
   #schedModal .modal-card.full .sctab-wrap{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;margin:4px 0;padding-bottom:calc(8px + env(safe-area-inset-bottom))}
+  .att-remind{background:#fdecec;border:1px solid #f0b6b0;color:#a5322a;border-radius:10px;padding:9px 12px;margin-top:8px;font-size:14px;font-weight:600;line-height:1.5}
+  .att-sent{background:var(--green-soft);border:1px solid #bcd3c0;color:var(--fairway);border-radius:10px;padding:9px 12px;margin-top:8px;font-size:14px;font-weight:600}
   .pvbar{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#14532d;color:#eaf3ec;border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:14px}
   .pvbar.pv{background:#bc4b3c}
   .pvbar button{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:8px;padding:6px 10px;font-size:14px;cursor:pointer;white-space:nowrap}
@@ -808,7 +810,12 @@ function tilesGrid(total){
   if(state.isAdmin){
     // 管理員專區(順序:出席名單→分享群組→分組排組→輸入成績→發布公告→代會員報名→其他管理)
     var a='';
-    a+=tile('att','👥','出席名單', total+' 人','admin');
+    // 出席名單:3 日內未送球場 → 紅點提醒;已送 → 顯示送出日期
+    var rsent=rosterSentInfo(), dLeft=matchDaysLeft();
+    var attRemind = (!rsent.sent && total>0 && dLeft!==null && dLeft>=0 && dLeft<=3);
+    var attSub = rsent.sent ? ('✓ 已送球場 '+rsent.date)
+               : (attRemind ? '⚠ 記得送名單給球場' : total+' 人');
+    a+=tile('att','👥','出席名單', attSub, 'admin', attRemind);
     a+=tile('share','📤','分享群組','催報名/例賽卡','admin');
     a+=tile('groups','🏌️','分組排組', groupSub, 'admin', !!g);
     a+=tile('score','🏆','輸入成績', scoreSub, 'admin', !!r);
@@ -845,7 +852,14 @@ function tileModals(playing,leave,total,c){
       : '<div class="rgrid">'+playing.map(function(p,i){return playerChip(p,i,c);}).join("")+'</div>')+
     (leave.length? '<div class="section-label">請假名單 · '+leave.length+' 人</div><div class="rgrid">'+
         leave.map(function(p){return '<div class="rchip leave"><span class="rnm">'+gname(p.name)+'</span><i class="ct leave">請假</i></div>';}).join("")+'</div>' : '')+
-    (state.isAdmin && total>0 ? '<button class="btn ghost sm" id="openAttList" style="width:100%;margin-top:8px">📋 匯出出席名單(傳球場)</button>' : '');
+    (function(){
+      if(!(state.isAdmin && total>0)) return '';
+      var rs=rosterSentInfo(), dl=matchDaysLeft(), f='';
+      if(rs.sent) f+='<div class="att-sent">✓ 已將名單送球場 · '+esc(rs.date)+'</div>';
+      else if(dl!==null && dl>=0 && dl<=3) f+='<div class="att-remind">⚠ 距離例賽'+(dl===0?'就是今天':(' '+dl+' 天'))+',記得將出席名單送給球場!</div>';
+      f+='<button class="btn ghost sm" id="openAttList" style="width:100%;margin-top:8px">📋 匯出出席名單(傳球場)</button>';
+      return f;
+    })();
   var groupsC = groupsSection() + (state.isAdmin ? groupAdminPanel() : "");
   var scoreC  = rankingSection() + (state.isAdmin ? matchScoreAdminPanel() : "");
   var html='';
@@ -1276,6 +1290,24 @@ function deadlineLeft(dl){
   var t=new Date(y,mo-1,d,23,59,59), days=Math.floor((t-now)/86400000);
   if(days<0||days>14) return '';
   return days===0 ? '· 今天截止' : ('· 剩 '+days+' 天');
+}
+// 距離本場例賽的天數(整數;今天=0,已過=負);解析不到回 null
+function matchDaysLeft(){
+  var ev=state.eventView||state.event||{};
+  var m=String(ev.date||'').match(/(\d{1,2})\s*\/\s*(\d{1,2})/); if(!m) return null;
+  var now=new Date(), y=now.getFullYear(), mo=parseInt(m[1],10), d=parseInt(m[2],10);
+  if(mo<now.getMonth()+1-6) y+=1;                                   // 跨年
+  var t=new Date(y,mo-1,d,23,59,59);
+  return Math.floor((t-new Date(now.getFullYear(),now.getMonth(),now.getDate()))/86400000);
+}
+// 本場出席名單是否已送球場 → {sent, date}(比對 state.rosterSent 的場次日期是否等於本場)
+function rosterSentInfo(){
+  var ev=state.eventView||state.event||{};
+  var cur=String(ev.date||'').replace(/\(.*\)/,'').trim();
+  var rs=String(state.rosterSent||'').split('|');
+  var forDate=String(rs[0]||'').replace(/\(.*\)/,'').trim();
+  if(cur && forDate===cur) return {sent:true, date:rs[1]||''};
+  return {sent:false, date:''};
 }
 // 管理員「會員檢視」切換
 function togglePreview(){ previewMember=!previewMember; reload(); }
@@ -2382,11 +2414,15 @@ function buildAttText(playing){
   return L.join("\n");
 }
 function attListModalHtml(playing){
+  var rs=rosterSentInfo();
+  var mark = rs.sent
+    ? '<button class="btn ghost" id="attUnsent" style="flex:1">✓ 已送球場 '+esc(rs.date)+'<small>點一下取消標記</small></button>'
+    : '<button class="btn ghost" id="attSent" style="flex:1">✅ 標記已送球場<small>送出後點這裡留紀錄</small></button>';
   return '<div id="attModal" class="modal hidden"><div class="modal-card">'+
     '<div class="modal-head"><span>當月出席名單</span><button class="mclose" id="attClose">✕</button></div>'+
-    '<p class="smnote" style="margin:0 0 8px">下面文字可直接複製貼到 LINE 傳給球場。</p>'+
+    '<p class="smnote" style="margin:0 0 8px">下面文字可直接複製貼到 LINE 傳給球場;送出後按「標記已送球場」留紀錄。</p>'+
     '<textarea id="attText" class="atttext" readonly>'+esc(buildAttText(playing))+'</textarea>'+
-    '<div class="smfoot"><button class="btn" id="attCopy">複製文字</button></div>'+
+    '<div class="smfoot" style="gap:8px"><button class="btn" id="attCopy" style="flex:1">複製文字</button>'+mark+'</div>'+
   '</div></div>';
 }
 function playerChip(p,i,c){
@@ -2607,6 +2643,23 @@ function wireMain(isFull, iAmIn){
     if(navigator.clipboard && navigator.clipboard.writeText){
       navigator.clipboard.writeText(ta.value).then(function(){toast("✓ 已複製,可貼到 LINE");},function(){toast(ok?"✓ 已複製,可貼到 LINE":"請長按文字手動複製");});
     }else{ toast(ok?"✓ 已複製,可貼到 LINE":"請長按文字手動複製"); }
+  };
+  // 標記/取消「已送球場」→ 存後端,關閉燈箱並重繪(名單方塊即時更新提醒/紀錄)
+  var attSent=document.getElementById("attSent");
+  if(attSent) attSent.onclick=function(){
+    var md=(state.eventView&&state.eventView.date)||(state.event&&state.event.date)||"";
+    busy("attSent","儲存中…");
+    api({action:"markRosterSent",userId:profile.userId,matchDate:md}).then(function(r){
+      if(!r||r.ok===false){ toast("⚠ "+((r&&r.error)||"儲存失敗")); return; }
+      state.rosterSent=r.rosterSent||""; toast("✓ 已標記送球場");
+      var m=document.getElementById("attModal"); if(m) m.classList.add("hidden"); renderMain();
+    });
+  };
+  var attUnsent=document.getElementById("attUnsent");
+  if(attUnsent) attUnsent.onclick=function(){
+    api({action:"markRosterSent",userId:profile.userId,undo:1}).then(function(r){
+      if(r&&r.ok){ state.rosterSent=""; toast("已取消標記"); var m=document.getElementById("attModal"); if(m) m.classList.add("hidden"); renderMain(); }
+    });
   };
   var saveTeam=document.getElementById("saveTeam");
   if(saveTeam) saveTeam.onclick=function(){ saveAdm("saveTeam","已更新球隊資料"); };
