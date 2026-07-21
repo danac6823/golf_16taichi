@@ -601,7 +601,9 @@ function api(params){
     window[cb] = function(data){ clearTimeout(timer); cleanup(); resolve(data); };
     function cleanup(){ delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); }
     var qs = Object.keys(params).map(function(k){
-      return encodeURIComponent(k)+"="+encodeURIComponent(params[k]);
+      var v=params[k];
+      if(v!==null && typeof v==="object") v=JSON.stringify(v);   // 陣列/物件 → JSON,避免被轉成 "[object Object]"
+      return encodeURIComponent(k)+"="+encodeURIComponent(v);
     }).join("&");
     if(ID_TOKEN) qs += "&idToken=" + encodeURIComponent(ID_TOKEN);
     var s = document.createElement("script");

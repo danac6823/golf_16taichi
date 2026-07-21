@@ -21,7 +21,7 @@ var SHEET_ROSTER  = 'Roster';     // userId | name | hcp | cart | note | ts
 var SHEET_MEMBERS = 'Members';    // userId | name | role(會員/來賓) | gender(男/女) | birthYear | phone  (LINE 綁定)
 var SHEET_MASTER  = '會員名單';   // 姓名 | 性別 | 年初差點 | 出生年  (主檔,管理員維護)
 var SHEET_CONFIG  = 'Config';     // key | value
-var APP_VERSION   = 'v2026.07.14-net-tiebreak2';   // 部署版本標記
+var APP_VERSION   = 'v2026.07.14-jsonp-array';   // 部署版本標記
 var SHEET_HCP     = 'Handicaps';  // name | hcp         (跟著姓名走的差點)
 var SHEET_SCORES  = 'Scores';     // date | name | out | in | gross | hcp | net | rankType | rank | hcpAfter | ts
 var SHEET_PAY     = 'Payments';   // name | paid        (本年度會費是否已收)
@@ -2957,13 +2957,22 @@ function getPurchase(userId, p) {
 }
 
 // 儲存「本場」採購(整場覆寫:先刪本場舊列,再寫入新列)
+// JSONP 參數還原:前端把陣列/物件 JSON 化送來(離線預覽則直接傳真陣列),這裡統一還原
+function jsonArrParam_(v) {
+  if (Array.isArray(v)) return v;
+  if (typeof v === 'string' && v) { try { var a = JSON.parse(v); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+  return [];
+}
+// 布林參數還原:JSONP 會把 true/false 轉成字串 "true"/"false"
+function boolParam_(v) { return v === true || v === 'true' || v === '1' || v === 1 || v === 'v'; }
+
 function savePurchase(userId, p) {
   var cfg = getConfig();
   if (!userId || userId !== cfg.adminUserId) return { ok: false, error: '只有管理員可以記錄採購' };
   var date = String(p.date || '').replace(/\(.*\)/, '').trim();
   if (!date) return { ok: false, error: '缺少場次日期' };
-  var items = p.items || [];
-  var claimedAll = p.claimed ? 'v' : '';
+  var items = jsonArrParam_(p.items);
+  var claimedAll = boolParam_(p.claimed) ? 'v' : '';
   var lock = LockService.getScriptLock(); lock.waitLock(8000);
   try {
     var sh = sheet(SHEET_PURCHASE), data = sh.getDataRange().getValues();
@@ -2973,7 +2982,7 @@ function savePurchase(userId, p) {
       var item = String(r.item || '').trim();
       var qty = Number(r.qty || 0), amt = Number(r.amt || 0);
       if (!item && !qty && !amt) return;                       // 全空列不存
-      out.push([date, String(r.cat || '其他'), item, '', qty, amt, r.claim ? 'v' : '', claimedAll, Date.now()]);
+      out.push([date, String(r.cat || '其他'), item, '', qty, amt, boolParam_(r.claim) ? 'v' : '', claimedAll, Date.now()]);
     });
     if (out.length) sh.getRange(sh.getLastRow() + 1, 1, out.length, 9).setValues(out);
   } finally { lock.releaseLock(); }
@@ -3082,7 +3091,7 @@ function saveAddon(userId, p) {
   if (!userId || userId !== cfg.adminUserId) return { ok: false, error: '只有管理員可以登錄加碼獎' };
   var date = String(p.date || '').replace(/\(.*\)/, '').trim();
   if (!date) return { ok: false, error: '缺少場次日期' };
-  var items = p.items || [];
+  var items = jsonArrParam_(p.items);
   var lock = LockService.getScriptLock(); lock.waitLock(8000);
   try {
     var sh = sheet(SHEET_ADDON), data = sh.getDataRange().getValues();
@@ -3091,7 +3100,7 @@ function saveAddon(userId, p) {
     items.forEach(function (r) {
       var award = String(r.award || '').trim(), name = String(r.name || '').trim();
       if (!award && !name) return;                          // 空列不存
-      out.push([date, award, name, Number(r.amt || 0), String(r.payer || ''), r.team ? 'v' : '', Date.now() + out.length]);
+      out.push([date, award, name, Number(r.amt || 0), String(r.payer || ''), boolParam_(r.team) ? 'v' : '', Date.now() + out.length]);
     });
     if (out.length) sh.getRange(sh.getLastRow() + 1, 1, out.length, 7).setValues(out);
   } finally { lock.releaseLock(); }
