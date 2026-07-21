@@ -2101,6 +2101,7 @@ function scoreModalHtml(){
       '<td class="sc-hcp">'+(h===''?'—':esc(h))+'</td>'+
       '<td class="sc-net">—</td>'+
       '<td><input class="sc-bird" inputmode="numeric" maxlength="2" placeholder=""></td>'+
+      '<td style="text-align:center"><input type="checkbox" class="sc-dnf" title="有出席但不計算成績(不列排名、差點不變)"></td>'+
     '</tr>';
   }).join('');
   var d=((state.eventView&&state.eventView.date)||'').replace(/\(.*\)/,'').trim();
@@ -2114,9 +2115,9 @@ function scoreModalHtml(){
         '<button class="smtab" data-t="adn">🎁 加碼獎</button>'+
       '</div>'+
       '<div class="smpane" id="smPane_sc">'+
-        '<p class="smnote">差點自動帶入,淨桿 = 總桿 − 差點(即時計算)。Birdie 欄填該員本場 birdie 數,送出時自動列入 BIRDIE獎(每人最多 2 條)。</p>'+
-        '<div class="sctab-wrap"><table class="sctab"><thead><tr><th>姓名</th><th>OUT</th><th>IN</th><th>總桿</th><th>差點</th><th>淨桿</th><th>Birdie</th></tr></thead>'+
-        '<tbody id="smBody">'+(rows||'<tr><td colspan="7" class="muted" style="text-align:center;padding:14px">尚無出席名單</td></tr>')+'</tbody></table></div>'+
+        '<p class="smnote">差點自動帶入,淨桿 = 總桿 − 差點(即時計算)。Birdie 欄填該員本場 birdie 數,送出時自動列入 BIRDIE獎(每人最多 2 條)。<b>未完賽</b>=有出席但成績不計算(不列任何排名、差點不變),桿數可留白。</p>'+
+        '<div class="sctab-wrap"><table class="sctab"><thead><tr><th>姓名</th><th>OUT</th><th>IN</th><th>總桿</th><th>差點</th><th>淨桿</th><th>Birdie</th><th>未完賽</th></tr></thead>'+
+        '<tbody id="smBody">'+(rows||'<tr><td colspan="8" class="muted" style="text-align:center;padding:14px">尚無出席名單</td></tr>')+'</tbody></table></div>'+
       '</div>'+
       '<div class="smpane hidden" id="smPane_tech">'+
         '<div class="field"><label>技術獎(下拉選獎項+得獎者,可＋新增;未選人的列會略過)</label></div>'+
@@ -2188,7 +2189,7 @@ function holePrizeLightbox(){
 function scoreResultHtml(rk){
   var members=(rk.results||[]).filter(function(x){return x.rankType!=="來賓";});
   var rows=members.map(function(x){
-    var lbl=x.rankType==="總桿"?"總桿冠軍":(x.rankType==="幸運獎"?("幸運 淨"+x.rank):(x.rankType==="逢五跳獎"?("逢五 淨"+x.rank):(x.rankType==="BB"?("BB 淨"+x.rank):("淨"+x.rank))));
+    var lbl=x.rankType==="總桿"?"總桿冠軍":(x.rankType==="未完賽"?"未完賽":(x.rankType==="新會員"?"新會員":(x.rankType==="幸運獎"?("幸運 淨"+x.rank):(x.rankType==="逢五跳獎"?("逢五 淨"+x.rank):(x.rankType==="BB"?("BB 淨"+x.rank):("淨"+x.rank))))));
     var chg=String(x.hcp)!==String(x.newHcp);
     var hc=chg?('<span class="hcpold">'+esc(x.hcp)+'</span>→<b>'+esc(x.newHcp)+'</b>'):esc(x.newHcp);
     return '<tr'+(chg?' class="chg"':'')+'><td>'+esc(lbl)+'</td><td class="sn">'+gname(x.name)+'</td><td>'+esc(x.gross)+'</td><td>'+esc(x.net)+'</td><td class="nh">'+hc+'</td></tr>';
@@ -3210,17 +3211,20 @@ function wireMain(isFull, iAmIn){
   if(smSubmit) smSubmit.onclick=function(){
     var d=(val("smDate")||"").trim();
     if(!d){ toast("請填比賽日期"); return; }
-    var lines=[];
+    var lines=[], dnf=[];
     var birdieOf={};                                       // 姓名 → birdie 數(成績表 Birdie 欄)
     document.querySelectorAll("#smBody tr[data-name]").forEach(function(tr){
+      var nm=tr.getAttribute("data-name");
+      var dnfEl=tr.querySelector(".sc-dnf");
+      if(dnfEl&&dnfEl.checked){ dnf.push(nm); return; }     // 未完賽:不計成績、不算 birdie
       var o=(tr.querySelector(".sc-out").value||"").trim();
       var i=(tr.querySelector(".sc-in").value||"").trim();
-      if(o!==""&&i!==""){ lines.push(tr.getAttribute("data-name")+" "+o+" "+i); }
+      if(o!==""&&i!==""){ lines.push(nm+" "+o+" "+i); }
       var bEl=tr.querySelector(".sc-bird");
       var b=bEl?parseInt((bEl.value||"").trim(),10):0;
-      if(b>0) birdieOf[tr.getAttribute("data-name")]=b;
+      if(b>0) birdieOf[nm]=b;
     });
-    if(!lines.length){ toast("請至少輸入一位的 OUT/IN"); return; }
+    if(!lines.length && !dnf.length){ toast("請至少輸入一位的 OUT/IN"); return; }
     var techLines=[];
     var birdieManual={};                                   // 手動列也算進每人上限
     document.querySelectorAll("#smTechRows .techrow").forEach(function(row){
@@ -3250,7 +3254,7 @@ function wireMain(isFull, iAmIn){
       : ("送出 "+lines.length+" 筆成績"+(techLines.length?(" + "+techLines.length+" 筆技術獎"):"")+"("+d+"),計算排名並更新差點?");
     if(!confirm(msg)) return;
     busy("smSubmit","計算中…");
-    api({action:"submitMatch",userId:profile.userId,date:d,text:lines.join("\n"),tech:techLines.join("\n")}).then(function(r){
+    api({action:"submitMatch",userId:profile.userId,date:d,text:lines.join("\n"),tech:techLines.join("\n"),dnf:dnf.join("\n")}).then(function(r){
       if(!r.ok){ toast(r.error||"更新失敗"); var b=document.getElementById("smSubmit"); if(b){b.disabled=false;b.textContent="送出(成績+技術獎)";} return; }
       if(state.ledger) state.ledger=null;   // 成績改變 → 帳務「本月獎金」變,強制下次重抓(與採購/加碼儲存同理)
       toast("已計算 "+r.count+" 筆成績"+(r.techAdded?(",技術獎 "+r.techAdded+" 筆"):""));
