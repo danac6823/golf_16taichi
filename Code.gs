@@ -21,7 +21,7 @@ var SHEET_ROSTER  = 'Roster';     // userId | name | hcp | cart | note | ts
 var SHEET_MEMBERS = 'Members';    // userId | name | role(會員/來賓) | gender(男/女) | birthYear | phone  (LINE 綁定)
 var SHEET_MASTER  = '會員名單';   // 姓名 | 性別 | 年初差點 | 出生年  (主檔,管理員維護)
 var SHEET_CONFIG  = 'Config';     // key | value
-var APP_VERSION   = 'v2026.07.13-ledger-fast';   // 部署版本標記
+var APP_VERSION   = 'v2026.07.14-net-tiebreak2';   // 部署版本標記
 var SHEET_HCP     = 'Handicaps';  // name | hcp         (跟著姓名走的差點)
 var SHEET_SCORES  = 'Scores';     // date | name | out | in | gross | hcp | net | rankType | rank | hcpAfter | ts
 var SHEET_PAY     = 'Payments';   // name | paid        (本年度會費是否已收)
@@ -239,6 +239,7 @@ function handle(p) {
     case 'flushCache':  return flushCacheAction(userId, p);
     case 'syncRosterNames': return syncRosterNames(userId, p);
     case 'setNote':     return setNote(userId, p);
+    case 'markRosterSent': return markRosterSent(userId, p);
     case 'seedTestData': return seedTestData(userId);
     case 'clearTestData': return clearTestData(userId);
     default:            return { ok: false, error: 'unknown action' };
@@ -309,6 +310,7 @@ function bootstrap(userId, p) {
   res.announcements = getAnnouncements();          // 累積式公告(最新消息),日期新→舊
   res.isTreasurer = isTreasurer_(userId, cfg);      // 是否為財務長(可看帳務)
   res.ledgerOn = !!parseInt(cfg.ledgerStartMonth, 10);
+  res.rosterSent = String(cfg.rosterSent || '');    // 出席名單是否已送球場(場次日期|送出日期)
   if (res.isAdmin) {
     res.purchaseUnclaimed = purchaseUnclaimedTotal_(); res.purchaseHasClaims = purchaseHasClaims_();   // 採購未請款提醒
     var __mb = {}; var __md = membersData_();
@@ -366,6 +368,19 @@ function setNote(userId, p) {
   if (!userId || userId !== cfg.adminUserId) return { ok: false, error: '只有管理員可以設定' };
   setConfig('球隊小提醒', String(p && p.text != null ? p.text : ''));
   return { ok: true };
+}
+// 標記「已將出席名單送球場」:存 Config「rosterSent」= 場次日期|送出日期(M/D);undo 則清空。
+// 換場後場次日期不同 → 前端自動視為未送(重新出現 3 日前提醒)。
+function markRosterSent(userId, p) {
+  var cfg = getConfig();
+  if (!userId || userId !== cfg.adminUserId) return { ok: false, error: '只有管理員可以標記' };
+  if (p && p.undo) { setConfig('rosterSent', ''); return { ok: true, rosterSent: '' }; }
+  var matchDate = String((p && p.matchDate) || '').replace(/\(.*\)/, '').trim();
+  if (!matchDate) return { ok: false, error: '缺少場次日期' };
+  var d = new Date(), sent = (d.getMonth() + 1) + '/' + d.getDate();
+  var val = matchDate + '|' + sent;
+  setConfig('rosterSent', val);
+  return { ok: true, rosterSent: val };
 }
 
 // 同步出席名單姓名:依 userId 把名單中的名字更新成 Members 最新姓名(順便更新差點),修正舊資料用
@@ -733,7 +748,10 @@ function makeGroups(userId, p) {
   var groups = [];
   for (var g = 0; g < numGroups; g++) groups.push([]);
 
-  if (cl.multi.length === 0) {
+  if (method === 'genderSplit') {
+    // 男女分開:整組儘量同性別;女生優先湊滿(同組備註在此模式不適用,故不套用 cluster)
+    groups = splitByGenderPacked_(players, size);
+  } else if (cl.multi.length === 0) {
     // 沒有同組需求 → 依方法分配
     if (method === 'gender') {
       // 二男二女:男生先平均分到各組,女生再平均分到各組
@@ -807,7 +825,7 @@ function makeGroups(userId, p) {
   // 排序規則(除了「二男二女」):
   //  1) 組內女生越多 → 排越前面(例:4 女組在 4 男組前面)
   //  2) 女生數相同時 → 人數少的組在前(3 人組排在 4 人組前面)
-  if (method !== 'gender') {
+  if (method !== 'gender' && method !== 'genderSplit') {
     groups = groups
       .map(function (gp, i) {
         var w = gp.filter(function (x) { return x.gender === '女'; }).length;
@@ -972,6 +990,30 @@ function placeByGenderBalance(player, groups, size) {
   }
   if (best < 0) best = emptiestGroupIdx(groups, size);
   groups[best].push(player);
+}
+// 男女分開:女生湊滿為優先(先填滿 size,只有尾端會落單時才從前一組借人變成 x-1/2);
+// 男生(含未填性別者)平均切塊避免落單。回傳「女生組在前、男生組在後」的分組陣列。
+function splitByGenderPacked_(players, size) {
+  var women = players.filter(function (p) { return p.gender === '女'; });
+  var others = players.filter(function (p) { return p.gender !== '女'; });   // 男 + 未填性別
+  var groups = [];
+  // 女生:湊滿優先
+  var wf = [];
+  for (var i = 0; i < women.length; i += size) wf.push(women.slice(i, i + size));
+  if (wf.length >= 2 && wf[wf.length - 1].length === 1) {                    // 尾端只剩 1 人 → 借一人避免落單
+    wf[wf.length - 1].unshift(wf[wf.length - 2].pop());
+  }
+  wf.forEach(function (g) { groups.push(g); });
+  // 男生:平均切塊(不落單)
+  var no = others.length;
+  if (no > 0) {
+    var ng = Math.ceil(no / size), base = Math.floor(no / ng), rem = no % ng, idx = 0;
+    for (var g2 = 0; g2 < ng; g2++) {
+      var cnt = base + (g2 < rem ? 1 : 0);
+      groups.push(others.slice(idx, idx + cnt)); idx += cnt;
+    }
+  }
+  return groups.filter(function (gp) { return gp.length > 0; });
 }
 
 // ---------- 差點:匯入與更新 ----------
@@ -1152,8 +1194,18 @@ function submitScores(userId, p) {
              newMember1st: newMember1st, establishNew: establishNew };
   });
 
-  // 排名只算「會員」;來賓記成績但不列入名次;新會員首場(尚無差點)也不列入名次
-  var members = entries.filter(function (e) { return e.role !== '來賓' && !e.newMember1st; });
+  // 未完賽(不計算):有出席但桿數留白、不列入任何排名、差點不動。以 p.dnf(換行分隔姓名)帶入。
+  var haveName = {}; entries.forEach(function (e) { haveName[e.name] = 1; });
+  String(p.dnf || '').split(/[\r\n]+/).forEach(function (s) {
+    var nm = s.trim(); if (!nm || haveName[nm]) return; haveName[nm] = 1;
+    var info = minfo[nm] || { role: '會員', gender: '', birthYear: '' };
+    entries.push({ name: nm, out: '', in: '', gross: '', hcp: '', net: '',
+                   role: info.role, birthYear: parseInt(info.birthYear, 10) || 0,
+                   newMember1st: false, establishNew: false, dnf: true });
+  });
+
+  // 排名只算「會員」;來賓、新會員首場、未完賽都記成績但不列入名次
+  var members = entries.filter(function (e) { return e.role !== '來賓' && !e.newMember1st && !e.dnf; });
 
   // 本年度已當過總桿冠軍者,一年只能一次 → 不能再當(依年度區間日期判斷;同一場重輸不算)
   var usedGross = getPastGrossChamps(cfg, date);
@@ -1170,13 +1222,12 @@ function submitScores(userId, p) {
     if (!usedGross[grossSorted[gi].name]) { grossWinner = grossSorted[gi].name; break; }
   }
 
-  // 淨桿排名:排除本月總桿冠軍(已得過總桿者回到淨桿池);淨桿低→高;平手 後九洞(IN)低→差點低→年長
+  // 淨桿排名:排除本月總桿冠軍(已得過總桿者回到淨桿池);淨桿低→高;平手 差點低→後九洞(IN)低(不比年齡)
   var netSorted = members.filter(function (e) { return e.name !== grossWinner; })
     .sort(function (a, b) {
       if (a.net !== b.net) return a.net - b.net;
-      if (a.in !== b.in) return a.in - b.in;               // 後九洞低者得
-      if (a.hcp !== b.hcp) return a.hcp - b.hcp;           // 差點低者得
-      return ageRank(a) - ageRank(b);                      // 年長者得
+      if (a.hcp !== b.hcp) return a.hcp - b.hcp;                        // 差點低者得
+      return a.in - b.in;                                               // 後九洞低者得
     });
 
   // 淨桿特殊獎(限非前三的會員):
@@ -1194,6 +1245,7 @@ function submitScores(userId, p) {
   entries.forEach(function (e) {
     var rankType = '', rank = '';
     if (e.role === '來賓') { rankType = '來賓'; }
+    else if (e.dnf) { rankType = '未完賽'; }                            // 有出席但不計算,不列名次、差點不動
     else if (e.newMember1st) { rankType = '新會員'; }                  // 首場,待第二場累積差點
     else if (e.name === grossWinner) { rankType = '總桿'; rank = '冠軍'; }
     else {
@@ -1207,7 +1259,9 @@ function submitScores(userId, p) {
       }
     }
     var newHcp = e.hcp;
-    if (e.newMember1st) {
+    if (e.dnf) {
+      newHcp = '';                                                     // 未完賽:差點不動(顯示留白)
+    } else if (e.newMember1st) {
       newHcp = '';                                                     // 還沒有差點
     } else if (e.establishNew) {
       newHcp = e.hcp;                                                  // 差點剛建立,本場不再扣
@@ -1221,7 +1275,7 @@ function submitScores(userId, p) {
       if (newHcp < 0) newHcp = 0;
       if (newHcp > maxHcp_(cfg)) newHcp = maxHcp_(cfg);     // 不超過差點上限
     }
-    if (e.role !== '來賓' && !e.newMember1st) { hcpUpdates[e.name] = newHcp; hmap[e.name] = newHcp; }
+    if (e.role !== '來賓' && !e.newMember1st && !e.dnf) { hcpUpdates[e.name] = newHcp; hmap[e.name] = newHcp; }
     scoreRows.push([date, e.name, e.out, e.in, e.gross, e.hcp, e.net,
                     rankType, rank, newHcp, Date.now()]);
     result.push({ name: e.name, role: e.role, out: e.out, in: e.in, gross: e.gross,
@@ -1509,7 +1563,7 @@ function pdfScoreFull_(list, champName) {
     var changed = (r.hcpAfter !== '' && String(r.hcpAfter) !== String(r.hcp));
     var after = (r.hcpAfter === '' ? '—' : esc_(r.hcpAfter));
     var champ = (champName && r.name === champName) || r.rankType === '總桿';
-    var nm = esc_(r.name) + (champ ? ' ♔' : '');
+    var nm = esc_(r.name) + (champ ? ' ♔' : '') + (r.rankType === '未完賽' ? ' <span style="color:#999;font-size:.82em">(未完賽)</span>' : '');
     return '<tr' + (champ ? ' class="champ"' : '') + '><td>' + nm + '</td><td class="c">' + esc_(r.out) +
       '</td><td class="c">' + esc_(r.in) + '</td><td class="c">' + esc_(r.gross) + '</td><td class="c">' + esc_(r.hcp) +
       '</td><td class="c">' + esc_(r.net) + '</td><td class="c' + (changed ? ' chg' : '') + '">' + after + '</td></tr>';
@@ -1574,7 +1628,7 @@ function buildMatchReportHtml(date, cfg) {
                 hcp: data[i][5], net: data[i][6], rankType: String(data[i][7] || ''), rank: String(data[i][8] || ''),
                 hcpAfter: (data[i][9] === '' || data[i][9] == null) ? '' : data[i][9] });
   }
-  var grp = function (rt) { return rt === '總桿' ? 0 : (rt === '來賓' ? 2 : 1); };
+  var grp = function (rt) { return rt === '總桿' ? 0 : (rt === '來賓' ? 2 : (rt === '未完賽' ? 1.5 : 1)); };
   rows.sort(function (a, b) {
     if (grp(a.rankType) !== grp(b.rankType)) return grp(a.rankType) - grp(b.rankType);
     return (parseInt(a.rank, 10) || 99) - (parseInt(b.rank, 10) || 99);
@@ -1878,7 +1932,7 @@ function indexByName(arr, name) {
   return 999;
 }
 function rankSortForDisplay(a, b) {
-  var grp = function (rt) { return rt === '總桿' ? 0 : (rt === '來賓' ? 3 : (rt === '新會員' ? 2 : 1)); };
+  var grp = function (rt) { return rt === '總桿' ? 0 : (rt === '來賓' ? 3 : (rt === '新會員' || rt === '未完賽' ? 2 : 1)); };
   if (grp(a.rankType) !== grp(b.rankType)) return grp(a.rankType) - grp(b.rankType);
   return (parseInt(a.rank, 10) || 99) - (parseInt(b.rank, 10) || 99);
 }
@@ -2889,13 +2943,13 @@ function getPurchase(userId, p) {
     var o = monthItems[k]; return { cat: o.cat, item: o.item, qty: o.qty, sum: o.sum, times: Object.keys(o.dates).length };
   }).sort(function (a, b) { return PURCHASE_CATS.indexOf(a.cat) - PURCHASE_CATS.indexOf(b.cat) || b.sum - a.sum; });
   var monthTotal = month.reduce(function (s, o) { return s + o.sum; }, 0);
-  // 逐月總表排序:從球季起始月(seasonFrom)往後繞一年(7,8,…,12,1,…,6)
-  var sf = parseYM(cfg.seasonFrom), startMon = sf ? sf.m : 1;
-  var byMonth = Object.keys(byMon).map(function (k) {
-    var o = byMon[k], it = {};
-    Object.keys(o.items).forEach(function (c) { it[c] = Object.keys(o.items[c]); });   // 品項集合 → 陣列
-    o.items = it; return o;
-  }).sort(function (a, b) { return ((a.mon - startMon + 12) % 12) - ((b.mon - startMon + 12) % 12); });
+  // 逐月總表:整年度 12 個月,從球季起始月(seasonFrom)往後繞一年(7,8,…,12,1,…,6),無資料月留空
+  var sf = parseYM(cfg.seasonFrom), startMon = sf ? sf.m : 1, byMonth = [];
+  for (var bk = 0; bk < 12; bk++) {
+    var bmo = ((startMon - 1 + bk) % 12) + 1, o = byMon[bmo];
+    if (o) { var it = {}; Object.keys(o.items).forEach(function (c) { it[c] = Object.keys(o.items[c]); }); o.items = it; byMonth.push(o); }
+    else byMonth.push({ mon: bmo, cats: {}, items: {}, total: 0, claim: 0 });
+  }
   return { ok: true, date: date, rows: rows, claimed: claimed, common: common,
            headcount: getReportProgress().reg,        // 本場報名人數(不含請假)
            month: month, monthTotal: monthTotal, monthLabel: mon ? (mon + ' 月') : '',
@@ -2962,14 +3016,15 @@ function ledgerManual_() {
   }
   return m;
 }
-// 計算從起始月到 12 月的每月結轉表
+// 計算整年度 12 個月的每月結轉表(從起始月起,跨年後接 1~起始月-1;例 7→…→12→1→…→6)
 function computeLedger_(cfg) {
   var startMon = parseInt(cfg.ledgerStartMonth, 10);
   if (!startMon) return { enabled: false, months: [] };
   var startBal = Number(cfg.ledgerStartBalance || 0);
   var manual = ledgerManual_(), months = [], bal = startBal;
-  var auto = monthTotalsMap_(cfg);   // 一次掃描三張表(原本每月各掃一次,6 個月=18 次讀取 → 3 次)
-  for (var mo = startMon; mo <= 12; mo++) {
+  var auto = monthTotalsMap_(cfg);   // 一次掃描三張表(原本每月各掃一次 → 3 次)
+  for (var k = 0; k < 12; k++) {
+    var mo = ((startMon - 1 + k) % 12) + 1;
     var man = manual[mo] || { income: 0, meal: 0, other: 0, note: '', otherNote: '' };
     var prize = auto.prize[mo] || 0, purch = auto.purch[mo] || 0, addon = auto.addon[mo] || 0;
     var expense = prize + purch + man.meal + man.other + addon;
