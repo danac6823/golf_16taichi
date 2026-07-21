@@ -842,7 +842,7 @@ function tilesGrid(total){
   t+=tile('sched','📅','年度賽程', schedSub);
   t+=tile('mystats','📊','我的專區', (feeSub==='未繳'?'會費未繳·點開繳費':'差點·出席·會費'), '', feeSub==='未繳');
   t+=tile('guest','🤝','幫來賓報名', hasGuests?'含來賓成績':'幫朋友報名');
-  if(state.isTreasurer && !state.isAdmin && state.ledgerOn) t+=tile('ledger','💰','球隊帳務','每月收支結算','admin');
+  if((state.isTreasurer||state.isPresident) && !state.isAdmin && state.ledgerOn) t+=tile('ledger','💰','球隊帳務', state.isTreasurer?'每月收支結算':'每月收支·檢視','admin');
   if(!state.isAdmin && anns.length) t+=tile('announce','📣','最新消息', anns.length+' 則 · '+(anns[0].date||''), '', true);
   out+='<div class="section-label">功能</div><div class="tiles">'+t+'</div>';
   return out;
@@ -892,7 +892,7 @@ function tileModals(playing,leave,total,c){
   if(state.isAdmin) html+=tmWrap('members','會員管理', membersAdminHtml());
   if(state.isAdmin) html+=tmWrap('purchase','採購紀錄 · 總幹事記帳', purchaseHtml());
   if(state.isAdmin) html+=tmWrap('balls','送球庫存 · 技術獎球數', ballsPanelHtml());
-  if(state.isTreasurer || state.isAdmin) html+=tmWrap('ledger','球隊帳務 · 財務長', ledgerHtml());
+  if(state.isTreasurer || state.isAdmin || state.isPresident) html+=tmWrap('ledger','球隊帳務 · '+(state.isTreasurer||state.isAdmin?'財務長':'會長檢視'), ledgerHtml());
   if(state.isAdmin) html+=tmWrap('admin','管理 · 總幹事專區', adminPanel());
   return html;
 }
@@ -1614,25 +1614,35 @@ function ledgerHtml(){
   var opts=ld.months.map(function(x){ return '<option value="'+x.mon+'"'+(x.mon===sel?' selected':'')+'>'+x.mon+' 月</option>'; }).join('');
   var money=fmtMoney;
   var tab=state.ledgerTab||'edit';
+  var canEdit = ld.canEdit!==false;   // 會長=僅檢視:欄位以文字呈現、無儲存鈕
   var editPane=
     '<div class="led-top"><label>月份</label><select id="ledMon">'+opts+'</select></div>'+
     '<div class="led-card">'+
       '<div class="lrow lhead"><span>前期餘額</span><b>'+money(m.prev)+'</b></div>'+
-      '<div class="lrow lin"><span>本月收入</span><input id="ledIncome" inputmode="numeric" value="'+(m.income||'')+'" placeholder="0"></div>'+
+      (canEdit
+        ? '<div class="lrow lin"><span>本月收入</span><input id="ledIncome" inputmode="numeric" value="'+(m.income||'')+'" placeholder="0"></div>'
+        : '<div class="lrow"><span>本月收入</span><b>'+money(m.income||0)+'</b></div>')+
       '<div class="lsub">支出</div>'+
       '<div class="lrow"><span>本月獎金 <small>自動</small></span><b class="lout">'+money(m.prize)+'</b></div>'+
       '<div class="lrow"><span>點心/水果 <small>自動·總幹事請款</small></span><b class="lout">'+money(m.purchase)+'</b></div>'+
       (m.addon?'<div class="lrow"><span>加碼獎 <small>自動·計入球隊</small></span><b class="lout">'+money(m.addon)+'</b></div>':'')+
-      '<div class="lrow lin"><span>餐費</span><input id="ledMeal" inputmode="numeric" value="'+(m.meal||'')+'" placeholder="0"></div>'+
-      '<div class="lrow lin"><span>其他</span><input id="ledOther" inputmode="numeric" value="'+(m.other||'')+'" placeholder="0"></div>'+
-      '<div class="lrow lin"><span><small style="margin-left:0">其他支出內容</small></span><input id="ledOtherNote" type="text" value="'+esc(m.otherNote||'')+'" placeholder="例:保險、紅白包" style="width:55%;text-align:right;font-size:13px"></div>'+
+      (canEdit
+        ? '<div class="lrow lin"><span>餐費</span><input id="ledMeal" inputmode="numeric" value="'+(m.meal||'')+'" placeholder="0"></div>'+
+          '<div class="lrow lin"><span>其他</span><input id="ledOther" inputmode="numeric" value="'+(m.other||'')+'" placeholder="0"></div>'+
+          '<div class="lrow lin"><span><small style="margin-left:0">其他支出內容</small></span><input id="ledOtherNote" type="text" value="'+esc(m.otherNote||'')+'" placeholder="例:保險、紅白包" style="width:55%;text-align:right;font-size:13px"></div>'
+        : '<div class="lrow"><span>餐費</span><b class="lout">'+money(m.meal||0)+'</b></div>'+
+          '<div class="lrow"><span>其他'+(m.otherNote?' <small>'+esc(m.otherNote)+'</small>':'')+'</span><b class="lout">'+money(m.other||0)+'</b></div>')+
       '<div class="lrow ltot"><span>本期支出</span><b class="lout" id="ledExpense">'+money(m.expense)+'</b></div>'+
       '<div class="lrow lbal"><span>本期餘額</span><b id="ledBalance">'+money(m.balance)+'</b></div>'+
     '</div>'+
-    '<div class="field" style="margin-top:10px"><label>備註</label><textarea id="ledNote" rows="2" style="width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font:inherit">'+esc(m.note||'')+'</textarea></div>'+
-    '<button class="btn sm" id="ledSave" style="width:100%;margin-top:8px">儲存本月帳務</button>'+
+    (canEdit
+      ? '<div class="field" style="margin-top:10px"><label>備註</label><textarea id="ledNote" rows="2" style="width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font:inherit">'+esc(m.note||'')+'</textarea></div>'+
+        '<button class="btn sm" id="ledSave" style="width:100%;margin-top:8px">儲存本月帳務</button>'
+      : (m.note?'<div class="field" style="margin-top:10px"><label>備註</label><div class="nbody" style="font-size:14px">'+noticeHtml(m.note)+'</div></div>':''))+
     '<button class="btn ghost sm" id="ledCopy" style="width:100%;margin-top:6px">📋 複製本月支出明細<small>各類支出總計,可貼到 LINE 或報告</small></button>'+
-    '<p class="formnote" style="text-align:left">獎金依成績自動計算、點心/水果自動抓總幹事採購;收入、餐費、其他由財務長填。修改後按儲存,餘額會自動往後月結轉。</p>';
+    '<p class="formnote" style="text-align:left">'+(canEdit
+      ?'獎金依成績自動計算、點心/水果自動抓總幹事採購;收入、餐費、其他由財務長填。修改後按儲存,餘額會自動往後月結轉。'
+      :'檢視模式:獎金/採購/加碼自動彙總,收入與餐費等由財務長記帳。')+'</p>';
   return '<div class="ledwrap">'+
     '<div class="smtabs" id="ledTabs">'+
       '<button type="button" class="ledtab'+(tab==='edit'?' on':'')+'" data-lt="edit">單月記帳</button>'+
@@ -1699,11 +1709,11 @@ function buildLedgerText(){
   var sel=parseInt((document.getElementById("ledMon")||{}).value,10)||state.ledger.selMonth;
   var m=null; (state.ledger.months||[]).forEach(function(x){ if(x.mon===sel) m=x; });
   if(!m) return '';
-  var income=parseFloat((document.getElementById("ledIncome")||{}).value)||0;
-  var meal=parseFloat((document.getElementById("ledMeal")||{}).value)||0;
-  var other=parseFloat((document.getElementById("ledOther")||{}).value)||0;
-  var otherNote=((document.getElementById("ledOtherNote")||{}).value||'').trim();
-  var note=((document.getElementById("ledNote")||{}).value||'').trim();
+  // 有輸入欄(可記帳)讀畫面即時值;檢視模式(會長)退回已儲存值
+  var rd=function(id,fb){ var el=document.getElementById(id); return el?(parseFloat(el.value)||0):(fb||0); };
+  var rs=function(id,fb){ var el=document.getElementById(id); return String(el?el.value:(fb||'')).trim(); };
+  var income=rd("ledIncome",m.income), meal=rd("ledMeal",m.meal), other=rd("ledOther",m.other);
+  var otherNote=rs("ledOtherNote",m.otherNote), note=rs("ledNote",m.note);
   var expense=(m.prize||0)+(m.purchase||0)+(m.addon||0)+meal+other;
   var bal=(m.prev||0)+income-expense;
   var money=fmtMoney;
@@ -2517,7 +2527,7 @@ function wireMain(isFull, iAmIn){
         state.__purLoading=true;
         api({action:"getPurchase",userId:profile.userId}).then(function(r){ state.__purLoading=false; if(r&&r.ok){ state.purchase=r; renderMain(); } });
       }
-      if(tm==="ledger" && (state.isTreasurer||state.isAdmin) && !state.ledger && !state.__ledLoading){
+      if(tm==="ledger" && (state.isTreasurer||state.isAdmin||state.isPresident) && !state.ledger && !state.__ledLoading){
         state.__ledLoading=true;
         api({action:"getLedger",userId:profile.userId}).then(function(r){ state.__ledLoading=false; if(r&&r.ok){ state.ledger=r; renderMain(); } });
       }

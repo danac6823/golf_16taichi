@@ -21,7 +21,7 @@ var SHEET_ROSTER  = 'Roster';     // userId | name | hcp | cart | note | ts
 var SHEET_MEMBERS = 'Members';    // userId | name | role(會員/來賓) | gender(男/女) | birthYear | phone  (LINE 綁定)
 var SHEET_MASTER  = '會員名單';   // 姓名 | 性別 | 年初差點 | 出生年  (主檔,管理員維護)
 var SHEET_CONFIG  = 'Config';     // key | value
-var APP_VERSION   = 'v2026.07.14-jsonp-array';   // 部署版本標記
+var APP_VERSION   = 'v2026.07.14-pdf-rank';   // 部署版本標記
 var SHEET_HCP     = 'Handicaps';  // name | hcp         (跟著姓名走的差點)
 var SHEET_SCORES  = 'Scores';     // date | name | out | in | gross | hcp | net | rankType | rank | hcpAfter | ts
 var SHEET_PAY     = 'Payments';   // name | paid        (本年度會費是否已收)
@@ -308,7 +308,8 @@ function bootstrap(userId, p) {
   res.eventView = effectiveEvent(cfg, res.schedule); // 報名頁顯示用(自動帶下一場)
   res.notices = { announce: cfg.announce || '', event: cfg.noticeEvent || '', bank: cfg.bankInfo || '' };
   res.announcements = getAnnouncements();          // 累積式公告(最新消息),日期新→舊
-  res.isTreasurer = isTreasurer_(userId, cfg);      // 是否為財務長(可看帳務)
+  res.isTreasurer = isTreasurer_(userId, cfg);      // 是否為財務長(可看+記帳)
+  res.isPresident = isPresident_(userId, cfg);      // 是否為會長(帳務僅檢視)
   res.ledgerOn = !!parseInt(cfg.ledgerStartMonth, 10);
   res.rosterSent = String(cfg.rosterSent || '');    // 出席名單是否已送球場(場次日期|送出日期)
   if (res.isAdmin) {
@@ -1539,7 +1540,7 @@ function nextEventAfterDate_(cfg, dateStr) {
 function esc_(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 // 日期欄防呆:試算表把日期存成 Date 物件時,統一轉成 M/D;字串原樣保留
 function mdOf_(v) {
-  if (v instanceof Date) return (v.getMonth() + 1) + '/' + v.getDate();
+  if (v instanceof Date || (v && typeof v.getMonth === 'function')) return (v.getMonth() + 1) + '/' + v.getDate();
   return String(v == null ? '' : v).trim();
 }
 // PDF 成績總表的半欄(供兩欄並排,節省版面塞進一頁)
@@ -1564,11 +1565,15 @@ function pdfScoreFull_(list, champName) {
     var after = (r.hcpAfter === '' ? '—' : esc_(r.hcpAfter));
     var champ = (champName && r.name === champName) || r.rankType === '總桿';
     var nm = esc_(r.name) + (champ ? ' ♔' : '') + (r.rankType === '未完賽' ? ' <span style="color:#999;font-size:.82em">(未完賽)</span>' : '');
-    return '<tr' + (champ ? ' class="champ"' : '') + '><td>' + nm + '</td><td class="c">' + esc_(r.out) +
+    // 名次欄(姓名前):淨桿名次數字(含 BB/幸運/逢五=其淨桿序);前三粗體;總桿冠軍=總冠;無名次(新會員/未完賽)=—
+    var rkN = parseInt(r.rank, 10);
+    var rk = champ ? '總冠' : (rkN ? String(rkN) : '—');
+    var rkTd = '<td class="c"' + (!champ && rkN >= 1 && rkN <= 3 ? ' style="font-weight:700"' : '') + '>' + rk + '</td>';
+    return '<tr' + (champ ? ' class="champ"' : '') + '>' + rkTd + '<td>' + nm + '</td><td class="c">' + esc_(r.out) +
       '</td><td class="c">' + esc_(r.in) + '</td><td class="c">' + esc_(r.gross) + '</td><td class="c">' + esc_(r.hcp) +
       '</td><td class="c">' + esc_(r.net) + '</td><td class="c' + (changed ? ' chg' : '') + '">' + after + '</td></tr>';
   }).join('');
-  return '<table class="t sc"><tr><th>姓名</th><th class="c">OUT</th><th class="c">IN</th><th class="c">總桿</th>' +
+  return '<table class="t sc"><tr><th class="c">名次</th><th>姓名</th><th class="c">OUT</th><th class="c">IN</th><th class="c">總桿</th>' +
     '<th class="c">差</th><th class="c">淨桿</th><th class="c">調後</th></tr>' + b + '</table>';
 }
 // 依會員人數決定字級(讓內容約填到離頁底 ~2cm、維持單頁);可用 Config pdfFontPx 覆寫
@@ -2902,7 +2907,10 @@ function removeAnnouncement(userId, p) {
 
 // ---------- 每場採購紀錄(總幹事記帳) ----------
 var PURCHASE_CATS = ['點心','水果','飲料','其他'];
-function purMonthKey_(d) { var m = String(d || '').match(/(\d{1,2})\s*[\/月]\s*\d{1,2}/); return m ? parseInt(m[1], 10) : 0; }
+function purMonthKey_(d) {
+  if (d instanceof Date || (d && typeof d.getMonth === 'function')) return d.getMonth() + 1;   // 試算表會把 "7/21" 自動轉成日期物件,讀回是 Date 而非字串
+  var m = String(d || '').match(/(\d{1,2})\s*[\/月]\s*\d{1,2}/); return m ? parseInt(m[1], 10) : 0;
+}
 
 // 讀「本場」採購(沒有紀錄時回四類空列),外加常用品項與本月明細
 function getPurchase(userId, p) {
@@ -2913,18 +2921,19 @@ function getPurchase(userId, p) {
   var monthItems = {}, itemBank = {}, byMon = {};
   for (var i = 1; i < data.length; i++) {
     if (!data[i][0] && !data[i][2]) continue;
-    var rDate = String(data[i][0] || '').trim();
+    var rDate = data[i][0];                       // 可能是 Date 物件(試算表自動轉),比對一律走 mdOf_
+    var rKey = mdOf_(rDate);
     var cat = String(data[i][1] || ''), item = String(data[i][2] || '');
     var qty = Number(data[i][4] || 0), amt = Number(data[i][5] || 0);
     if (item) itemBank[cat] = (itemBank[cat] || {}), itemBank[cat][item] = 1;   // 常用品項(依類別)
-    if (rDate === date) {
+    if (rKey === mdOf_(date)) {
       rows.push({ cat: cat, item: item, qty: qty, amt: amt, claim: String(data[i][6] || '') === 'v' });
       if (String(data[i][7] || '') === 'v') claimed = true;
     }
     if (purMonthKey_(rDate) === mon && mon && item) {
       var k = cat + '｜' + item;
       monthItems[k] = monthItems[k] || { cat: cat, item: item, qty: 0, sum: 0, dates: {} };
-      monthItems[k].qty += qty; monthItems[k].sum += amt; monthItems[k].dates[rDate] = 1;
+      monthItems[k].qty += qty; monthItems[k].sum += amt; monthItems[k].dates[rKey] = 1;
     }
     // 逐月總表:各月×類別金額+品項名 + 總計/請款(請款=勾「請款」列,與帳務 monthPurchaseTotal_ 同語意)
     var rMon = purMonthKey_(rDate);
@@ -2976,7 +2985,7 @@ function savePurchase(userId, p) {
   var lock = LockService.getScriptLock(); lock.waitLock(8000);
   try {
     var sh = sheet(SHEET_PURCHASE), data = sh.getDataRange().getValues();
-    for (var i = data.length - 1; i >= 1; i--) { if (String(data[i][0] || '').trim() === date) sh.deleteRow(i + 1); }
+    for (var i = data.length - 1; i >= 1; i--) { if (mdOf_(data[i][0]) === mdOf_(date)) sh.deleteRow(i + 1); }   // mdOf_:相容 Date 物件,整場覆寫才刪得掉
     var out = [];
     items.forEach(function (r) {
       var item = String(r.item || '').trim();
@@ -3049,14 +3058,21 @@ function isTreasurer_(userId, cfg) {
   var mem = getMember(userId);
   return !!(mem && mem.name && cfg.treasurer && mem.name === String(cfg.treasurer).trim());
 }
+// 會長:可「檢視」球隊帳務(不能記帳)
+function isPresident_(userId, cfg) {
+  if (!userId) return false;
+  var mem = getMember(userId);
+  return !!(mem && mem.name && cfg.president && mem.name === String(cfg.president).trim());
+}
 function getLedger(userId, p) {
   var cfg = getConfig();
-  if (userId !== cfg.adminUserId && !isTreasurer_(userId, cfg)) return { ok: false, error: '只有財務長或管理員可以查看帳務' };
+  var canEdit = (userId === cfg.adminUserId) || isTreasurer_(userId, cfg);
+  if (!canEdit && !isPresident_(userId, cfg)) return { ok: false, error: '只有會長、財務長或管理員可以查看帳務' };
   var L = computeLedger_(cfg);
   var now = new Date(); var curMon = now.getMonth() + 1;
   var sel = parseInt((p && p.month), 10) || curMon;
   return { ok: true, enabled: L.enabled, startMonth: L.startMonth, startBalance: L.startBalance,
-           months: L.months, selMonth: sel, canEdit: true };
+           months: L.months, selMonth: sel, canEdit: canEdit };   // 會長=僅檢視(canEdit:false)
 }
 function saveLedger(userId, p) {
   var cfg = getConfig();
@@ -3113,7 +3129,7 @@ function monthAddonTeamTotal_(mon) { return monthTotalsMap_(getConfig()).addon[m
 function purchaseUnclaimedTotal_() {
   var data = sheet(SHEET_PURCHASE).getDataRange().getValues(), byDate = {}, claimedDate = {};
   for (var i = 1; i < data.length; i++) {
-    var d = String(data[i][0] || '').trim(); if (!d) continue;
+    var d = mdOf_(data[i][0]); if (!d) continue;   // mdOf_:相容 Date 物件
     if (String(data[i][7] || '') === 'v') claimedDate[d] = true;                 // 整場已請款
     if (String(data[i][6] || '') === 'v') byDate[d] = (byDate[d] || 0) + Number(data[i][5] || 0);  // 該列標請款的金額
   }
