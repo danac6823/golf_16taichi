@@ -1155,7 +1155,7 @@ function groupAdminPanel(){
   '<div class="panel">'+
     '<div class="row2">'+
       '<div class="field"><label>每組人數</label><select id="gsize"><option value="4">4 人</option><option value="3">3 人</option></select></div>'+
-      '<div class="field"><label>分組方式</label><select id="gmethod"><option value="order">登記順序</option><option value="hcp">差點平均</option><option value="gender">二男二女</option><option value="genderSplit">男女分開</option><option value="random">隨機</option></select></div>'+
+      '<div class="field"><label>分組方式</label><select id="gmethod"><option value="order">登記順序</option><option value="hcp">差點平均</option><option value="gender">二男二女</option><option value="genderSplit">男女分開</option><option value="random">隨機(智慧不重複)</option></select></div>'+
     '</div>'+
     '<div class="row2">'+
       '<div class="field"><label>開球起始(選填)</label><input id="gstart" placeholder="07:30"></div>'+
@@ -1163,9 +1163,21 @@ function groupAdminPanel(){
     '</div>'+
     '<button class="btn sm" id="makeGroups">'+(hasGroups?"重新分組(重新洗牌)":"產生分組")+'</button>'+
     (hasGroups ? '<div class="btnrow"><button class="btn ghost sm" id="clearGroups" style="flex:1">清除分組</button></div>' : '')+
+    '<p class="formnote" style="text-align:left">開球順序會「輪轉」(上場較晚的人下場儘量排前);「隨機」會自動避開近期同組過的人。分組會自動留存到「分組紀錄」。</p>'+
+    '<details class="hcphow" id="ghistWrap" style="margin-top:8px"><summary>📋 歷史分組</summary><div class="hcpsteps" id="ghistBody"><p class="formnote">點開載入…</p></div></details>'+
   '</div></details>'+
   groupTweakPanel()+
   '</div>';   // /adminzone
+}
+// 歷史分組渲染(groupHistory 回傳)
+function groupHistHtml(events){
+  if(!events || !events.length) return '<p class="formnote" style="text-align:left">尚無分組紀錄(每場分組後自動留存)。</p>';
+  return events.map(function(e){
+    return '<div style="margin-bottom:10px"><div style="font-weight:700;color:var(--fairway);font-size:13px;margin-bottom:2px">'+esc(e.date)+'</div>'+
+      e.rows.map(function(r){
+        return '<div style="font-size:12.5px;line-height:1.5"><b>第'+r.g+'組</b>'+(r.tee?' <span style="color:var(--ink-soft)">'+esc(r.tee)+'</span>':'')+'　'+esc(r.members)+'</div>';
+      }).join('')+'</div>';
+  }).join('');
 }
 
 // 微調分組:交換兩人 / 移動一人 / 改開球時間(僅在已有分組時顯示)
@@ -2702,6 +2714,19 @@ function wireMain(isFull, iAmIn){
     busy("clearGroups","清除中…");
     api({action:"clearGroups",userId:profile.userId}).then(after("已清除分組"));
   };
+  // 歷史分組:展開時載入一次
+  var ghw=document.getElementById("ghistWrap");
+  if(ghw && !ghw.__bound){
+    ghw.__bound=true;
+    ghw.addEventListener("toggle",function(){
+      if(!ghw.open || ghw.__loaded) return;
+      ghw.__loaded=true;
+      api({action:"groupHistory",userId:profile.userId}).then(function(r){
+        var b=document.getElementById("ghistBody");
+        if(b) b.innerHTML=(r&&r.ok)?groupHistHtml(r.events):'<p class="formnote">載入失敗</p>';
+      });
+    });
+  }
   function afterAdjust(msg){ return function(r){
     if(r && r.ok===false){ toast("⚠ "+(r.error||"操作失敗")); reload(); }
     else { toast((r.warnings&&r.warnings.length)?("⚠ "+r.warnings.join("、")):("✓ "+msg)); reload(); }
