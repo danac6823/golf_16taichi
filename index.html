@@ -1631,9 +1631,17 @@ function ledgerHtml(){
     '<div class="led-top"><label>月份</label><select id="ledMon">'+opts+'</select></div>'+
     '<div class="led-card">'+
       '<div class="lrow lhead"><span>前期餘額</span><b>'+money(m.prev)+'</b></div>'+
+      '<div class="lsub">收入</div>'+
       (canEdit
-        ? '<div class="lrow lin"><span>本月收入</span><input id="ledIncome" inputmode="numeric" value="'+(m.income||'')+'" placeholder="0"></div>'
-        : '<div class="lrow"><span>本月收入</span><b>'+money(m.income||0)+'</b></div>')+
+        ? '<div class="lrow lin"><span>會費收入</span><input id="ledFeeInc" inputmode="numeric" value="'+(m.feeInc||'')+'" placeholder="0"></div>'+
+          '<div class="lrow lin"><span>贊助收入</span><input id="ledSponsorInc" inputmode="numeric" value="'+(m.sponsorInc||'')+'" placeholder="0"></div>'+
+          '<input type="hidden" id="ledOtherInc" value="'+(m.otherInc||0)+'">'+   /* 其他收入暫時隱藏,值保留以免存檔時歸零 */
+          '<div class="lrow lin"><span><small style="margin-left:0">收入說明</small></span><input id="ledIncomeNote" type="text" value="'+esc(m.incomeNote||'')+'" placeholder="例:贊助來源、備註" style="width:55%;text-align:right;font-size:14.5px"></div>'+
+          '<div class="lrow ltot"><span>本月收入</span><b id="ledIncomeTotal">'+money(m.income||0)+'</b></div>'
+        : '<div class="lrow"><span>會費收入</span><b>'+money(m.feeInc||0)+'</b></div>'+
+          '<div class="lrow"><span>贊助收入'+(m.incomeNote?' <small>'+esc(m.incomeNote)+'</small>':'')+'</span><b>'+money(m.sponsorInc||0)+'</b></div>'+
+          ((m.otherInc||0)>0?'<div class="lrow"><span>其他收入</span><b>'+money(m.otherInc||0)+'</b></div>':'')+
+          '<div class="lrow ltot"><span>本月收入</span><b>'+money(m.income||0)+'</b></div>')+
       '<div class="lsub">支出</div>'+
       '<div class="lrow"><span>本月獎金 <small>自動</small></span><b class="lout">'+money(m.prize)+'</b></div>'+
       '<div class="lrow"><span>點心/水果 <small>自動·總幹事請款</small></span><b class="lout">'+money(m.purchase)+'</b></div>'+
@@ -1683,7 +1691,9 @@ function ledgerTableHtml(ld){
       return '<td>'+cell(x[c[0]]||0)+extra+'</td>';
     }).join('');
     totExp+=(x.expense||0); lastBal=x.balance||0;
-    return '<tr><th>'+x.mon+'月</th><td>'+cell(x.income||0)+'</td>'+tds+'<td class="ex">'+money(x.expense||0)+'</td><td class="bal">'+money(x.balance||0)+'</td></tr>';
+    // 收入格:總額 + 收入說明小字(#2 總覽也顯示)
+    var incExtra=x.incomeNote?'<i class="itn">'+esc(x.incomeNote)+'</i>':'';
+    return '<tr><th>'+x.mon+'月</th><td>'+cell(x.income||0)+incExtra+'</td>'+tds+'<td class="ex">'+money(x.expense||0)+'</td><td class="bal">'+money(x.balance||0)+'</td></tr>';
   }).join('');
   var head='<tr><th>月</th><th>收入</th>'+cols.map(function(c){ return '<th>'+c[1]+'</th>'; }).join('')+'<th>支出</th><th>餘額</th></tr>';
   var foot='<tr class="tf"><th>合計</th><td>'+cell(tot.income)+'</td>'+cols.map(function(c){ return '<td>'+cell(tot[c[0]])+'</td>'; }).join('')+'<td class="ex">'+money(totExp)+'</td><td class="bal">'+money(lastBal)+'</td></tr>';
@@ -1703,7 +1713,7 @@ function buildLedgerTableText(){
     var parts=['獎金 '+money(x.prize||0),'點心水果 '+money(x.purchase||0)];
     if(anyAddon) parts.push('加碼 '+money(x.addon||0));
     parts.push('餐費 '+money(x.meal||0),'其他 '+money(x.other||0)+(x.otherNote?'('+x.otherNote+')':''));
-    L.push(x.mon+'月:收入 '+money(x.income||0)+'｜支出 '+money(x.expense||0)+'｜餘額 '+money(x.balance||0));
+    L.push(x.mon+'月:收入 '+money(x.income||0)+(x.incomeNote?'('+x.incomeNote+')':'')+'｜支出 '+money(x.expense||0)+'｜餘額 '+money(x.balance||0));
     L.push('  '+parts.join('｜'));
     tot.income+=(x.income||0); tot.prize+=(x.prize||0); tot.purchase+=(x.purchase||0); tot.addon+=(x.addon||0);
     tot.meal+=(x.meal||0); tot.other+=(x.other||0); tot.exp+=(x.expense||0); lastBal=x.balance||0;
@@ -1724,8 +1734,9 @@ function buildLedgerText(){
   // 有輸入欄(可記帳)讀畫面即時值;檢視模式(會長)退回已儲存值
   var rd=function(id,fb){ var el=document.getElementById(id); return el?(parseFloat(el.value)||0):(fb||0); };
   var rs=function(id,fb){ var el=document.getElementById(id); return String(el?el.value:(fb||'')).trim(); };
-  var income=rd("ledIncome",m.income), meal=rd("ledMeal",m.meal), other=rd("ledOther",m.other);
-  var otherNote=rs("ledOtherNote",m.otherNote), note=rs("ledNote",m.note);
+  var feeInc=rd("ledFeeInc",m.feeInc), sponsorInc=rd("ledSponsorInc",m.sponsorInc), otherInc=rd("ledOtherInc",m.otherInc);
+  var income=feeInc+sponsorInc+otherInc, meal=rd("ledMeal",m.meal), other=rd("ledOther",m.other);
+  var otherNote=rs("ledOtherNote",m.otherNote), note=rs("ledNote",m.note), incomeNote=rs("ledIncomeNote",m.incomeNote);
   var expense=(m.prize||0)+(m.purchase||0)+(m.addon||0)+meal+other;
   var bal=(m.prev||0)+income-expense;
   var money=fmtMoney;
@@ -1733,7 +1744,8 @@ function buildLedgerText(){
   L.push("【意象太極高爾夫球隊 · "+sel+"月財務】");
   L.push("");
   L.push("前期餘額:"+money(m.prev||0));
-  L.push("本月收入:"+money(income));
+  L.push("〔本月收入〕"+money(income));
+  L.push("會費:"+money(feeInc)+"｜贊助:"+money(sponsorInc)+(otherInc>0?"｜其他:"+money(otherInc):"")+(incomeNote?"("+incomeNote+")":""));
   L.push("");
   L.push("〔本月支出〕");
   L.push("獎金:"+money(m.prize||0));
@@ -2559,8 +2571,8 @@ function wireMain(isFull, iAmIn){
         state.__ledLoading=true;
         api({action:"getLedger",userId:profile.userId}).then(function(r){ state.__ledLoading=false; if(r&&r.ok){ state.ledger=r; renderMain(); } });
       }
-      if(tm==="members" && state && state.isAdmin && !state.memberAdmin && !state.__mbLoading){
-        state.__mbLoading=true;
+      if(tm==="members" && state && state.isAdmin && !state.__mbLoading){
+        state.__mbLoading=true;   // 每次開啟都重抓(剛綁定的來賓/新會員即時反映);舊資料先留著避免閃爍
         api({action:"memberAdmin",userId:profile.userId}).then(function(r){ state.__mbLoading=false; if(r&&r.ok){ state.memberAdmin=r; renderMain(); } });
       }
       if(tm==="score" && state && state.isAdmin && !state.addon && !state.__addonLoading){
@@ -2952,26 +2964,30 @@ function wireMain(isFull, iAmIn){
     var sel=parseInt((document.getElementById("ledMon")||{}).value,10);
     var m=null; (state.ledger.months||[]).forEach(function(x){ if(x.mon===sel) m=x; });
     if(!m) return;
-    var income=parseFloat((document.getElementById("ledIncome")||{}).value)||0;
-    var meal=parseFloat((document.getElementById("ledMeal")||{}).value)||0;
-    var other=parseFloat((document.getElementById("ledOther")||{}).value)||0;
+    var gv=function(id){ return parseFloat((document.getElementById(id)||{}).value)||0; };
+    var income=gv("ledFeeInc")+gv("ledSponsorInc")+gv("ledOtherInc");
+    var meal=gv("ledMeal"), other=gv("ledOther");
     var expense=(m.prize||0)+(m.purchase||0)+(m.addon||0)+meal+other;
     var bal=(m.prev||0)+income-expense;
     var money=fmtMoney;
+    var it=document.getElementById("ledIncomeTotal"); if(it) it.textContent=money(income);   // 本月收入合計即時
     var ex=document.getElementById("ledExpense"), ba=document.getElementById("ledBalance");
     if(ex) ex.textContent=money(expense); if(ba) ba.textContent=money(bal);
   }
-  ["ledIncome","ledMeal","ledOther"].forEach(function(id){ var el=document.getElementById(id); if(el) el.addEventListener("input",ledRecalc); });
+  ["ledFeeInc","ledSponsorInc","ledOtherInc","ledMeal","ledOther"].forEach(function(id){ var el=document.getElementById(id); if(el) el.addEventListener("input",ledRecalc); });
   var ledSave=document.getElementById("ledSave");
   if(ledSave) ledSave.onclick=function(){
     var mo=parseInt((document.getElementById("ledMon")||{}).value,10);
     busy("ledSave","儲存中…");
     api({action:"saveLedger",userId:profile.userId,month:mo,
-      income:parseFloat((document.getElementById("ledIncome")||{}).value)||0,
+      feeInc:parseFloat((document.getElementById("ledFeeInc")||{}).value)||0,
+      sponsorInc:parseFloat((document.getElementById("ledSponsorInc")||{}).value)||0,
+      otherInc:parseFloat((document.getElementById("ledOtherInc")||{}).value)||0,
       meal:parseFloat((document.getElementById("ledMeal")||{}).value)||0,
       other:parseFloat((document.getElementById("ledOther")||{}).value)||0,
       note:(document.getElementById("ledNote")||{}).value||"",
-      otherNote:(document.getElementById("ledOtherNote")||{}).value||""
+      otherNote:(document.getElementById("ledOtherNote")||{}).value||"",
+      incomeNote:(document.getElementById("ledIncomeNote")||{}).value||""
     }).then(function(r){
       if(!r||r.ok===false){ toast("⚠ "+((r&&r.error)||"儲存失敗")); var b=document.getElementById("ledSave"); if(b){b.disabled=false;b.textContent="儲存本月帳務";} return; }
       state.ledger=r; toast("✓ 已儲存,餘額已結轉"); renderMain();
