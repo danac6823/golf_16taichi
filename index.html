@@ -1065,7 +1065,7 @@ function guestPanelHtml(){
   }).join('');
   // 已是滿版燈箱頁,不再用收合(舊排版遺留);直接平鋪表單
   return '<div class="guestbox">'+
-      '<div style="font-size:16.5px;font-weight:600;color:#9a6a3a;padding:11px 2px">➕ 幫來賓登記出席'+(myGuests.length?'('+myGuests.length+')':'')+'</div>'+
+      '<div style="font-size:16.5px;font-weight:700;color:#9a6a3a;padding:11px 2px">幫來賓登記出席'+(myGuests.length?' <span style="font-weight:400;font-size:14px">· 已登記 '+myGuests.length+' 位</span>':'')+'</div>'+
       '<div class="field"><label>來賓姓名</label><input id="guestName" maxlength="20" placeholder="例:王先生"></div>'+
       '<div class="field"><label>擊球後是否用餐?</label><select id="guestCart"><option>用餐</option><option>不用餐</option></select></div>'+
       '<button class="btn sm" id="guestAdd" style="width:100%">送出</button>'+
@@ -1410,7 +1410,7 @@ function seasonLabel(){
   if(!f && !t) return '';
   return f+'–'+t;
 }
-// 幹部區(所有人可看):創會會長一條細卡 + 本屆幹部 2 欄格狀(緊湊,不拉高首頁)
+// 幹部區(所有人可看):單一卡片三段式(創會會長｜本屆幹部 2×2｜名單入口),整區同一套視覺語言
 function officersSection(){
   var e=state.event||{};
   var rows=[['會長',e.president],['副會長',e.vicePresident],['財務長',e.treasurer],['總幹事',e.secretary]]
@@ -1418,13 +1418,16 @@ function officersSection(){
   var secPhone=(e.secretaryPhone||'').trim();
   var master=(e.teamMaster||'陳慶華老師').trim();
   var url=(e.taichiUrl||'https://taichi.net.tw/').trim();
-  // 意象太極:單列細卡(創會會長 + 官網連結同一行)
-  var taiji='<div class="panel offs" style="flex-direction:row;align-items:center;gap:10px;flex-wrap:wrap">'+
-      '<span class="ot" style="flex:0 0 80px">創會會長</span><b style="font-size:17.5px">'+esc(master)+'</b>'+
-      (url?'<a class="tclink" href="'+esc(url)+'" target="_blank" rel="noopener" style="margin-left:auto">🔗 意象太極官網</a>':'')+
-    '</div>';
-  // 本屆幹部:2×2 格狀;總幹事只顯示 ☎ 圖示,點了才展開號碼(可撥打/複製),平時不佔版面也不露號碼
-  var offInner=rows.map(function(r){
+  var tr=state.teamRoll, po=state.pastOfficers;
+  var hasTr=!!(tr&&tr.total), hasPo=!!(po&&po.length);
+  var divider='<div style="border-top:1px solid var(--line)"></div>';
+  var sec='';
+  // 段① 創會會長(職稱章與幹部同款,官網連結靠右)
+  sec+='<div class="offrow"><span class="ot" style="flex:0 0 80px">創會會長</span><span class="on">'+esc(master)+'</span>'+
+       (url?'<a class="tclink" href="'+esc(url)+'" target="_blank" rel="noopener" style="margin-left:auto;font-size:14.5px">🔗 官網</a>':'')+'</div>';
+  // 段② 本屆幹部 2×2;總幹事只顯示 ☎,點了才展開號碼(可撥打/複製)
+  if(rows.length){
+    var offInner=rows.map(function(r){
       var tel=(r[0]==='總幹事'&&secPhone)
         ? ' <button id="secTelBtn" type="button" style="background:none;border:1px solid var(--line);border-radius:8px;padding:0 7px;cursor:pointer;font-size:14px;line-height:1.6">☎</button>'+
           '<span id="secTelNum" style="display:none;font-weight:400;font-size:14.5px"><br><a class="telink" href="tel:'+esc(secPhone)+'">'+esc(secPhone)+'</a>'+
@@ -1432,39 +1435,70 @@ function officersSection(){
         : '';
       return '<div class="offrow" style="align-items:flex-start"><span class="ot">'+r[0]+'</span><span class="on" style="line-height:1.35">'+gname(r[1])+tel+'</span></div>';
     }).join('');
-  var offHtml = rows.length ? '<div class="foothd">本屆幹部</div><div class="panel offs" style="display:grid;grid-template-columns:1fr 1fr;gap:10px 8px">'+offInner+'</div>' : '';
-  var extra=teamInfoBar();
-  if(!offHtml) return '<div class="section-label">關於</div>'+taiji+extra;
-  return '<div class="section-label">關於球隊</div>'+taiji+'<div style="height:10px"></div>'+offHtml+extra;
+    sec+=divider+
+      '<div style="font-size:13.5px;font-weight:700;color:var(--ink-soft);letter-spacing:.08em">本屆幹部'+(e.term?' · 第 '+esc(e.term)+' 屆':'')+'</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 8px">'+offInner+'</div>';
+  }
+  // 段③ 名單入口(同卡內兩格,中間細線分隔;內容開滿版燈箱)
+  if(hasTr||hasPo){
+    var entryBtn=function(id,icon,title,sub,leftLine){
+      return '<button id="'+id+'" type="button" style="background:none;border:none;'+(leftLine?'border-left:1px solid var(--line);':'')+
+        'padding:9px 4px 3px;cursor:pointer;font-size:15.5px;font-weight:600;color:var(--fairway);text-align:center">'+
+        icon+' '+title+'<small style="display:block;font-weight:400;color:var(--ink-soft);font-size:12.5px;margin-top:1px">'+sub+'</small></button>';
+    };
+    sec+=divider+'<div style="display:grid;grid-template-columns:'+(hasTr&&hasPo?'1fr 1fr':'1fr')+'">'+
+      (hasTr?entryBtn('openTeamRoll','👥','本屆會員 '+tr.total+' 人','男 '+tr.male+' · 女 '+tr.female,false):'')+
+      (hasPo?entryBtn('openPastOff','📜','歷屆會長/幹部',po.length+' 屆',hasTr):'')+
+    '</div>';
+  }
+  return '<div class="section-label">關於球隊</div><div class="panel offs">'+sec+'</div>'+teamInfoBar();
 }
-// 關於球隊補充列:一排小按鈕(不拉長首頁),內容用燈箱看
+// 關於球隊燈箱(本屆會員/歷屆幹部;入口按鈕在 officersSection 卡片內)
 function teamInfoBar(){
   var tr=state.teamRoll, po=state.pastOfficers;
   var hasTr=!!(tr&&tr.total), hasPo=!!(po&&po.length);
   if(!hasTr && !hasPo) return '';
-  var btns='';
-  if(hasTr) btns+='<button class="btn ghost sm" id="openTeamRoll" style="flex:1">👥 本屆會員 '+tr.total+' 人<small>男 '+tr.male+' · 女 '+tr.female+'</small></button>';
-  if(hasPo) btns+='<button class="btn ghost sm" id="openPastOff" style="flex:1">📜 歷屆會長/幹部<small>'+po.length+' 屆</small></button>';
-  var html='<div style="display:flex;gap:10px;margin-top:10px">'+btns+'</div>';
+  var html='';
   // 燈箱:本屆會員名單(男女分列;固定 4 欄網格,每列名字數一致、置中對齊)
   if(hasTr){
-    var nameCell=function(x){   // 新會員在名字後加「新」小標
-      return '<span>'+esc(x.n)+(x.nw?'<small style="color:#b0416e;font-weight:700"> 新</small>':'')+'</span>';
+    // 名字藥丸(4 欄格,每列數量一致);新會員右上角紅「新」
+    var pill=function(x,bg,bd){
+      return '<span style="position:relative;background:'+bg+';border:1px solid '+bd+';border-radius:10px;padding:7px 2px;text-align:center;font-weight:600;font-size:16px">'+esc(x.n)+
+        (x.nw?'<small style="position:absolute;top:-6px;right:-4px;background:var(--flag);color:#fff;font-size:11px;font-weight:700;padding:0 5px;border-radius:8px;line-height:1.5">新</small>':'')+'</span>';
     };
-    var nameGrid=function(list){
-      return '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px 4px;text-align:center">'+
-        list.map(nameCell).join('')+'</div>';
+    var pillGrid=function(list,bg,bd){
+      return '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px 8px;padding:12px">'+
+        list.map(function(x){return pill(x,bg,bd);}).join('')+'</div>';
+    };
+    // 分區卡:標題章 + 人數 + 藥丸格
+    var genderCard=function(label,count,chipBg,pillBg,pillBd,list){
+      if(!list.length) return '';
+      return '<div style="background:var(--paper-2);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);margin-top:12px;overflow:hidden">'+
+        '<div style="display:flex;align-items:center;gap:8px;padding:10px 12px 0">'+
+          '<span style="background:'+chipBg+';color:#fff;font-size:14px;font-weight:700;padding:2px 12px;border-radius:8px">'+label+'</span>'+
+          '<span style="color:var(--ink-soft);font-size:14px">'+count+' 人</span></div>'+
+        pillGrid(list,pillBg,pillBd)+'</div>';
     };
     var males=(tr.names||[]).filter(function(x){return x.g==='男';});
     var females=(tr.names||[]).filter(function(x){return x.g==='女';});
     var others=(tr.names||[]).filter(function(x){return x.g!=='男'&&x.g!=='女';});
+    // 頂部統計列(與首頁人數列同語言)
+    var stat=function(n,label){
+      return '<div style="text-align:center;padding:10px 0"><div style="font-size:25px;font-weight:700;color:var(--fairway)">'+n+'</div>'+
+             '<div style="font-size:13.5px;color:var(--ink-soft)">'+label+'</div></div>';
+    };
+    var statStrip='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;background:var(--green-soft);border:1px solid var(--line);border-radius:14px;overflow:hidden">'+
+      stat(tr.total,'本屆會員')+
+      '<div style="border-left:1px solid var(--line);border-right:1px solid var(--line)">'+stat(tr.male,'男')+'</div>'+
+      stat(tr.female,'女')+'</div>';
     html+='<div id="teamRollModal" class="modal hidden tmodal" style="z-index:250"><div class="modal-card full">'+
-      '<div class="modal-head"><span>👥 本屆會員 '+tr.total+' 人｜男 '+tr.male+' · 女 '+tr.female+'</span><button class="mclose" id="teamRollClose">✕</button></div>'+
-      '<div style="padding:14px 14px;line-height:1.9;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch">'+
-      (males.length?'<div><b style="color:var(--fairway)">男('+tr.male+')</b>'+nameGrid(males)+'</div>':'')+
-      (females.length?'<div style="margin-top:12px"><b style="color:#b0416e">女('+tr.female+')</b>'+nameGrid(females)+'</div>':'')+
-      (others.length?'<div style="margin-top:12px"><b>其他</b>'+nameGrid(others)+'</div>':'')+
-      ((tr.names||[]).some(function(x){return x.nw;})?'<p class="formnote" style="text-align:left;margin-top:14px"><small style="color:#b0416e;font-weight:700">新</small>=本屆新入會會員</p>':'')+
+      '<div class="modal-head"><span>👥 本屆會員名單</span><button class="mclose" id="teamRollClose">✕</button></div>'+
+      '<div style="padding:12px 14px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch">'+
+      statStrip+
+      genderCard('男',tr.male,'var(--fairway)','var(--green-soft)','#cfdccd',males)+
+      genderCard('女',tr.female,'#b0416e','#f8ecf1','#ecd3dd',females)+
+      genderCard('其他',others.length,'var(--ink-soft)','var(--paper)','var(--line)',others)+
+      ((tr.names||[]).some(function(x){return x.nw;})?'<p class="formnote" style="text-align:left;margin-top:12px"><span style="background:var(--flag);color:#fff;font-size:11px;font-weight:700;padding:0 5px;border-radius:8px">新</span> = 本屆新入會會員</p>':'')+
       '</div></div></div>';
   }
   // 燈箱:歷屆會長/幹部(每屆固定 2×2 網格,職稱順序固定、缺的補「—」,屆屆對齊)
