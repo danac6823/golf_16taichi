@@ -782,16 +782,29 @@ function loadMyStats(){
 // 展開管理員專區 → 抓一次管理員資料,抓到後就地重繪(保留已展開的區塊)
 function loadAdminData(){
   if(!state || state.__adminLoaded || state.__adminLoading) return;
+  // 快照秒開:上次管理資料(會員收款/送球庫存/綁定…)先套用,背景抓最新
+  if(!state.__adminSnapUsed){
+    state.__adminSnapUsed=true;
+    var snap=tileSnapGet("adminData");
+    if(snap){ applyAdminData_(snap); state.__adminStale=true; rerenderKeepOpen(); }
+  }
   state.__adminLoading=true;
   api({ action:"adminData", userId: profile.userId, asMember: previewMember?"1":"" }).then(function(r){
     state.__adminLoading=false;
     if(r && r.ok){
-      state.hcpList=r.hcpList; state.memberFees=r.memberFees; state.binding=r.binding; state.balls=r.balls; state.techList=r.techList;
-      state.seasonResetAllowed=r.seasonResetAllowed; state.seasonResetLastMatch=r.seasonResetLastMatch; state.teamNote=r.teamNote;
-      state.__adminLoaded=true;
+      applyAdminData_(r);
+      state.__adminLoaded=true; state.__adminStale=false;
+      tileSnapPut("adminData", r);
+      rerenderKeepOpen();
+    }else{
+      toast("⚠ 管理資料載入失敗("+((r&&r.error)||"連線失敗")+")"+(state.__adminStale?",先顯示上次資料":",請關閉頁面重開重試"));
       rerenderKeepOpen();
     }
   });
+}
+function applyAdminData_(r){
+  state.hcpList=r.hcpList; state.memberFees=r.memberFees; state.binding=r.binding; state.balls=r.balls; state.techList=r.techList;
+  state.seasonResetAllowed=r.seasonResetAllowed; state.seasonResetLastMatch=r.seasonResetLastMatch; state.teamNote=r.teamNote;
 }
 // 重繪主畫面但保留目前展開的管理員區塊
 function rerenderKeepOpen(){
@@ -1050,13 +1063,14 @@ function guestPanelHtml(){
     return '<div class="grow">'+gname(g.name)+'<span class="gtag">來賓</span>'+
       '<button class="glnk" data-gname="'+esc(g.name)+'">移除</button></div>';
   }).join('');
-  return '<details class="guestbox" open>'+
-      '<summary>➕ 幫來賓登記出席'+(myGuests.length?'('+myGuests.length+')':'')+'</summary>'+
+  // 已是滿版燈箱頁,不再用收合(舊排版遺留);直接平鋪表單
+  return '<div class="guestbox">'+
+      '<div style="font-size:16.5px;font-weight:600;color:#9a6a3a;padding:11px 2px">➕ 幫來賓登記出席'+(myGuests.length?'('+myGuests.length+')':'')+'</div>'+
       '<div class="field"><label>來賓姓名</label><input id="guestName" maxlength="20" placeholder="例:王先生"></div>'+
       '<div class="field"><label>擊球後是否用餐?</label><select id="guestCart"><option>用餐</option><option>不用餐</option></select></div>'+
       '<button class="btn sm" id="guestAdd" style="width:100%">送出</button>'+
       (myGuests.length?'<div class="guestlist"><div class="gl-h">你登記的來賓('+myGuests.length+')</div>'+glist+'</div>':'')+
-    '</details>';
+    '</div>';
 }
 
 function registeredPanel(mine){
@@ -1396,7 +1410,7 @@ function seasonLabel(){
   if(!f && !t) return '';
   return f+'–'+t;
 }
-// 幹部區(所有人可看)
+// 幹部區(所有人可看):創會會長一條細卡 + 本屆幹部 2 欄格狀(緊湊,不拉高首頁)
 function officersSection(){
   var e=state.event||{};
   var rows=[['會長',e.president],['副會長',e.vicePresident],['財務長',e.treasurer],['總幹事',e.secretary]]
@@ -1404,18 +1418,72 @@ function officersSection(){
   var secPhone=(e.secretaryPhone||'').trim();
   var master=(e.teamMaster||'陳慶華老師').trim();
   var url=(e.taichiUrl||'https://taichi.net.tw/').trim();
-  var offInner=rows.map(function(r){
-      return '<div class="offrow"><span class="ot">'+r[0]+'</span><span class="on">'+gname(r[1])+'</span></div>';
-    }).join('');
-  if((e.secretary||'').trim() && secPhone)
-    offInner+='<div class="offrow"><span class="ot" style="visibility:hidden">電話</span><span class="on"><a class="telink" href="tel:'+esc(secPhone)+'">'+esc(secPhone)+'</a></span></div>';
-  var offHtml = rows.length ? '<div class="foothd">本屆幹部</div><div class="panel offs">'+offInner+'</div>' : '';
-  var taiji = '<div class="foothd">意象太極｜創會會長</div><div class="panel offs taiji-info">'+
-      (master?'<div class="offrow"><span class="ot">老師</span><span class="on">'+esc(master)+'</span></div>':'')+
-      (url?'<a class="tclink" href="'+esc(url)+'" target="_blank" rel="noopener">🔗 意象太極官網</a>':'')+
+  // 意象太極:單列細卡(創會會長 + 官網連結同一行)
+  var taiji='<div class="panel offs" style="flex-direction:row;align-items:center;gap:10px;flex-wrap:wrap">'+
+      '<span class="ot" style="flex:0 0 80px">創會會長</span><b style="font-size:17.5px">'+esc(master)+'</b>'+
+      (url?'<a class="tclink" href="'+esc(url)+'" target="_blank" rel="noopener" style="margin-left:auto">🔗 意象太極官網</a>':'')+
     '</div>';
-  if(!offHtml) return '<div class="section-label">關於</div>'+taiji;
-  return '<div class="section-label">關於球隊</div><div class="footcols"><div class="footcol">'+taiji+'</div><div class="footcol">'+offHtml+'</div></div>';
+  // 本屆幹部:2×2 格狀;總幹事只顯示 ☎ 圖示,點了才展開號碼(可撥打/複製),平時不佔版面也不露號碼
+  var offInner=rows.map(function(r){
+      var tel=(r[0]==='總幹事'&&secPhone)
+        ? ' <button id="secTelBtn" type="button" style="background:none;border:1px solid var(--line);border-radius:8px;padding:0 7px;cursor:pointer;font-size:14px;line-height:1.6">☎</button>'+
+          '<span id="secTelNum" style="display:none;font-weight:400;font-size:14.5px"><br><a class="telink" href="tel:'+esc(secPhone)+'">'+esc(secPhone)+'</a>'+
+          '<a href="javascript:void(0)" id="secTelCopy" style="margin-left:8px;color:var(--fairway)">複製</a></span>'
+        : '';
+      return '<div class="offrow" style="align-items:flex-start"><span class="ot">'+r[0]+'</span><span class="on" style="line-height:1.35">'+gname(r[1])+tel+'</span></div>';
+    }).join('');
+  var offHtml = rows.length ? '<div class="foothd">本屆幹部</div><div class="panel offs" style="display:grid;grid-template-columns:1fr 1fr;gap:10px 8px">'+offInner+'</div>' : '';
+  var extra=teamInfoBar();
+  if(!offHtml) return '<div class="section-label">關於</div>'+taiji+extra;
+  return '<div class="section-label">關於球隊</div>'+taiji+'<div style="height:10px"></div>'+offHtml+extra;
+}
+// 關於球隊補充列:一排小按鈕(不拉長首頁),內容用燈箱看
+function teamInfoBar(){
+  var tr=state.teamRoll, po=state.pastOfficers;
+  var hasTr=!!(tr&&tr.total), hasPo=!!(po&&po.length);
+  if(!hasTr && !hasPo) return '';
+  var btns='';
+  if(hasTr) btns+='<button class="btn ghost sm" id="openTeamRoll" style="flex:1">👥 本屆會員 '+tr.total+' 人<small>男 '+tr.male+' · 女 '+tr.female+'</small></button>';
+  if(hasPo) btns+='<button class="btn ghost sm" id="openPastOff" style="flex:1">📜 歷屆會長/幹部<small>'+po.length+' 屆</small></button>';
+  var html='<div style="display:flex;gap:10px;margin-top:10px">'+btns+'</div>';
+  // 燈箱:本屆會員名單(男女分列;固定 4 欄網格,每列名字數一致、置中對齊)
+  if(hasTr){
+    var nameCell=function(x){   // 新會員在名字後加「新」小標
+      return '<span>'+esc(x.n)+(x.nw?'<small style="color:#b0416e;font-weight:700"> 新</small>':'')+'</span>';
+    };
+    var nameGrid=function(list){
+      return '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px 4px;text-align:center">'+
+        list.map(nameCell).join('')+'</div>';
+    };
+    var males=(tr.names||[]).filter(function(x){return x.g==='男';});
+    var females=(tr.names||[]).filter(function(x){return x.g==='女';});
+    var others=(tr.names||[]).filter(function(x){return x.g!=='男'&&x.g!=='女';});
+    html+='<div id="teamRollModal" class="modal hidden tmodal" style="z-index:250"><div class="modal-card full">'+
+      '<div class="modal-head"><span>👥 本屆會員 '+tr.total+' 人｜男 '+tr.male+' · 女 '+tr.female+'</span><button class="mclose" id="teamRollClose">✕</button></div>'+
+      '<div style="padding:14px 14px;line-height:1.9;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch">'+
+      (males.length?'<div><b style="color:var(--fairway)">男('+tr.male+')</b>'+nameGrid(males)+'</div>':'')+
+      (females.length?'<div style="margin-top:12px"><b style="color:#b0416e">女('+tr.female+')</b>'+nameGrid(females)+'</div>':'')+
+      (others.length?'<div style="margin-top:12px"><b>其他</b>'+nameGrid(others)+'</div>':'')+
+      ((tr.names||[]).some(function(x){return x.nw;})?'<p class="formnote" style="text-align:left;margin-top:14px"><small style="color:#b0416e;font-weight:700">新</small>=本屆新入會會員</p>':'')+
+      '</div></div></div>';
+  }
+  // 燈箱:歷屆會長/幹部(每屆固定 2×2 網格,職稱順序固定、缺的補「—」,屆屆對齊)
+  if(hasPo){
+    var rows=po.map(function(o){
+      var cells=[['會長',o.president],['副會長',o.vice],['財務長',o.treasurer],['總幹事',o.secretary]].map(function(c){
+        return '<span style="white-space:nowrap"><span class="ot" style="display:inline-block;flex:none;width:64px;font-size:13.5px;padding:2px 0">'+c[0]+'</span> '+
+               '<b style="font-weight:600">'+(c[1]?esc(c[1]):'—')+'</b></span>';
+      }).join('');
+      return '<div style="padding:10px 0;border-bottom:1px solid var(--line)">'+
+             '<div style="margin-bottom:6px"><b style="color:var(--fairway)">'+esc(o.term)+'</b>'+
+             (o.note?' <small style="color:var(--ink-soft)">'+esc(o.note)+'</small>':'')+'</div>'+
+             '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 10px">'+cells+'</div></div>';
+    }).join('');
+    html+='<div id="pastOffModal" class="modal hidden tmodal" style="z-index:250"><div class="modal-card full">'+
+      '<div class="modal-head"><span>📜 歷屆會長/幹部</span><button class="mclose" id="pastOffClose">✕</button></div>'+
+      '<div style="padding:6px 16px 14px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch">'+rows+'</div></div></div>';
+  }
+  return html;
 }
 // 逐月總桿冠軍/成績:每場一列(日期+總桿冠軍),點開燈箱看該場總成績
 function seasonSection(){
@@ -1693,7 +1761,12 @@ function ledgerHtml(){
       '<div class="lrow lhead"><span>前期餘額</span><b>'+money(m.prev)+'</b></div>'+
       '<div class="lsub">收入</div>'+
       (canEdit
-        ? '<div class="lrow lin"><span>會費收入</span><input id="ledFeeInc" inputmode="numeric" value="'+(m.feeInc||'')+'" placeholder="0"></div>'+
+        ? (function(){
+            // 舊格式月份(只有總額、沒有分項):把原「本月收入」預填進會費收入(看得見可改),避免存檔時分項全空→總額被歸零
+            var legacy=(m.income>0)&&!((m.feeInc||0)||(m.sponsorInc||0)||(m.otherInc||0));
+            return (legacy?'<div class="formnote" style="text-align:left;padding:2px 12px">ℹ 此月為舊格式資料,已把原本月收入預填到「會費收入」,請確認分項後儲存。</div>':'')+
+          '<div class="lrow lin"><span>會費收入</span><input id="ledFeeInc" inputmode="numeric" value="'+(m.feeInc||(legacy?m.income:'')||'')+'" placeholder="0"></div>';
+          })()+
           '<div class="lrow lin"><span>贊助收入</span><input id="ledSponsorInc" inputmode="numeric" value="'+(m.sponsorInc||'')+'" placeholder="0"></div>'+
           '<input type="hidden" id="ledOtherInc" value="'+(m.otherInc||0)+'">'+   /* 其他收入暫時隱藏,值保留以免存檔時歸零 */
           '<div class="lrow lin"><span><small style="margin-left:0">收入說明</small></span><input id="ledIncomeNote" type="text" value="'+esc(m.incomeNote||'')+'" placeholder="例:贊助來源、備註" style="width:55%;text-align:right;font-size:14.5px"></div>'+
@@ -3150,6 +3223,17 @@ function wireMain(isFull, iAmIn){
   };
   var matrixClose=document.getElementById("matrixClose");
   if(matrixClose) matrixClose.onclick=function(){ var md=document.getElementById("matrixModal"); if(md) md.classList.add("hidden"); };
+  // 關於球隊:本屆會員 / 歷屆幹部 燈箱
+  [["openTeamRoll","teamRollModal"],["teamRollClose","teamRollModal"],["openPastOff","pastOffModal"],["pastOffClose","pastOffModal"]].forEach(function(pair){
+    var el=document.getElementById(pair[0]); if(!el) return;
+    var show=(pair[0].indexOf("open")===0);
+    el.onclick=function(){ var md=document.getElementById(pair[1]); if(md) md.classList.toggle("hidden",!show); };
+  });
+  // 總幹事電話:☎ 點了才展開號碼;「複製」直接進剪貼簿(用 inline display,系統沒有通用 .hidden 規則)
+  var stb=document.getElementById("secTelBtn");
+  if(stb) stb.onclick=function(){ var n=document.getElementById("secTelNum"); if(n) n.style.display=(n.style.display==="none"?"inline":"none"); };
+  var stc=document.getElementById("secTelCopy");
+  if(stc) stc.onclick=function(){ copyText(((state.event||{}).secretaryPhone||"").trim()); };
   // 上屆(第十五屆)成績總表:靜態資料,開燈箱時才渲染
   var openPrev=document.getElementById("openPrevMatrix");
   if(openPrev) openPrev.onclick=function(){
