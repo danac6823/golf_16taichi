@@ -693,6 +693,60 @@ function saveSnap(){
   }catch(e){}
 }
 
+// ===== 功能頁快照:打開先顯示上次資料(0 等待),背景默默抓最新;失敗不再無聲卡「載入中」 =====
+var TILE_API={
+  purchase:{action:"getPurchase", key:"purchase",    flag:"__purLoading",   when:function(){return state&&state.isAdmin;}},
+  ledger:  {action:"getLedger",   key:"ledger",      flag:"__ledLoading",   when:function(){return state&&(state.isTreasurer||state.isAdmin||state.isPresident);},
+            params:function(){ return (state.ledger&&state.ledger.selMonth)?{month:state.ledger.selMonth}:{}; }},   // 背景更新維持正在看的月份
+  members: {action:"memberAdmin", key:"memberAdmin", flag:"__mbLoading",    when:function(){return state&&state.isAdmin;}},
+  score:   {action:"getAddon",    key:"addon",       flag:"__addonLoading", when:function(){return state&&state.isAdmin;}}
+};
+function tileSnapGet(key){
+  try{
+    var s=JSON.parse(localStorage.getItem("tile_snap_"+key)||"null");
+    if(s && s.uid===profile.userId && s.data) return s.data;
+  }catch(e){}
+  return null;
+}
+function tileSnapPut(key,data){
+  if(previewMember) return;
+  try{
+    var s=JSON.stringify({uid:profile.userId,t:Date.now(),data:data});
+    if(s.length<400000) localStorage.setItem("tile_snap_"+key,s);
+  }catch(e){}
+}
+// 打開功能頁:記憶體沒資料→先畫上次快照;一律背景抓最新;失敗時「有舊資料→toast 提示、全無資料→頁內錯誤+重試鈕」
+function openTileData(tm){
+  var c=TILE_API[tm]; if(!c || !c.when()) return;
+  state.__tileErr=state.__tileErr||{}; state.__tileStale=state.__tileStale||{};
+  delete state.__tileErr[c.key];
+  if(!state[c.key]){
+    var snap=tileSnapGet(c.key);
+    if(snap){ state[c.key]=snap; state.__tileStale[c.key]=true; renderMain(); }
+  }
+  if(state[c.flag]) return;                       // 已有一趟在跑,不重複
+  state[c.flag]=true;
+  var q={action:c.action,userId:profile.userId};
+  if(c.params){ var px=c.params(); for(var k in px) q[k]=px[k]; }
+  api(q).then(function(r){
+    state[c.flag]=false;
+    if(r&&r.ok){
+      state[c.key]=r; delete state.__tileStale[c.key]; tileSnapPut(c.key,r); renderMain();
+    }else{
+      var msg=(r&&r.error)||"連線失敗";
+      delete state.__tileStale[c.key];
+      if(state[c.key]){ toast("⚠ 更新失敗,先顯示上次資料("+msg+")"); renderMain(); }
+      else{ state.__tileErr[c.key]=msg; renderMain(); }
+    }
+  });
+}
+// 各頁「載入中/錯誤+重試」統一畫面(取代以前失敗就永遠卡『載入中…』)
+function tileGuardHtml(tm){
+  var c=TILE_API[tm], err=c&&state.__tileErr&&state.__tileErr[c.key];
+  if(err) return '<div class="empty">⚠ '+esc(err)+'<br><button class="btn sm tileRetry" data-tm="'+tm+'" style="margin-top:10px">重新載入</button></div>';
+  return '<div class="empty">載入中…</div>';
+}
+
 async function reload(){
   try{
     var hadAdmin = state && state.__adminLoaded;
@@ -791,8 +845,14 @@ function renderSetup(){
 function tmWrap(id,title,content){
   return '<div id="tm_'+id+'" class="modal hidden tmodal"><div class="modal-card full">'+
     '<div class="modal-head"><span>'+esc(title)+'</span><button class="mclose tmClose" data-tm="'+id+'">✕</button></div>'+
-    '<div class="tmbody">'+(content||'<div class="empty">尚無資料</div>')+'</div>'+
+    '<div class="tmbody">'+tmStaleNote(id)+(content||'<div class="empty">尚無資料</div>')+'</div>'+
   '</div></div>';
+}
+// 背景更新提示:該頁正以「上次快照」先顯示、最新資料抓取中
+function tmStaleNote(id){
+  var c=(typeof TILE_API!=='undefined')&&TILE_API[id];
+  return (c && state && state.__tileStale && state.__tileStale[c.key])
+    ? '<div class="formnote" style="text-align:center;margin:2px 0 6px">🔄 資料更新中…(先顯示上次內容)</div>' : '';
 }
 function tile(id,ic,title,sub,cls,dot){
   return '<div class="tile '+(cls||'')+'" data-tm="'+id+'">'+(dot?'<div class="dot"></div>':'')+
@@ -1617,7 +1677,7 @@ function eventNoticeEditorHtml(){
 // 財務長帳務 UI:月份選擇 + 收支明細(獎金/點心水果自動抓、收入/餐費/其他可填)+ 結轉餘額
 function ledgerHtml(){
   var ld=state.ledger;
-  if(!ld) return '<div class="empty">載入中…</div>';
+  if(!ld) return tileGuardHtml("ledger");
   if(!ld.enabled) return '<div class="empty" style="padding:20px">尚未啟用財務報表。<br>請管理員到「其他管理 → 球隊資料」設定<b>帳務起始月份</b>與<b>起始餘額</b>。</div>';
   var sel=ld.selMonth||new Date().getMonth()+1;
   var m=null; (ld.months||[]).forEach(function(x){ if(x.mon===sel) m=x; });
@@ -1763,7 +1823,7 @@ function buildLedgerText(){
 // 會員管理 UI:新增/編輯(App 內)、檔案卡(綁定/差點/出席/會費)、解除綁定、同步姓名
 function membersAdminHtml(){
   var ma=state.memberAdmin;
-  if(!ma) return '<div class="empty">載入中…</div>';
+  if(!ma) return tileGuardHtml("members");
   var form=function(r){  // r=null 表新增
     r=r||{};
     return '<div class="mbform">'+
@@ -1850,7 +1910,7 @@ function membersAdminHtml(){
 // 採購紀錄 UI(本場記帳:預設四類列、可新增、逐列請款勾選、總計/請款額、整場已請款;下方本月明細)
 function purchaseHtml(){
   var pd=state.purchase;
-  if(!pd) return '<div class="empty">載入中…</div>';
+  if(!pd) return tileGuardHtml("purchase");
   var cats=['點心','水果','飲料','其他'];
   var common=pd.common||{};
   var hasDataInit = pd.rows.some(function(r){ return r.item||r.qty||r.amt; });
@@ -2192,7 +2252,8 @@ function addonSectionHtml(){
   // 得獎者候選清單:本場名單(報名者含來賓,排除請假);選單+仍可自由輸入
   var names=(state.roster||[]).filter(function(r){return r.status!=='請假';}).map(function(r){return r.name;});
   var dl='<datalist id="adnNames">'+names.map(function(n){return '<option value="'+esc(n)+'">';}).join('')+'</datalist>';
-  return '<div class="addonsec">'+dl+
+  var adErr=(state.__tileErr&&state.__tileErr.addon)?'<p class="formnote">⚠ 加碼獎資料載入失敗('+esc(state.__tileErr.addon)+'),關閉本頁重開即可重試。</p>':'';
+  return '<div class="addonsec">'+adErr+dl+
     '<div class="adnsum">🎁 加碼獎<small>'+esc((ad&&ad.date)||'')+(adnCount?' · '+adnCount+' 筆':'')+'</small></div>'+
     '<p class="smnote" style="text-align:left;margin-top:8px">名次/技術/金額加碼。會存到上方「比賽日期」那一場。勾「計入」才算球隊支出;未勾=出資者自付,只列明細。</p>'+
     '<div id="adnBody">'+body+'</div>'+
@@ -2563,26 +2624,15 @@ function wireMain(isFull, iAmIn){
       var m=document.getElementById("tm_"+tm); if(m) m.classList.remove("hidden");
       if(tm==="proxy" && state && state.isAdmin && !state.__adminLoaded && !state.__adminLoading) loadAdminData();  // 代報名候選名單需要綁定資料
       if(tm==="balls" && state && state.isAdmin && !state.__adminLoaded && !state.__adminLoading) loadAdminData();  // 送球庫存需要 adminData 的球數統計
-      if(tm==="purchase" && state && state.isAdmin && !state.purchase && !state.__purLoading){
-        state.__purLoading=true;
-        api({action:"getPurchase",userId:profile.userId}).then(function(r){ state.__purLoading=false; if(r&&r.ok){ state.purchase=r; renderMain(); } });
-      }
-      if(tm==="ledger" && (state.isTreasurer||state.isAdmin||state.isPresident) && !state.ledger && !state.__ledLoading){
-        state.__ledLoading=true;
-        api({action:"getLedger",userId:profile.userId}).then(function(r){ state.__ledLoading=false; if(r&&r.ok){ state.ledger=r; renderMain(); } });
-      }
-      if(tm==="members" && state && state.isAdmin && !state.__mbLoading){
-        state.__mbLoading=true;   // 每次開啟都重抓(剛綁定的來賓/新會員即時反映);舊資料先留著避免閃爍
-        api({action:"memberAdmin",userId:profile.userId}).then(function(r){ state.__mbLoading=false; if(r&&r.ok){ state.memberAdmin=r; renderMain(); } });
-      }
-      if(tm==="score" && state && state.isAdmin && !state.addon && !state.__addonLoading){
-        state.__addonLoading=true;
-        api({action:"getAddon",userId:profile.userId}).then(function(r){ state.__addonLoading=false; if(r&&r.ok){ state.addon=r; renderMain(); } });
-      }
+      // 採購/帳務/會員管理/成績加碼:先顯示上次快照(0 等待),背景默默更新;失敗有錯誤畫面+重試
+      if(TILE_API[tm]) openTileData(tm);
     };
   });
   document.querySelectorAll(".tmClose").forEach(function(b){
     b.onclick=function(){ var m=document.getElementById("tm_"+b.getAttribute("data-tm")); if(m) m.classList.add("hidden"); };
+  });
+  document.querySelectorAll(".tileRetry").forEach(function(b){
+    b.onclick=function(){ openTileData(b.getAttribute("data-tm")); renderMain(); };
   });
   function inLine(){ return !!(window.liff && liff.isInClient && liff.isInClient()); }
   var sc2=document.getElementById("shareCard");
