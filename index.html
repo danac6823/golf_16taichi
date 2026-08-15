@@ -1633,7 +1633,7 @@ function myHcpSection(){
         '<div class="hstep"><i>2</i>年度平均總桿 − 標準桿 '+esc(String(par))+' = 年度平均差點</div>'+
         '<div class="hstep"><i>3</i>年度平均差點 × '+f+',四捨五入(上限 36)= 第'+term+'屆期初差點</div>'+
         '<div class="hex">例:平均 94 桿 → 94−72=<b>22</b> → 22×'+f+'≈<b>'+ex1+'</b> → 期初差點 <b>'+ex1+'</b></div>'+
-        '<div class="hnote">上屆沒出賽者維持原差點;新會員以前兩場成績評定。目前差點會隨本屆每場例賽成績調整。</div>'+
+        '<div class="hnote">上屆沒出賽者維持原差點;新會員以前兩場總桿建立差點(第二場起顯示),第三場起參加排名。目前差點會隨本屆每場例賽成績調整。</div>'+
       '</div></details>'+
     '</div>';
 }
@@ -1972,7 +1972,7 @@ function membersAdminHtml(){
     '</div></details>';
   html+='<details class="mbadd"><summary>＋ 新增會員</summary>'+form(null)+'</details>';
   html+=chipHtml;
-  if(f==='nw') html+='<p class="formnote" style="text-align:left;margin:4px 2px 8px">💡 身份「新會員」影響差點規則:第一場不列名次、第二場起依成績建立差點(newHcpFactor)。</p>';
+  if(f==='nw') html+='<p class="formnote" style="text-align:left;margin:4px 2px 8px">💡 身份「新會員」影響差點規則:第一場只記總桿、第二場建立差點(不排名)、第三場起參加排名。</p>';
   html+='<div style="font-size:14.5px;color:var(--ink-soft);margin:10px 2px 6px">'+(f==='all'?('會員('+ma.rows.length+' 人 · '+ma.unbound+' 未綁定)'):('符合篩選 '+listRows.length+' 人'))+'</div>';
   html+=listRows.map(function(r){
     return '<details class="mbcard'+(r.status?' off':(r.bound?'':' unb'))+'"><summary>'+
@@ -2410,8 +2410,10 @@ function scoreResultHtml(rk){
   var members=(rk.results||[]).filter(function(x){return x.rankType!=="來賓";});
   var rows=members.map(function(x){
     var lbl=x.rankType==="總桿"?"總桿冠軍":(x.rankType==="未完賽"?"未完賽":(x.rankType==="新會員"?"新會員":(x.rankType==="幸運獎"?("幸運 淨"+x.rank):(x.rankType==="逢五跳獎"?("逢五 淨"+x.rank):(x.rankType==="BB"?("BB 淨"+x.rank):("淨"+x.rank))))));
-    var chg=String(x.hcp)!==String(x.newHcp);
-    var hc=chg?('<span class="hcpold">'+esc(x.hcp)+'</span>→<b>'+esc(x.newHcp)+'</b>'):esc(x.newHcp);
+    var newlyEst=(x.rankType==="新會員" && x.newHcp!=="" && x.newHcp!=null);   // 第二場剛建立差點 → 比照有變動標紅
+    var chg=newlyEst || String(x.hcp)!==String(x.newHcp);
+    var hc=newlyEst?('<span class="hcpold">—</span>→<b>'+esc(x.newHcp)+'</b>')
+          :chg?('<span class="hcpold">'+esc(x.hcp)+'</span>→<b>'+esc(x.newHcp)+'</b>'):esc(x.newHcp);
     return '<tr'+(chg?' class="chg"':'')+'><td>'+esc(lbl)+'</td><td class="sn">'+gname(x.name)+'</td><td>'+esc(x.gross)+'</td><td>'+esc(x.net)+'</td><td class="nh">'+hc+'</td></tr>';
   }).join('');
   return '<p class="smnote">淨桿 1~3 名已依級距扣桿,新差點如下(有變動者標示 →)。</p>'+
@@ -2446,11 +2448,12 @@ function rankingSection(){
     else if(x.rankType==="新會員") awd="新會員";
     else if(x.rankType==="淨桿") awd=(x.rank==="1"?"淨桿冠軍":x.rank==="2"?"淨桿亞軍":x.rank==="3"?"淨桿季軍":"");
     var me=(x.name===state.member.name);
-    var changed=(x.newHcp!=null && String(x.newHcp)!=="" && String(x.newHcp)!==String(x.hcp));
+    var changed=(x.newHcp!=null && String(x.newHcp)!=="" && String(x.newHcp)!==String(x.hcp))
+             || (x.rankType==="新會員" && x.newHcp!=null && String(x.newHcp)!=="");   // 第二場剛建立差點 → 同色標記
     var dash=function(v){ return (v===""||v==null)?"—":esc(v); };
     return '<div class="rankrow '+(me?"me ":"")+(x.rankType==="總桿"?"gross":"")+'">'+
       '<span class="rl">'+esc(awd)+'</span>'+
-      '<span class="rn">'+gname(x.name)+(me?' <i>你</i>':'')+(x.rankType==="新會員"?' <small style="color:var(--ink-soft)">首場·待第2場</small>':'')+'</span>'+
+      '<span class="rn">'+gname(x.name)+(me?' <i>你</i>':'')+(x.rankType==="新會員"?' <small style="color:var(--ink-soft)">'+((x.hcp!==''&&x.hcp!=null)?'差點已建立·第3場起排名':'首場·待第2場')+'</small>':'')+'</span>'+
       '<span class="rc">'+esc(x.gross)+'</span>'+
       '<span class="rc">'+dash(x.hcp)+'</span>'+
       '<span class="rc">'+dash(x.net)+'</span>'+
