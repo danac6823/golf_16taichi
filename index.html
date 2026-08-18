@@ -781,7 +781,9 @@ function openPdfPreview(url){
     document.body.appendChild(md);
     document.getElementById('pdfModalClose').onclick=function(){ md.classList.add('hidden'); document.getElementById('pdfFrame').src='about:blank'; };
   }
-  document.getElementById('pdfExtLink').href=url;
+  var ext=document.getElementById('pdfExtLink');
+  ext.href=url;
+  ext.style.display=(state&&state.isAdmin)?'':'none';   // 外部開啟只給管理員;會員一律 App 內內嵌
   document.getElementById('pdfFrame').src=drivePreviewUrl_(url);
   md.classList.remove('hidden');
 }
@@ -2558,12 +2560,14 @@ function rankingSection(){
     r.tech.forEach(function(t){
       if(!grp[t.award]){ grp[t.award]={tiao:0,winners:[]}; order.push(t.award); }
       grp[t.award].tiao += (t.tiao||0);
-      if(t.winner) grp[t.award].winners.push(t.winner);
+      if(t.winner) grp[t.award].winners.push({name:t.winner, tiao:(t.tiao||0)});
     });
     html+='<div class="scorebox"><div class="boxtitle">技術獎</div>'+
       order.map(function(a){
         var g=grp[a];
-        var winners=g.winners.map(function(w){return gname(w);}).join("、");
+        var winners=g.winners.map(function(w){   // 每人條數 >1 才標(如 BIRDIE 周七 2);1 條免標,與 PDF 一致
+          return gname(w.name)+(w.tiao>1?' <small style="color:var(--flag);font-weight:700">'+w.tiao+'</small>':'');
+        }).join("、");
         return '<div class="techrow"><span class="ta">'+esc(a)+' <em>球'+g.tiao+'條</em></span><b class="tw">'+winners+'</b></div>';
       }).join('')+
     '</div>';   // /scorebox 技術獎
