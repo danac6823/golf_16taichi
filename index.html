@@ -334,7 +334,7 @@
   .rankrow{background:var(--paper-2);border:1px solid var(--line);border-radius:10px;margin-bottom:6px;box-shadow:var(--shadow)}
   .rankrow.gross{background:#fbf3e0;border-color:#e9d6a8}
   .rankrow.me{border-color:var(--fairway-2);box-shadow:0 0 0 2px rgba(45,106,79,.14)}
-  .rankhead .rl,.rankrow .rl{flex:0 0 58px;white-space:nowrap;overflow:hidden}
+  .rankhead .rl,.rankrow .rl{flex:0 0 74px;white-space:nowrap;overflow:hidden}   /* 容得下「總桿冠軍」四字不截斷 */
   .rankhead .rn,.rankrow .rn{flex:1;min-width:0}
   .rankhead .rc,.rankrow .rc{flex:0 0 38px;text-align:right}
   .rankhead .rc2,.rankrow .rc2{flex:0 0 46px;text-align:right}
@@ -2565,12 +2565,26 @@ function rankingSection(){
     html+='<div class="scorebox"><div class="boxtitle">技術獎</div>'+
       order.map(function(a){
         var g=grp[a];
-        var winners=g.winners.map(function(w){   // 每人條數 >1 才標(如 BIRDIE 周七 2);1 條免標,與 PDF 一致
-          return gname(w.name)+(w.tiao>1?' <small style="color:var(--flag);font-weight:700">'+w.tiao+'</small>':'');
-        }).join("、");
-        return '<div class="techrow"><span class="ta">'+esc(a)+' <em>球'+g.tiao+'條</em></span><b class="tw">'+winners+'</b></div>';
+        // 得獎者固定 3 欄網格:名字整體不換行、欄欄對齊;每人條數 >1 才標紅(與 PDF 一致)
+        var cells=g.winners.map(function(w){
+          return '<b style="white-space:nowrap">'+gname(w.name)+(w.tiao>1?' <small style="color:var(--flag);font-weight:700">'+w.tiao+'</small>':'')+'</b>';
+        }).join('');
+        return '<div class="techrow" style="display:block">'+
+          '<span class="ta">'+esc(a)+' <em>球'+g.tiao+'條</em></span>'+
+          '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px 2px;text-align:center;margin-top:6px">'+cells+'</div>'+
+        '</div>';
       }).join('')+
     '</div>';   // /scorebox 技術獎
+  }
+  // 年度總桿冠軍榮譽榜(隨成績快照帶入;技術獎下方,3 欄網格對齊)
+  if(r.roll && r.roll.length){
+    html+='<div class="scorebox"><div class="boxtitle">年度總桿冠軍榮譽榜</div>'+
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px 2px;text-align:center;padding:10px 6px">'+
+      r.roll.map(function(c){
+        var mo=parseInt(String(c.date).split('/')[0],10)||'';
+        return '<b style="white-space:nowrap">♔ '+gname(c.name)+' <small style="color:var(--gold);font-weight:700">'+mo+'月</small></b>';
+      }).join('')+
+      '</div></div>';
   }
   var par=esc(state.event.par||"標準桿");
   html+='<details class="hcpinfo"><summary>差點調整方式說明</summary>'+
