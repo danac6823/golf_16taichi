@@ -1635,6 +1635,23 @@ function myHcpSection(){
         '<div class="hex">例:平均 94 桿 → 94−72=<b>22</b> → 22×'+f+'≈<b>'+ex1+'</b> → 期初差點 <b>'+ex1+'</b></div>'+
         '<div class="hnote">上屆沒出賽者維持原差點;新會員以前兩場總桿建立差點(第二場起顯示),第三場起參加排名。目前差點會隨本屆每場例賽成績調整。</div>'+
       '</div></details>'+
+    '<details class="hcphow"><summary>每場賽後差點怎麼調整?(附表)</summary>'+
+      '<div class="hcpsteps">'+
+        '<div class="hstep"><i>1</i>只有<b>淨桿前三名</b>扣桿,依差點級距:</div>'+
+        '<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;margin:4px 0;text-align:center;font-size:14px">'+
+          '<tr style="background:var(--green-soft)"><th style="border:1px solid var(--line);padding:3px 4px">名次\\級距</th><th style="border:1px solid var(--line);padding:3px 4px">0〜9</th><th style="border:1px solid var(--line);padding:3px 4px">10〜19</th><th style="border:1px solid var(--line);padding:3px 4px">20〜29</th><th style="border:1px solid var(--line);padding:3px 4px">30+</th></tr>'+
+          '<tr><td style="border:1px solid var(--line);padding:3px 4px">淨桿冠軍</td><td style="border:1px solid var(--line)">−1</td><td style="border:1px solid var(--line)">−2</td><td style="border:1px solid var(--line)">−3</td><td style="border:1px solid var(--line)">−4</td></tr>'+
+          '<tr><td style="border:1px solid var(--line);padding:3px 4px">淨桿亞軍</td><td style="border:1px solid var(--line)">0</td><td style="border:1px solid var(--line)">−1</td><td style="border:1px solid var(--line)">−2</td><td style="border:1px solid var(--line)">−3</td></tr>'+
+          '<tr><td style="border:1px solid var(--line);padding:3px 4px">淨桿季軍</td><td style="border:1px solid var(--line)">0</td><td style="border:1px solid var(--line)">0</td><td style="border:1px solid var(--line)">−1</td><td style="border:1px solid var(--line)">−2</td></tr>'+
+        '</table></div>'+
+        '<div class="hstep"><i>2</i>前三名且淨桿低於標準桿 '+esc(String(par))+':每低 1 桿<b>再加扣</b>(依級距):</div>'+
+        '<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;margin:4px 0;text-align:center;font-size:14px">'+
+          '<tr style="background:var(--green-soft)"><th style="border:1px solid var(--line);padding:3px 4px">級距</th><th style="border:1px solid var(--line);padding:3px 4px">0〜9</th><th style="border:1px solid var(--line);padding:3px 4px">10〜19</th><th style="border:1px solid var(--line);padding:3px 4px">20〜29</th><th style="border:1px solid var(--line);padding:3px 4px">30+</th></tr>'+
+          '<tr><td style="border:1px solid var(--line);padding:3px 4px">每低 1 桿加扣</td><td style="border:1px solid var(--line)">25%</td><td style="border:1px solid var(--line)">33%</td><td style="border:1px solid var(--line)">50%</td><td style="border:1px solid var(--line)">100%</td></tr>'+
+        '</table></div>'+
+        '<div class="hex">例:差點 18(級距 10〜19)拿淨桿冠軍、淨桿 69 → 級距扣 −2,破 3 桿加扣 3×0.33≈1 → 共扣 <b>3</b>,新差點 15</div>'+
+        '<div class="hnote">合計四捨五入取整數;差點範圍 0〜36;第 4 名以後與總桿冠軍差點不動。</div>'+
+      '</div></details>'+
     '</div>';
 }
 function myStatsSection(){
@@ -1643,7 +1660,7 @@ function myStatsSection(){
   var rate=s.total>0?Math.round(s.played/s.total*100):0;
   return '<div class="section-label">我的本年度'+(seasonLabel()?' '+esc(seasonLabel()):'')+'</div>'+
     '<div class="panel"><div class="mystat">'+
-      '<div class="ms"><b>'+s.played+'/'+s.total+'</b><span>出賽</span></div>'+
+      '<div class="ms"><b>'+s.played+'/12</b><span>出賽</span></div>'+   /* 分母固定 12(年度例賽場數) */
       '<div class="ms"><b>'+rate+'%</b><span>出席率</span></div>'+
       '<div class="ms"><b>NT$'+Number(s.prize||0).toLocaleString()+'</b><span>獎金累計</span></div>'+
     '</div>'+(s.perfect?'<div class="perfect">★ 本年度全勤!</div>':'')+'</div>';
@@ -2448,16 +2465,16 @@ function rankingSection(){
     else if(x.rankType==="新會員") awd="新會員";
     else if(x.rankType==="淨桿") awd=(x.rank==="1"?"淨桿冠軍":x.rank==="2"?"淨桿亞軍":x.rank==="3"?"淨桿季軍":"");
     var me=(x.name===state.member.name);
-    var changed=(x.newHcp!=null && String(x.newHcp)!=="" && String(x.newHcp)!==String(x.hcp))
-             || (x.rankType==="新會員" && x.newHcp!=null && String(x.newHcp)!=="");   // 第二場剛建立差點 → 同色標記
+    var newlyEst=(x.rankType==="新會員" && x.newHcp!=null && String(x.newHcp)!=="");   // 第二場剛建立差點
+    var changed=(x.newHcp!=null && String(x.newHcp)!=="" && String(x.newHcp)!==String(x.hcp)) || newlyEst;   // 建立視同變動 → 同色標記
     var dash=function(v){ return (v===""||v==null)?"—":esc(v); };
     return '<div class="rankrow '+(me?"me ":"")+(x.rankType==="總桿"?"gross":"")+'">'+
       '<span class="rl">'+esc(awd)+'</span>'+
       '<span class="rn">'+gname(x.name)+(me?' <i>你</i>':'')+(x.rankType==="新會員"?' <small style="color:var(--ink-soft)">'+((x.hcp!==''&&x.hcp!=null)?'差點已建立·第3場起排名':'首場·待第2場')+'</small>':'')+'</span>'+
       '<span class="rc">'+esc(x.gross)+'</span>'+
-      '<span class="rc">'+dash(x.hcp)+'</span>'+
-      '<span class="rc">'+dash(x.net)+'</span>'+
-      '<span class="rc2'+(changed?" up":"")+'">'+dash(x.newHcp)+'</span>'+
+      '<span class="rc">'+(newlyEst?"—":dash(x.hcp))+'</span>'+   /* 新會員第二場:賽前差點留白免誤會,新差點只在調後欄 */
+      '<span class="rc">'+(x.rankType==="總桿"?"":dash(x.net))+'</span>'+   /* 總桿冠軍不比淨桿、差點不動 → 兩欄留白 */
+      '<span class="rc2'+(changed?" up":"")+'">'+(x.rankType==="總桿"?"":dash(x.newHcp))+'</span>'+
     '</div>';
   }).join('');
   html+='</div>';   // /scorebox 桿數排名
