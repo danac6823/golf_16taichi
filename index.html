@@ -518,6 +518,13 @@
   .sctab input{width:54px;text-align:center;padding:7px 2px;border:1px solid var(--line);border-radius:8px;font-size:17.5px}
   .sctab input.sc-bird{width:40px;background:#fffbe9;border-color:#e5d5a0}
   .sctab input.sc-bad{background:#fdecea;border-color:#e0776b;color:#b3382c}
+  .sctab tr.sc-row-empty td{background:#fdf8ea}                       /* 尚未填桿數的列:淡黃底提示 */
+  .sctab tr.sc-row-dnf td{background:#f2f2ee}
+  .sctab tr.sc-row-dnf .sc-out,.sctab tr.sc-row-dnf .sc-in,.sctab tr.sc-row-dnf .sc-bird{opacity:.4}
+  .scprog{display:flex;align-items:center;gap:10px;background:var(--green-soft);border:1px solid var(--line);border-radius:10px;padding:7px 12px;margin:4px 0 8px;font-size:15px}
+  .scprog b{color:var(--fairway)}
+  .scprog .warn{color:#b3382c;font-weight:700}
+  .scprog button{margin-left:auto;background:var(--fairway);color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:14.5px;cursor:pointer}
   .sctab .sc-tot{font-family:Georgia,serif;font-weight:700;color:var(--fairway);min-width:38px}
   .sctab .sc-hcp{color:var(--ink-soft)}
   .sctab .sc-net{font-family:Georgia,serif;font-weight:700;color:var(--flag)}
@@ -740,6 +747,52 @@ function openTileData(tm){
     }
   });
 }
+// 逐場成績:開「年度總表」頁自動載入(取代舊的手動按鈕)
+function loadSeasonResults(){
+  if(state.seasonResults || state.__seasonLoading) return;
+  state.__seasonLoading=true;
+  api({action:"seasonResults",userId:profile.userId,asMember:previewMember?"1":""}).then(function(r){
+    state.__seasonLoading=false;
+    state.seasonResults=(r&&r.seasonResults)||[];
+    var wrap=document.getElementById("seasonWrap");
+    if(wrap){
+      wrap.innerHTML = state.seasonResults.length ? seasonListHtml(state.seasonResults)
+        : '<p class="smnote" style="margin:6px">目前尚無年度成績</p>';
+      wireSeasonRows();
+    }
+  });
+}
+// ===== App 內 PDF 滿版預覽(月成績單;不跳離 App 開 Drive)=====
+function drivePreviewUrl_(u){
+  var m=String(u||'').match(/\/file\/d\/([\w-]+)/) || String(u||'').match(/[?&]id=([\w-]+)/);
+  return m ? 'https://drive.google.com/file/d/'+m[1]+'/preview' : String(u||'');
+}
+function openPdfPreview(url){
+  var md=document.getElementById('pdfModal');
+  if(!md){   // 掛在 body(renderMain 重繪不影響),z 高於其他滿版頁
+    md=document.createElement('div');
+    md.id='pdfModal'; md.className='modal hidden'; md.style.zIndex=260;
+    md.innerHTML='<div class="modal-card full" style="padding:0 0 0">'+
+      '<div class="modal-head" style="padding:calc(12px + env(safe-area-inset-top)) 14px 8px;margin:0">'+
+        '<span>📄 月成績單</span>'+
+        '<a id="pdfExtLink" href="#" target="_blank" rel="noopener" style="margin-left:auto;margin-right:10px;font-size:13.5px;color:var(--fairway)">外部開啟</a>'+
+        '<button class="mclose" id="pdfModalClose">✕</button></div>'+
+      '<iframe id="pdfFrame" style="flex:1;border:0;width:100%;background:#525659"></iframe></div>';
+    document.body.appendChild(md);
+    document.getElementById('pdfModalClose').onclick=function(){ md.classList.add('hidden'); document.getElementById('pdfFrame').src='about:blank'; };
+  }
+  document.getElementById('pdfExtLink').href=url;
+  document.getElementById('pdfFrame').src=drivePreviewUrl_(url);
+  md.classList.remove('hidden');
+}
+// 事件委派(一次掛好):任何 .pdfPreview 按鈕 → 開燈箱
+if(!window.__pdfPvWired){
+  window.__pdfPvWired=true;
+  document.addEventListener('click',function(e){
+    var b=e.target && e.target.closest ? e.target.closest('.pdfPreview') : null;
+    if(b){ e.preventDefault(); openPdfPreview(b.getAttribute('data-url')); }
+  });
+}
 // 各頁「載入中/錯誤+重試」統一畫面(取代以前失敗就永遠卡『載入中…』)
 function tileGuardHtml(tm){
   var c=TILE_API[tm], err=c&&state.__tileErr&&state.__tileErr[c.key];
@@ -826,6 +879,27 @@ function fatal(msg){
 function render(){
   if(!state.member){ return renderSetup(); }   // 還沒綁定全名
   renderMain();
+  applyGotoParam();   // 深連結:?goto=頁面id → 開啟後直接跳到該頁(例 ?goto=season 年度總表)
+}
+// 分享深連結:liff.line.me/<LIFF_ID>?goto=season 之類;LIFF 轉址期間參數會包在 liff.state,兩處都解析
+function gotoParam_(){
+  try{
+    var sp=new URLSearchParams(location.search);
+    var g=sp.get("goto"); if(g) return g;
+    var ls=sp.get("liff.state");
+    if(ls){ var m=String(decodeURIComponent(ls)).match(/[?&]goto=([\w-]+)/); if(m) return m[1]; }
+  }catch(e){}
+  return "";
+}
+function applyGotoParam(){
+  if(window.__gotoDone) return;
+  var g=gotoParam_(); if(!g) return;
+  var md=document.getElementById("tm_"+g); if(!md) return;   // 不存在的頁(或權限不足沒渲染)就靜靜略過
+  window.__gotoDone=true;
+  md.classList.remove("hidden");
+  if(typeof TILE_API!=="undefined" && TILE_API[g]) openTileData(g);
+  if(g==="season") loadSeasonResults();
+  if((g==="proxy"||g==="balls") && typeof loadAdminData==="function") loadAdminData();
 }
 
 // 第一次:設定全名(預設帶入 LINE 暱稱,可改成正式姓名)
@@ -1524,7 +1598,7 @@ function seasonSection(){
   var loaded = state.seasonResults && state.seasonResults.length;
   var inner = loaded
     ? seasonListHtml(state.seasonResults)
-    : '<button class="btn ghost sm" id="loadSeason" style="width:100%">🏆 看逐場成績</button>';
+    : '<p class="formnote" style="margin:6px;text-align:center">🏆 逐場成績載入中…</p>';   /* 開頁自動載入,不用再點 */
   return '<div class="section-label">逐場成績/年度總表'+(seasonLabel()?' · '+esc(seasonLabel()):'')+'</div>'+
     '<div class="scorebox" id="seasonWrap" style="padding:4px 6px">'+inner+'</div>'+
     '<button class="btn ghost sm" id="openMatrix" style="width:100%;margin-top:8px">📊 看年度總表</button>'+
@@ -1574,7 +1648,7 @@ function seasonMatchTable(m){
     return '<div class="ssrow'+(me?" me":"")+(champ?" gross":"")+'"><span class="sr">'+(idx+1)+'</span>'+
       '<span class="snm">'+(champ?"♔ ":"")+gname(r.name)+'</span><span class="sg">'+esc(r.gross)+'</span></div>';
   }).join('');
-  return (m.pdf?'<a class="btn ghost sm" href="'+esc(m.pdf)+'" target="_blank" rel="noopener" style="display:block;text-align:center;margin:0 0 10px;text-decoration:none">📄 開啟該月總成績 PDF</a>':'')+
+  return (m.pdf?'<button type="button" class="btn ghost sm pdfPreview" data-url="'+esc(m.pdf)+'" style="display:block;width:100%;text-align:center;margin:0 0 10px">📄 檢視該月總成績 PDF</button>':'')+
     (hasChamp?'<p class="smnote" style="margin:0 0 8px">♔ 金底為當月總桿冠軍 · 依總桿由低至高</p>':'<p class="smnote" style="margin:0 0 8px">依總桿由低至高</p>')+
     '<div class="ssgrid">'+cells+'</div>';
 }
@@ -2351,6 +2425,7 @@ function scoreModalHtml(){
         '<button class="smtab" data-t="adn">🎁 加碼獎</button>'+
       '</div>'+
       '<div class="smpane" id="smPane_sc">'+
+        '<div class="scprog" id="scProg"></div>'+
         '<p class="smnote">差點自動帶入,淨桿 = 總桿 − 差點(即時計算)。Birdie 欄填該員本場 birdie 數,送出時自動列入 BIRDIE獎(每人最多 2 條)。<b>未完賽</b>=有出席但成績不計算(不列任何排名、差點不變),桿數可留白。</p>'+
         '<div class="sctab-wrap"><table class="sctab"><thead><tr><th>姓名</th><th>OUT</th><th>IN</th><th>總桿</th><th>差點</th><th>淨桿</th><th>Birdie</th><th>未完賽</th></tr></thead>'+
         '<tbody id="smBody">'+(rows||'<tr><td colspan="8" class="muted" style="text-align:center;padding:14px">尚無出席名單</td></tr>')+'</tbody></table></div>'+
@@ -2753,6 +2828,7 @@ function wireMain(isFull, iAmIn){
       if(tm==="balls" && state && state.isAdmin && !state.__adminLoaded && !state.__adminLoading) loadAdminData();  // 送球庫存需要 adminData 的球數統計
       // 採購/帳務/會員管理/成績加碼:先顯示上次快照(0 等待),背景默默更新;失敗有錯誤畫面+重試
       if(TILE_API[tm]) openTileData(tm);
+      if(tm==="season") loadSeasonResults();   // 逐場成績:開頁自動載入(免再點一次)
     };
   });
   document.querySelectorAll(".tmClose").forEach(function(b){
@@ -2836,19 +2912,6 @@ function wireMain(isFull, iAmIn){
   if(openSched) openSched.onclick=function(){ var m=document.getElementById("schedModal"); if(m) m.classList.remove("hidden"); };
   var schedClose=document.getElementById("schedClose");
   if(schedClose) schedClose.onclick=function(){ var m=document.getElementById("schedModal"); if(m) m.classList.add("hidden"); };
-  var loadSeason=document.getElementById("loadSeason");
-  if(loadSeason) loadSeason.onclick=function(){
-    loadSeason.disabled=true; loadSeason.textContent="載入中…";
-    api({action:"seasonResults",userId:profile.userId,asMember:previewMember?"1":""}).then(function(r){
-      state.seasonResults=(r&&r.seasonResults)||[];
-      var wrap=document.getElementById("seasonWrap");
-      if(wrap){
-        wrap.innerHTML = state.seasonResults.length ? seasonListHtml(state.seasonResults)
-          : '<p class="smnote" style="margin:6px">目前尚無年度成績</p>';
-        wireSeasonRows();
-      }
-    });
-  };
   wireSeasonRows();
   if(state.isAdmin && !window.__admToggleBound){
     // 第一次展開任一「管理員專區」區塊時,才抓管理員資料(差點/會費/綁定/球數/技術獎)
@@ -3313,8 +3376,33 @@ function wireMain(isFull, iAmIn){
   var scoreClose=document.getElementById("scoreClose");
   if(scoreClose) scoreClose.onclick=function(){ var m=document.getElementById("scoreModal"); if(m) m.classList.add("hidden"); };
   var smBody=document.getElementById("smBody");
+  // 填寫進度:已填/未填統計 + 未填列淡黃底;「下一個未填」一鍵跳到該列
+  function scRowState(tr){
+    if(tr.querySelector(".sc-dnf")&&tr.querySelector(".sc-dnf").checked) return "dnf";
+    var o=(tr.querySelector(".sc-out").value||"").trim(), i=(tr.querySelector(".sc-in").value||"").trim();
+    return (o!==""&&i!=="")?"done":"empty";
+  }
+  function updateScProg(){
+    if(!smBody) return;
+    var done=0,empty=0,dnf=0;
+    smBody.querySelectorAll("tr[data-name]").forEach(function(tr){
+      var st=scRowState(tr);
+      tr.classList.toggle("sc-row-empty", st==="empty");
+      tr.classList.toggle("sc-row-dnf", st==="dnf");
+      if(st==="done")done++; else if(st==="dnf")dnf++; else empty++;
+    });
+    var bar=document.getElementById("scProg");
+    if(bar) bar.innerHTML='已填 <b>'+done+'</b>'+(dnf?' · 未完賽 <b>'+dnf+'</b>':'')+
+      (empty?' · <span class="warn">未填 '+empty+'</span><button type="button" id="scNextEmpty">下一個未填</button>':' · ✓ 全部完成');
+    var nb=document.getElementById("scNextEmpty");
+    if(nb) nb.onclick=function(){
+      var trs=smBody.querySelectorAll("tr[data-name]");
+      for(var k=0;k<trs.length;k++){ if(scRowState(trs[k])==="empty"){ trs[k].scrollIntoView({block:"center"}); var f=trs[k].querySelector(".sc-out"); if(f) f.focus(); return; } }
+    };
+  }
+  window.__updateScProg=updateScProg;   // 開啟成績頁時初始化用
   if(smBody) smBody.addEventListener("input",function(ev){
-    var t=ev.target; if(!t.classList.contains("sc-out")&&!t.classList.contains("sc-in")) return;
+    var t=ev.target; if(!t.classList.contains("sc-out")&&!t.classList.contains("sc-in")){ if(t.classList.contains("sc-bird")) return; return; }
     var tr=t.closest("tr"); if(!tr) return;
     // 防呆:單邊九洞桿數 <25 或 >70 視為可能打錯 → 底色變紅(不擋)
     [".sc-out",".sc-in"].forEach(function(sel){
@@ -3329,7 +3417,31 @@ function wireMain(isFull, iAmIn){
     tr.querySelector(".sc-tot").textContent=ok?String(tot):"—";
     tr.querySelector(".sc-net").textContent=(ok&&!isNaN(hc))?String(tot-hc):(ok?String(tot):"—");
     refreshTech();
+    updateScProg();
+    // 自動跳格:OUT 滿 2 位 → 跳同列 IN;IN 滿 2 位 → 跳下一個「未鎖定」列的 OUT(九洞桿數必為 2 位數)
+    if(t.value.trim().length>=2){
+      if(t.classList.contains("sc-out")){ var nx=tr.querySelector(".sc-in"); if(nx&&!nx.disabled){ nx.focus(); nx.select&&nx.select(); } }
+      else{
+        var next=tr.nextElementSibling;
+        while(next && (!next.getAttribute("data-name") || scRowState(next)==="dnf")) next=next.nextElementSibling;
+        if(next){ var nf=next.querySelector(".sc-out"); if(nf&&!nf.disabled){ nf.focus(); nf.select&&nf.select(); next.scrollIntoView({block:"center"}); } }
+      }
+    }
   });
+  // 未完賽勾選:該列桿數/Birdie 鎖定並清空(避免矛盾),取消勾選恢復
+  if(smBody) smBody.addEventListener("change",function(ev){
+    var t=ev.target; if(!t.classList.contains("sc-dnf")) return;
+    var tr=t.closest("tr"); if(!tr) return;
+    [".sc-out",".sc-in",".sc-bird"].forEach(function(sel){
+      var el=tr.querySelector(sel); if(!el) return;
+      el.disabled=t.checked;
+      if(t.checked){ el.value=""; el.classList.remove("sc-bad"); }
+    });
+    if(t.checked){ tr.querySelector(".sc-tot").textContent="—"; tr.querySelector(".sc-net").textContent="—"; }
+    refreshTech();
+    updateScProg();
+  });
+  updateScProg();
   // 會員管理:儲存(新增/編輯)、解除綁定
   document.querySelectorAll(".mb-save").forEach(function(btn){
     btn.onclick=function(){
@@ -3482,6 +3594,16 @@ function wireMain(isFull, iAmIn){
       if(b>0) birdieOf[nm]=b;
     });
     if(!lines.length && !dnf.length){ toast("請至少輸入一位的 OUT/IN"); return; }
+    // 防漏:出席名單中還有人「沒填桿數也沒勾未完賽」→ 列名單確認(默默略過很容易漏登)
+    var missing=[];
+    document.querySelectorAll("#smBody tr[data-name]").forEach(function(tr){
+      var nm=tr.getAttribute("data-name");
+      var dEl=tr.querySelector(".sc-dnf");
+      if(dEl&&dEl.checked) return;
+      var o=(tr.querySelector(".sc-out").value||"").trim(), i2=(tr.querySelector(".sc-in").value||"").trim();
+      if(o===""||i2==="") missing.push(nm);
+    });
+    if(missing.length && !confirm("還有 "+missing.length+" 人未填桿數:\n"+missing.join("、")+"\n\n他們將不列入本場成績(也不算出席)。\n沒打完的請改勾「未完賽」。確定送出?")) return;
     var techLines=[];
     var birdieManual={};                                   // 手動列也算進每人上限
     document.querySelectorAll("#smTechRows .techrow").forEach(function(row){
