@@ -583,7 +583,7 @@
     <div class="tl-bg"><div class="tl-glow tl-g1"></div><div class="tl-glow tl-g2"></div><div class="tl-glow tl-g3"></div><div class="tl-glow tl-g4"></div></div>
     <svg class="tl-field" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice"><circle class="tl-arcA" cx="200" cy="200" r="185"/><circle class="tl-arcB" cx="200" cy="200" r="150"/><circle class="tl-arcC" cx="200" cy="200" r="120"/><circle class="tl-arcB" cx="200" cy="200" r="90"/></svg>
     <div class="tl-parts"><i style="left:12%;animation-duration:11s"></i><i style="left:26%;animation-duration:14s;animation-delay:2s;width:4px;height:4px"></i><i style="left:40%;animation-duration:9s;animation-delay:1s"></i><i style="left:55%;animation-duration:13s;animation-delay:3s;width:5px;height:5px"></i><i style="left:68%;animation-duration:10s;animation-delay:.5s"></i><i style="left:82%;animation-duration:15s;animation-delay:2.5s;width:4px;height:4px"></i><i style="left:92%;animation-duration:12s;animation-delay:1.5s"></i></div>
-    <div class="tl-stage"><div class="tl-halo"></div><img class="tl-logo" alt="意象太極" src="icon-512.png"></div>
+    <div class="tl-stage"><div class="tl-halo"></div><img class="tl-logo" alt="意象太極" src="logo.png"></div>
     <div class="tl-txt"><div class="tl-title">意象太極高爾夫球隊</div><div class="tl-sub">載入中</div></div>
     <div class="tl-dots"><i></i><i></i><i></i></div>
   </div>
@@ -996,7 +996,7 @@ function tilesGrid(total){
     var rsent=rosterSentInfo(), dLeft=matchDaysLeft();
     var attRemind = (!rsent.sent && total>0 && dLeft!==null && dLeft>=0 && dLeft<=3);
     var attSub = rsent.sent ? ('✓ 已送球場 '+rsent.date)
-               : (attRemind ? '⚠ 記得送名單給球場' : total+' 人');
+               : (attRemind ? '⚠ 送名單給球場+訂餐敘菜色' : total+' 人');
     a+=tile('att','👥','出席名單', attSub, 'admin', attRemind);
     a+=tile('share','📤','分享群組','催報名/例賽卡','admin');
     a+=tile('groups','🏌️','分組排組', groupSub, 'admin', !!g);
@@ -1004,7 +1004,9 @@ function tilesGrid(total){
     a+=tile('announce','📣','發布公告', anns.length?(anns.length+' 則 · '+(anns[0].date||'')):'最新消息','admin', anns.length>0);
     a+=tile('proxy','🧑‍🤝‍🧑','代會員報名','幫未綁定會員','admin');
     a+=tile('purchase','🧾','採購紀錄', (state.purchaseUnclaimed>0?('⚠ $'+state.purchaseUnclaimed+' 待請款'):(state.purchaseHasClaims?'✓ 請款已結清':'點心/水果/飲料')),'admin', state.purchaseUnclaimed>0);
-    a+=tile('balls','⛳','送球庫存','技術獎球數·每月統計','admin');
+    a+=tile('balls','⛳','送球庫存',
+      (state.ballRemain!=null&&state.ballRemain<8)?('⚠ 僅剩 '+state.ballRemain+' 條,該補貨'):'技術獎球數·每月統計',
+      'admin', state.ballRemain!=null&&state.ballRemain<8);   // Ⓓ 低於 8 條:紅點+提醒
     a+=tile('ledger','💰','球隊帳務', state.ledgerOn?'每月收支結算':'未啟用·點開看說明','admin');
     a+=tile('members','👥','會員管理', (state.progress&&state.progress.members?state.progress.members+' 人':'')+(state.membersUnbound>0?' · '+state.membersUnbound+' 未綁定':''),'admin', state.membersUnbound>0);
     a+=tile('admin','🛠️','其他管理','會費/活動/球隊','admin');
@@ -1038,7 +1040,7 @@ function tileModals(playing,leave,total,c){
       if(!(state.isAdmin && total>0)) return '';
       var rs=rosterSentInfo(), dl=matchDaysLeft(), f='';
       if(rs.sent) f+='<div class="att-sent">✓ 已將名單送球場 · '+esc(rs.date)+'</div>';
-      else if(dl!==null && dl>=0 && dl<=3) f+='<div class="att-remind">⚠ 距離例賽'+(dl===0?'就是今天':(' '+dl+' 天'))+',記得將出席名單送給球場!</div>';
+      else if(dl!==null && dl>=0 && dl<=3) f+='<div class="att-remind">⚠ 距離例賽'+(dl===0?'就是今天':(' '+dl+' 天'))+',記得:① 將出席名單送給球場 ② 與球場確認<b>餐敘菜色</b>(用餐 '+(function(){var n=0;playing.forEach(function(p){if(p.cart!=="不用餐")n++;});return n;})()+' 人)!</div>';
       f+='<button class="btn ghost sm" id="openAttList" style="width:100%;margin-top:8px">📋 匯出出席名單(傳球場)</button>';
       return f;
     })();
@@ -1059,6 +1061,7 @@ function tileModals(playing,leave,total,c){
     '<p class="smnote" style="margin-top:4px">選擇要分享的卡片,會開啟 LINE 的選擇畫面(限 LINE App 內;不支援 OpenChat)。</p>'+
     '<button class="btn" id="shareCard" style="width:100%;margin-top:6px">🏌️ 例賽卡<small>日期/球場/開球/截止 + 報名按鈕</small></button>'+
     '<button class="btn ghost" id="shareRoster" style="width:100%;margin-top:10px">📋 報名狀況<small>已報名人數與名單(催報名用)</small></button>'+
+    '<button class="btn ghost" id="shareNotYet" style="width:100%;margin-top:10px">🙋 複製未登記名單<small>自動列出還沒報名/請假的會員,貼群組點名</small></button>'+
     '<div class="section-label" style="margin-top:20px">賽前提醒(文字版)</div>'+
     '<div class="field" style="margin-bottom:8px"><label>額外通知訊息(選填,會加在最後)</label>'+
       '<textarea id="remindExtra" rows="2" placeholder="例:當天請提早 30 分鐘到,球場停車位有限" style="width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font:inherit"></textarea></div>'+
@@ -1174,12 +1177,27 @@ function guestPanelHtml(){
   return '<div class="guestbox">'+
       '<div style="font-size:16.5px;font-weight:700;color:#9a6a3a;padding:11px 2px">幫來賓登記出席'+(myGuests.length?' <span style="font-weight:400;font-size:14px">· 已登記 '+myGuests.length+' 位</span>':'')+'</div>'+
       '<div class="field"><label>來賓姓名</label><input id="guestName" maxlength="20" placeholder="例:王先生"></div>'+
+      guestInviterSelHtml()+
       '<div class="field"><label>擊球後是否用餐?</label><select id="guestCart"><option>用餐</option><option>不用餐</option></select></div>'+
       '<button class="btn sm" id="guestAdd" style="width:100%">送出</button>'+
       (myGuests.length?'<div class="guestlist"><div class="gl-h">你登記的來賓('+myGuests.length+')</div>'+glist+'</div>':'')+
     '</div>';
 }
 
+// 管理員代會員登記來賓:招待會員下拉(只列已綁定 LINE 者;不選=掛自己名下)
+function guestInviterSelHtml(){
+  if(!state||!state.isAdmin) return '';
+  var self=state.member?state.member.name:'';
+  var opts='<option value="">自己('+esc(self)+')</option>';
+  if(state.binding===undefined){
+    opts+='<option value="" disabled>(名單載入中…)</option>';
+  }else{
+    ((state.binding&&state.binding.list)||[]).filter(function(x){return x.bound&&x.name!==self;})
+      .forEach(function(x){ opts+='<option value="'+esc(x.name)+'">'+esc(x.name)+'</option>'; });
+  }
+  return '<div class="field"><label>招待會員(代會員登記用;來賓會掛在該會員名下)</label>'+
+    '<select id="guestInviter">'+opts+'</select></div>';
+}
 function registeredPanel(mine){
   var dine=(mine.cart!=="不用餐");
   return '<details class="editbox">'+
@@ -1453,9 +1471,41 @@ function groupsSection(){
       }).join('')+
     '</div>';
   }).join('')+'</div>';
+  if(state.isAdmin) html+='<button class="btn ghost sm" id="copyGroups" style="width:100%;margin-top:8px">📋 複製分組表(貼群組)</button>';   // Ⓒ
   return html;
 }
 
+// Ⓐ 未登記名單文字(催報名):本屆有效會員 − 已登記者(報名或請假都算已登記;來賓列不計)
+function buildNotYetText(){
+  var ev=state.eventView||state.event||{};
+  var names=((state.teamRoll&&state.teamRoll.names)||[]).map(function(x){return x.n;});
+  var responded={};
+  (state.roster||[]).forEach(function(r){ if(!(r.userId&&String(r.userId).indexOf("G:")===0)) responded[r.name]=1; });
+  var notYet=names.filter(function(n){return !responded[n];});
+  var L=[];
+  L.push("⛳ "+(ev.date||"")+(ev.course?" · "+ev.course:"")+" 例賽報名提醒");
+  if(!notYet.length){
+    L.push("🎉 全員都已完成登記!");
+  }else{
+    L.push("尚未登記("+notYet.length+" 人):");
+    L.push(notYet.join("、"));
+  }
+  if(ev.deadline) L.push("報名截止:"+ev.deadline);
+  L.push("請點連結登記出席/請假:");
+  L.push("https://liff.line.me/"+LIFF_ID);
+  return L.join("\n");
+}
+// Ⓒ 分組表文字(貼群組)
+function buildGroupsText(){
+  var g=state.groups; if(!g||!g.groups||!g.groups.length) return "";
+  var ev=state.eventView||state.event||{};
+  var L=[(ev.date||"")+(ev.course?" "+ev.course:"")+" 分組"];
+  g.groups.forEach(function(grp,i){
+    var time=(g.times&&g.times[i])?(g.times[i]+"|"):"";
+    L.push("第"+(i+1)+"組 "+time+grp.map(function(p){return p.name;}).join("、"));
+  });
+  return L.join("\n");
+}
 function identitySmall(){
   var m=state.member, parts=[];
   parts.push(m.role||"會員");
@@ -2360,11 +2410,49 @@ function fillTechFromState(){
   if(tc.length) box.innerHTML=tc.map(function(x){return techRowFilled(x.award,x.winner,x.tiao);}).join('');
 }
 // 開啟成績表並帶入該場成績+技術獎(供「修改已輸入成績」用,僅管理員)
+// ===== 場次選擇器同步:select ↔ 隱藏的 smDate(下游程式照舊讀 smDate);已有成績的場次亮覆蓋警示 =====
+function curEventDate_(){ return String(((state.eventView&&state.eventView.date)||(state.event&&state.event.date)||"")).replace(/\(.*\)/,"").trim(); }
+function smSyncDateUI_(){
+  var sel=document.getElementById("smDateSel"), di=document.getElementById("smDate"), w=document.getElementById("smOverwriteWarn");
+  if(!sel||!di) return;
+  var custom=(sel.value==="__custom__");
+  di.style.display=custom?"":"none";
+  if(!custom) di.value=sel.value;
+  var hasScores=!!(state.ranking&&String(state.ranking.date||"").trim()===String(di.value||"").trim());
+  if(w) w.style.display=hasScores?"":"none";
+}
+function smSetDate_(d){
+  var sel=document.getElementById("smDateSel"), di=document.getElementById("smDate");
+  if(di) di.value=d;
+  if(sel){
+    var hit=false;
+    for(var i=0;i<sel.options.length;i++){ if(sel.options[i].value===d){ sel.value=d; hit=true; break; } }
+    if(!hit) sel.value="__custom__";
+  }
+  smSyncDateUI_();
+}
+// ① 行動卡「輸入本場成績」:日期鎖定本場、表格清空、直接進輸入畫面
+function openEnterScores(){
+  var m=document.getElementById("scoreModal"); if(!m) return;
+  smSetDate_(curEventDate_());
+  document.querySelectorAll("#smBody tr[data-name]").forEach(function(tr){
+    [".sc-out",".sc-in",".sc-bird"].forEach(function(s){ var el=tr.querySelector(s); if(el){ el.disabled=false; el.value=""; el.classList.remove("sc-bad"); } });
+    var dn=tr.querySelector(".sc-dnf"); if(dn) dn.checked=false;
+    tr.querySelector(".sc-tot").textContent="—"; tr.querySelector(".sc-net").textContent="—";
+  });
+  if(window.__updateScProg) __updateScProg();
+  var inp=document.getElementById("smInput"); if(inp) inp.classList.remove("hidden");
+  var sf=document.getElementById("smSubmitFoot"); if(sf){ sf.classList.remove("hidden"); sf.style.display=""; }
+  var res=document.getElementById("smResult"); if(res) res.classList.add("hidden");
+  var ttl=document.getElementById("smTitle"); if(ttl) ttl.textContent="輸入 "+curEventDate_()+" 成績";
+  var sb=document.getElementById("smSubmit"); if(sb){ sb.disabled=false; sb.textContent="送出(成績+技術獎)"; }
+  m.classList.remove("hidden");
+}
 function openEditScores(){
   var m=document.getElementById("scoreModal");
   if(!m || !state.ranking) return;
   if(state.matchLocked){ toast("本場已鎖定,請先在月例賽成績區「🔓 解鎖」再修改"); return; }
-  var di=document.getElementById("smDate"); if(di) di.value=state.ranking.date;
+  smSetDate_(String(state.ranking.date||"").trim());
   var byName={}; (state.ranking.results||[]).forEach(function(r){ byName[r.name]=r; });
   document.querySelectorAll("#smBody tr[data-name]").forEach(function(tr){
     var r=byName[tr.getAttribute("data-name")];
@@ -2451,7 +2539,18 @@ function scoreModalHtml(){
   return '<div id="scoreModal" class="modal hidden"><div class="modal-card full">'+
     '<div class="modal-head"><span id="smTitle">表格輸入成績</span><button class="mclose" id="scoreClose">✕</button></div>'+
     '<div id="smInput">'+
-      '<div class="field"><label>比賽日期(如 7/21)</label><input id="smDate" value="'+esc(d)+'" placeholder="7/21"></div>'+
+      (function(){   // ② 場次選擇器:預設鎖定本場;選到已有成績的場次 → 黃色覆蓋警示;自訂日期才開放手填
+        var lastD=(state.ranking&&state.ranking.date)?String(state.ranking.date).trim():"";
+        var opts='';
+        if(d) opts+='<option value="'+esc(d)+'">本場 '+esc(d)+(lastD===d?'(已有成績)':'')+'</option>';
+        if(lastD&&lastD!==d) opts+='<option value="'+esc(lastD)+'">上一場 '+esc(lastD)+'(已有成績)</option>';
+        opts+='<option value="__custom__">自訂日期…</option>';
+        return '<div class="field"><label>比賽場次</label>'+
+          '<select id="smDateSel">'+opts+'</select>'+
+          '<input id="smDate" value="'+esc(d)+'" placeholder="如 7/21" style="display:none;margin-top:6px">'+
+          '<div id="smOverwriteWarn" style="display:none;background:#fdf3e4;border:1px solid #e8c9a0;border-radius:10px;padding:8px 12px;margin-top:8px;font-size:14.5px;color:#8a5a20">⚠ 這個場次<b>已有成績</b>:送出會整場覆蓋重算(技術獎一併重登;加碼獎保留)。</div>'+
+        '</div>';
+      })()+
       '<div class="smtabs">'+
         '<button class="smtab on" data-t="sc">📋 成績</button>'+
         '<button class="smtab" data-t="tech">🏐 技術獎</button>'+
@@ -2544,24 +2643,47 @@ function scoreResultHtml(rk){
   return '<p class="smnote">淨桿 1~3 名已依級距扣桿,新差點如下(有變動者標示 →)。</p>'+
     '<div class="sctab-wrap"><table class="sctab"><thead><tr><th>名次</th><th>姓名</th><th>總桿</th><th>淨桿</th><th>新差點</th></tr></thead>'+
     '<tbody>'+(rows||'<tr><td colspan="5" class="muted">無會員成績</td></tr>')+'</tbody></table></div>'+
+    '<div id="smSteps" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;margin:12px 0 4px;font-size:14.5px;color:var(--ink-soft)">'+
+      '<span style="color:var(--fairway);font-weight:700">✓ 成績已送出</span><span>→</span>'+
+      '<span id="smStep2">② 匯出 PDF</span><span>→</span>'+
+      '<span id="smStep3">③ 複製連結傳群組</span><span>→</span>'+
+      '<span id="smStep4">④ 鎖定本場</span>'+
+    '</div>'+
     '<div id="smPdfLink"></div>'+
     '<div class="smfoot" style="gap:8px">'+
       '<button class="btn ghost" id="smExportPdf" data-date="'+esc(rk.date||"")+'" style="flex:1">📄 匯出 PDF</button>'+
+      '<button class="btn ghost" id="smLockBtn" data-date="'+esc(rk.date||"")+'" style="flex:1">🔒 鎖定本場</button>'+
       '<button class="btn" id="smDone" style="flex:1">完成</button>'+
     '</div>';
 }
 
 function rankingSection(){
   var r=state.ranking;
+  var evD=curEventDate_();
+  var cur=!!(r&&r.date&&String(r.date).trim()===evD);   // 最近成績是否=本場
+  // ① 行動卡:本場還沒有成績 → 管理員開頁第一眼就是「輸入本場成績」大按鈕
+  var head='';
+  if(state.isAdmin && evD && !cur){
+    head='<div class="section-label">本場成績 · '+esc(evD)+'</div>'+
+      '<button class="btn" id="enterScoreBtn" style="width:100%;margin-bottom:14px;font-size:18px;padding:13px 0">📝 輸入 '+esc(evD)+' 成績</button>';
+  }
   if(!r || !r.results || !r.results.length){
-    if(state.scoreLocked) return '<div class="section-label">成績排名</div>'+
+    if(state.scoreLocked) return head+'<div class="section-label">成績排名</div>'+
       '<div class="locked"><span class="lk">🔒</span><div><b>成績尚未開放</b><small>'+esc(state.scoreLocked)+'</small></div></div>';
-    return "";
+    return head;
   }
   var rows=r.results.filter(function(x){return x.rankType!=="來賓";});
-  if(!rows.length) return "";
-  var html='<div class="section-label">成績排名 · '+esc(r.date||"")+'</div>'+
-    (state.isAdmin ? '<button class="btn ghost sm" id="editScore2" style="margin-bottom:10px"'+(state.matchLocked?' disabled':'')+'>✏️ 修改本場成績'+(state.matchLocked?'(已鎖定)':'')+'</button>' : '')+
+  if(!rows.length) return head;
+  // ④ 標題語言:最近成績=本場 →「本場成績」;否則明寫「上一場成績」不再讓人誤會
+  var html=head+'<div class="section-label">'+(cur?'本場成績':'上一場成績')+' · '+esc(r.date||"")+'</div>'+
+    (state.isAdmin
+      ? (cur
+          ? '<div style="display:flex;gap:8px;margin-bottom:10px">'+
+              '<button class="btn ghost sm" id="editScore2" style="flex:1;margin:0"'+(state.matchLocked?' disabled':'')+'>✏️ 修改本場'+(state.matchLocked?'(已鎖定)':'')+'</button>'+
+              '<button class="btn ghost sm" id="pageExportPdf" data-date="'+esc(r.date||"")+'" style="flex:1;margin:0">📄 匯出 PDF</button>'+
+            '</div>'
+          : '<button class="btn ghost sm" id="editScore2" style="margin-bottom:10px"'+(state.matchLocked?' disabled':'')+'>✏️ 修改 '+esc(r.date||"")+' 成績'+(state.matchLocked?'(已鎖定)':'')+'</button>')
+      : '')+
     '<div class="scorebox"><div class="boxtitle">桿數排名</div>'+
     '<div class="rankhead"><span class="rl">名次</span><span class="rn">姓名</span><span class="rc">總桿</span><span class="rc">差點</span><span class="rc">淨桿</span><span class="rc2">調整後</span></div>';
   html+=rows.map(function(x){
@@ -2639,6 +2761,9 @@ function rankingSection(){
 function guestSection(){
   var r=state.ranking;
   if(!r || !r.results) return "";
+  // 只顯示「本場」的來賓成績:換場後上一場的不再掛在幫來賓報名頁(歷史成績在年度總表仍可查)
+  var evDate=String(((state.eventView&&state.eventView.date)||state.event.date||"")).replace(/\(.*\)/,"").trim();
+  if(!evDate || String(r.date||"").trim()!==evDate) return "";
   var guests=r.results.filter(function(x){return x.rankType==="來賓";});
   if(!guests.length) return "";
   return '<div class="section-label">來賓成績 · '+esc(r.date||"")+'</div>'+
@@ -2773,6 +2898,11 @@ function buildAttText(playing){
     var isProxy=(p.userId && p.userId.indexOf("M:")===0);
     L.push((i+1)+". "+p.name+(isGuest?"(來賓)":(isProxy?"(代)":"")));
   });
+  L.push("");
+  L.push("請協助準備旗子");
+  L.push("近洞*4");
+  L.push("二近洞*2");
+  L.push("三近洞*2");
   var sec=(e.secretary||'').trim();
   L.push("");
   L.push("承辦:總幹事 "+(sec||'張凌華')+" "+((state.event&&state.event.secretaryPhone)||'0905361633'));
@@ -2875,6 +3005,7 @@ function wireMain(isFull, iAmIn){
       var m=document.getElementById("tm_"+tm); if(m) m.classList.remove("hidden");
       if(tm==="proxy" && state && state.isAdmin && !state.__adminLoaded && !state.__adminLoading) loadAdminData();  // 代報名候選名單需要綁定資料
       if(tm==="balls" && state && state.isAdmin && !state.__adminLoaded && !state.__adminLoading) loadAdminData();  // 送球庫存需要 adminData 的球數統計
+      if(tm==="guest" && state && state.isAdmin && !state.__adminLoaded && !state.__adminLoading) loadAdminData();  // 招待會員下拉需要綁定名單
       // 採購/帳務/會員管理/成績加碼:先顯示上次快照(0 等待),背景默默更新;失敗有錯誤畫面+重試
       if(TILE_API[tm]) openTileData(tm);
       if(tm==="season") loadSeasonResults();   // 逐場成績:開頁自動載入(免再點一次)
@@ -2908,6 +3039,12 @@ function wireMain(isFull, iAmIn){
     if(!inLine()){ toast("請在 LINE App 內開啟系統再分享(主畫面捷徑/瀏覽器不支援)"); return; }
     shareRosterCard();
   };
+  // Ⓐ 催報名:複製未登記名單(有效會員 − 已報名/請假;來賓不計)
+  var snyBtn=document.getElementById("shareNotYet");
+  if(snyBtn) snyBtn.onclick=function(){ copyText(buildNotYetText()); };
+  // Ⓒ 複製分組表文字
+  var cpg=document.getElementById("copyGroups");
+  if(cpg) cpg.onclick=function(){ var t=buildGroupsText(); if(t) copyText(t); else toast("尚未產生分組"); };
   var reg=document.getElementById("regBtn");
   if(reg) reg.onclick=function(){
     busy("regBtn", isFull?"加入中…":"送出中…");
@@ -2946,8 +3083,10 @@ function wireMain(isFull, iAmIn){
   if(guestAdd) guestAdd.onclick=function(){
     var nm=(val("guestName")||"").trim();
     if(!nm){ toast("請填來賓姓名"); return; }
+    var inv=(document.getElementById("guestInviter")||{}).value||"";   // 管理員代會員登記:招待會員姓名(空=自己)
     busy("guestAdd","登記中…");
-    api({action:"addGuest",userId:profile.userId,guestName:nm,cart:val("guestCart")}).then(afterRoster("已登記來賓:"+nm));
+    api({action:"addGuest",userId:profile.userId,guestName:nm,cart:val("guestCart"),inviterName:inv})
+      .then(afterRoster("已登記來賓:"+nm+(inv?"(掛 "+inv+" 名下)":"")));
   };
   document.querySelectorAll(".glnk").forEach(function(b){
     b.onclick=function(){
@@ -3424,6 +3563,24 @@ function wireMain(isFull, iAmIn){
   if(editScore) editScore.onclick=openEditScores;
   var editScore2=document.getElementById("editScore2");
   if(editScore2) editScore2.onclick=openEditScores;
+  // ① 行動卡:輸入本場成績(空白表單、日期鎖定本場)
+  var enterScoreBtn=document.getElementById("enterScoreBtn");
+  if(enterScoreBtn) enterScoreBtn.onclick=openEnterScores;
+  // ② 場次選擇器連動
+  var smDateSel=document.getElementById("smDateSel");
+  if(smDateSel){ smDateSel.onchange=smSyncDateUI_; var smDi=document.getElementById("smDate"); if(smDi) smDi.oninput=smSyncDateUI_; smSyncDateUI_(); }
+  // 本場成績頁的頁面級匯出 PDF(已送出狀態)
+  var pageExportPdf=document.getElementById("pageExportPdf");
+  if(pageExportPdf) pageExportPdf.onclick=function(){
+    var d=pageExportPdf.dataset.date||"";
+    busy("pageExportPdf","產生中…");
+    api({action:"exportPdf",userId:profile.userId,date:d,folder:(state.event.pdfFolder||"")}).then(function(rr){
+      var b=document.getElementById("pageExportPdf"); if(b){ b.disabled=false; b.textContent="📄 匯出 PDF"; }
+      if(!rr.ok){ toast(rr.error||"匯出失敗"); return; }
+      toast("已存到「"+rr.folder+"」");
+      try{ if(window.liff&&liff.openWindow){ liff.openWindow({url:rr.url,external:true}); } else { window.open(rr.url,"_blank"); } }catch(e){}
+    }).catch(function(){ toast("連線失敗"); var b=document.getElementById("pageExportPdf"); if(b){ b.disabled=false; b.textContent="📄 匯出 PDF"; } });
+  };
   var scoreClose=document.getElementById("scoreClose");
   if(scoreClose) scoreClose.onclick=function(){ var m=document.getElementById("scoreModal"); if(m) m.classList.add("hidden"); };
   var smBody=document.getElementById("smBody");
@@ -3713,10 +3870,35 @@ function wireMain(isFull, iAmIn){
             var b=document.getElementById("smExportPdf"); if(b){b.disabled=false;b.textContent="📄 匯出 PDF";}
             if(!rr.ok){ toast(rr.error||"匯出失敗"); return; }
             toast("已存到「"+rr.folder+"」");
+            var s2=document.getElementById("smStep2"); if(s2){ s2.textContent="✓ PDF 已匯出"; s2.style.color="var(--fairway)"; s2.style.fontWeight="700"; }
             var box=document.getElementById("smPdfLink");
-            if(box) box.innerHTML='<a class="btn sm" style="margin:4px 0 0;display:block;text-align:center;text-decoration:none" href="'+rr.url+'" target="_blank" rel="noopener">開啟 PDF('+esc(rr.date)+')</a>';
+            if(box){
+              box.innerHTML='<div style="display:flex;gap:8px;margin:4px 0 0">'+
+                '<a class="btn sm" style="flex:1;text-align:center;text-decoration:none" href="'+rr.url+'" target="_blank" rel="noopener">開啟 PDF</a>'+
+                '<button class="btn ghost sm" id="smCopyPdf" style="flex:1;margin:0">📋 複製連結傳群組</button></div>';
+              var cp=document.getElementById("smCopyPdf");
+              if(cp) cp.onclick=function(){
+                copyText(rr.date+" 例賽成績單 PDF:\n"+rr.url);
+                var s3=document.getElementById("smStep3"); if(s3){ s3.textContent="✓ 連結已複製"; s3.style.color="var(--fairway)"; s3.style.fontWeight="700"; }
+              };
+            }
             try{ if(window.liff&&liff.openWindow){ liff.openWindow({url:rr.url,external:true}); } else { window.open(rr.url,"_blank"); } }catch(e){}
           }).catch(function(){ toast("連線失敗"); var b=document.getElementById("smExportPdf"); if(b){b.disabled=false;b.textContent="📄 匯出 PDF";} });
+        };
+        // Ⓑ 第④步:結果頁直接鎖定本場(成績確認無誤後關帳,之後要改需先解鎖)
+        var lk=document.getElementById("smLockBtn");
+        if(lk) lk.onclick=function(){
+          if(!confirm("鎖定後「"+lk.dataset.date+"」的成績將不可再編輯(需解鎖才能改)。確定鎖定?")) return;
+          busy("smLockBtn","鎖定中…");
+          api({action:"lockScores",userId:profile.userId,date:lk.dataset.date}).then(function(r2){
+            var b=document.getElementById("smLockBtn");
+            if(r2&&r2.ok){
+              state.matchLocked=true;
+              if(b){ b.textContent="🔒 已鎖定"; b.disabled=true; }
+              var s4=document.getElementById("smStep4"); if(s4){ s4.textContent="✓ 已鎖定"; s4.style.color="var(--fairway)"; s4.style.fontWeight="700"; }
+              toast("✓ 本場成績已鎖定");
+            }else{ toast((r2&&r2.error)||"鎖定失敗"); if(b){ b.disabled=false; b.textContent="🔒 鎖定本場"; } }
+          }).catch(function(){ toast("連線失敗"); var b=document.getElementById("smLockBtn"); if(b){ b.disabled=false; b.textContent="🔒 鎖定本場"; } });
         };
       }
     }).catch(function(){ toast("連線失敗"); var b=document.getElementById("smSubmit"); if(b){b.disabled=false;b.textContent="送出(成績+技術獎)";} });
