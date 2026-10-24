@@ -2443,11 +2443,8 @@ function openEnterScores(){
   var m=document.getElementById("scoreModal"); if(!m) return;
   window.__guestGiftSkip={};                 // 新一輪輸入:重置來賓禮「已刪」記憶
   smSetDate_(curEventDate_());
-  document.querySelectorAll("#smBody tr[data-name]").forEach(function(tr){
-    [".sc-out",".sc-in",".sc-bird"].forEach(function(s){ var el=tr.querySelector(s); if(el){ el.disabled=false; el.value=""; el.classList.remove("sc-bad"); } });
-    var dn=tr.querySelector(".sc-dnf"); if(dn) dn.checked=false;
-    tr.querySelector(".sc-tot").textContent="—"; tr.querySelector(".sc-net").textContent="—";
-  });
+  var body=document.getElementById("smBody");
+  if(body) body.innerHTML=scRosterRows_()||'<tr><td colspan="8" class="muted" style="text-align:center;padding:14px">尚無出席名單</td></tr>';   // 名單重建=本場報名(修改模式可能换過名單)
   if(window.__updateScProg) __updateScProg();
   var inp=document.getElementById("smInput"); if(inp) inp.classList.remove("hidden");
   var sf=document.getElementById("smSubmitFoot"); if(sf){ sf.classList.remove("hidden"); sf.style.display=""; }
@@ -2462,6 +2459,12 @@ function openEditScores(){
   if(state.matchLocked){ toast("本場已鎖定,請先在月例賽成績區「🔓 解鎖」再修改"); return; }
   window.__guestGiftSkip={};                 // 重置來賓禮「已刪」記憶
   smSetDate_(String(state.ranking.date||"").trim());
+  // 修改模式:名單改用「該場實際成績名單」(含來賓/未完賽),不是目前場次的報名名單 ——
+  // 否則換場後修改上一場,會出現下一場報名者、漏掉該場參賽者,重送將遺失成績!
+  var body=document.getElementById("smBody");
+  if(body) body.innerHTML=(state.ranking.results||[]).map(function(r){
+    return scRowHtml_(r.name, r.hcp, r.rankType==="來賓"?"來賓":((state.roleMap&&state.roleMap[r.name])||"會員"));
+  }).join('');
   var byName={}; (state.ranking.results||[]).forEach(function(r){ byName[r.name]=r; });
   document.querySelectorAll("#smBody tr[data-name]").forEach(function(tr){
     var r=byName[tr.getAttribute("data-name")];
@@ -2469,7 +2472,11 @@ function openEditScores(){
     oin.value=(r&&r.out!=null&&r.out!=="")?r.out:"";
     iin.value=(r&&r.in!=null&&r.in!=="")?r.in:"";
     oin.dispatchEvent(new Event("input",{bubbles:true}));   // 重算總桿/淨桿 + 更新得獎者名單
+    var dn=tr.querySelector(".sc-dnf");
+    if(dn && r && r.rankType==="未完賽" && !dn.checked){ dn.checked=true; dn.dispatchEvent(new Event("change",{bubbles:true})); }   // 還原未完賽勾選
   });
+  var ttl=document.getElementById("smTitle"); if(ttl) ttl.textContent="修改 "+String(state.ranking.date||"")+" 成績";
+  if(window.__updateScProg) __updateScProg();
   fillTechFromState();                                       // 帶入該場技術獎(成績填好後名單才正確)
   m.classList.remove("hidden");
 }
@@ -2534,22 +2541,26 @@ function techRowsSeed(){
 }
 
 // 表格式成績輸入(彈出頁)
+// 成績輸入列模板(輸入模式=本場報名名單;修改模式=該場實際成績名單)
+function scRowHtml_(name,hcp,role){
+  var h=(hcp===''||hcp==null)?'':String(hcp);
+  return '<tr data-name="'+esc(name)+'" data-hcp="'+esc(h)+'" data-role="'+esc(role||'會員')+'">'+
+    '<td class="sn">'+gname(name)+'</td>'+
+    '<td><input class="sc-out" inputmode="numeric" maxlength="3"></td>'+
+    '<td><input class="sc-in" inputmode="numeric" maxlength="3"></td>'+
+    '<td class="sc-tot">—</td>'+
+    '<td class="sc-hcp">'+(h===''?'—':esc(h))+'</td>'+
+    '<td class="sc-net">—</td>'+
+    '<td><input class="sc-bird" inputmode="numeric" maxlength="2" placeholder=""></td>'+
+    '<td style="text-align:center"><input type="checkbox" class="sc-dnf" title="有出席但不計算成績(不列排名、差點不變)"></td>'+
+  '</tr>';
+}
+function scRosterRows_(){   // 本場報名名單(排除請假)→ 輸入模式用
+  return (state.roster||[]).filter(function(r){return r.status!=="請假";})
+    .map(function(r){ return scRowHtml_(r.name, r.hcp, (state.roleMap&&state.roleMap[r.name])||'會員'); }).join('');
+}
 function scoreModalHtml(){
-  var roster=(state.roster||[]).filter(function(r){return r.status!=="請假";});
-  var rows=roster.map(function(r){
-    var h=(r.hcp===''||r.hcp==null)?'':String(r.hcp);
-    var role=(state.roleMap&&state.roleMap[r.name])||'會員';
-    return '<tr data-name="'+esc(r.name)+'" data-hcp="'+esc(h)+'" data-role="'+esc(role)+'">'+
-      '<td class="sn">'+gname(r.name)+'</td>'+
-      '<td><input class="sc-out" inputmode="numeric" maxlength="3"></td>'+
-      '<td><input class="sc-in" inputmode="numeric" maxlength="3"></td>'+
-      '<td class="sc-tot">—</td>'+
-      '<td class="sc-hcp">'+(h===''?'—':esc(h))+'</td>'+
-      '<td class="sc-net">—</td>'+
-      '<td><input class="sc-bird" inputmode="numeric" maxlength="2" placeholder=""></td>'+
-      '<td style="text-align:center"><input type="checkbox" class="sc-dnf" title="有出席但不計算成績(不列排名、差點不變)"></td>'+
-    '</tr>';
-  }).join('');
+  var rows=scRosterRows_();
   var d=((state.eventView&&state.eventView.date)||'').replace(/\(.*\)/,'').trim();
   return '<div id="scoreModal" class="modal hidden"><div class="modal-card full">'+
     '<div class="modal-head"><span id="smTitle">表格輸入成績</span><button class="mclose" id="scoreClose">✕</button></div>'+
