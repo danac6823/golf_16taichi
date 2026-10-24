@@ -505,7 +505,8 @@
   .bankbox .bankttl{font-weight:700;color:#2d6a4f;font-size:15.5px;margin-bottom:5px}
   .bankbox .nbody{font-size:15.5px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
   .bankbox .copyBank{margin-top:9px;width:100%}
-  .techrow{display:grid;grid-template-columns:1.1fr 1.3fr 56px;gap:6px;margin-bottom:6px}
+  .techrow{display:grid;grid-template-columns:1.1fr 1.3fr 46px 30px;gap:6px;margin-bottom:6px;align-items:center}
+  .techrow .tr-del{background:none;border:1px solid var(--line);border-radius:8px;color:#b3382c;font-size:15px;padding:4px 0;cursor:pointer}
   .techrow select,.techrow input{width:100%;padding:8px 6px;border:1px solid var(--line);border-radius:8px;background:var(--paper-2);font-size:15.5px}
   .techrow .tr-tiao{text-align:center}
   .modal{position:fixed;inset:0;background:rgba(20,30,22,.55);z-index:50;display:flex;align-items:flex-end;justify-content:center}
@@ -1081,6 +1082,9 @@ function tileModals(playing,leave,total,c){
 }
 
 function renderMain(){
+  // 成績輸入中凍結全量重繪:背景更新完成不得清空打到一半的桿數;關閉表格後再補畫
+  var __sm=document.getElementById("scoreModal");
+  if(__sm && !__sm.classList.contains("hidden")){ window.__renderDeferred=true; return; }
   var c=capNum();  var playing=state.roster.filter(function(r){return r.status!=="請假";});
   var leave=state.roster.filter(function(r){return r.status==="請假";});
   var total=playing.length;
@@ -2386,13 +2390,15 @@ function techRowInner(award){
   var ao=TECH_OPTS.map(function(a){return '<option'+(a===award?' selected':'')+'>'+a+'</option>';}).join('');
   return '<select class="tr-award">'+ao+'</select>'+
          '<select class="tr-name">'+techNameOptions("")+'</select>'+
-         '<input class="tr-tiao" value="1" inputmode="numeric">';
+         '<input class="tr-tiao" value="1" inputmode="numeric">'+
+         '<button type="button" class="tr-del" title="刪除此列">✕</button>';
 }
 function techRowInnerGuest(g){
   var ao=TECH_OPTS.map(function(a){return '<option'+(a==='來賓獎'?' selected':'')+'>'+a+'</option>';}).join('');
   return '<select class="tr-award">'+ao+'</select>'+
          '<select class="tr-name">'+guestNameOptions(g)+'</select>'+
-         '<input class="tr-tiao" value="1" inputmode="numeric">';
+         '<input class="tr-tiao" value="1" inputmode="numeric">'+
+         '<button type="button" class="tr-del" title="刪除此列">✕</button>';
 }
 // 修改模式:用已存的技術獎帶入一列(得獎者預選),供「修改已輸入成績」使用
 function techRowFilled(award,winner,tiao){
@@ -2402,7 +2408,8 @@ function techRowFilled(award,winner,tiao){
   if(winner && names.indexOf(winner)<0) names=names.concat([winner]);
   return '<div class="techrow"><select class="tr-award">'+ao+'</select>'+
          '<select class="tr-name">'+optionsHtml(names,winner)+'</select>'+
-         '<input class="tr-tiao" value="'+esc(String(tiao||1))+'" inputmode="numeric"></div>';
+         '<input class="tr-tiao" value="'+esc(String(tiao||1))+'" inputmode="numeric">'+
+         '<button type="button" class="tr-del" title="刪除此列">✕</button></div>';
 }
 function fillTechFromState(){
   var tc=(state.ranking&&state.ranking.tech)||[];
@@ -2434,6 +2441,7 @@ function smSetDate_(d){
 // ① 行動卡「輸入本場成績」:日期鎖定本場、表格清空、直接進輸入畫面
 function openEnterScores(){
   var m=document.getElementById("scoreModal"); if(!m) return;
+  window.__guestGiftSkip={};                 // 新一輪輸入:重置來賓禮「已刪」記憶
   smSetDate_(curEventDate_());
   document.querySelectorAll("#smBody tr[data-name]").forEach(function(tr){
     [".sc-out",".sc-in",".sc-bird"].forEach(function(s){ var el=tr.querySelector(s); if(el){ el.disabled=false; el.value=""; el.classList.remove("sc-bad"); } });
@@ -2452,6 +2460,7 @@ function openEditScores(){
   var m=document.getElementById("scoreModal");
   if(!m || !state.ranking) return;
   if(state.matchLocked){ toast("本場已鎖定,請先在月例賽成績區「🔓 解鎖」再修改"); return; }
+  window.__guestGiftSkip={};                 // 重置來賓禮「已刪」記憶
   smSetDate_(String(state.ranking.date||"").trim());
   var byName={}; (state.ranking.results||[]).forEach(function(r){ byName[r.name]=r; });
   document.querySelectorAll("#smBody tr[data-name]").forEach(function(tr){
@@ -2497,7 +2506,13 @@ function refreshTech(){
 }
 // 有來賓且有成績 → 自動帶一列「來賓獎」並填入來賓名;來賓無成績則移除其自動列
 function syncGuestAwards(){
-  var guests=scoredGuestList();
+  // 來賓禮規則:留下餐敘(有收500餐費)才送球 → 只自動帶入「有用餐」的來賓;沒用餐不帶,例外手動增刪列
+  var skip=window.__guestGiftSkip||{};
+  var guests=scoredGuestList().filter(function(g){
+    if(skip[g]) return false;                                  // 管理員已手動刪除 → 不再自動補回
+    var rr=(state.roster||[]).filter(function(r){return r.name===g;})[0];
+    return !(rr && rr.cart==="不用餐");
+  });
   var box=document.getElementById("smTechRows"); if(!box) return;
   var have={};
   Array.prototype.slice.call(box.querySelectorAll('.techrow[data-auto-guest]')).forEach(function(row){
@@ -2563,7 +2578,8 @@ function scoreModalHtml(){
         '<tbody id="smBody">'+(rows||'<tr><td colspan="8" class="muted" style="text-align:center;padding:14px">尚無出席名單</td></tr>')+'</tbody></table></div>'+
       '</div>'+
       '<div class="smpane hidden" id="smPane_tech">'+
-        '<div class="field"><label>技術獎(下拉選獎項+得獎者,可＋新增;未選人的列會略過)</label></div>'+
+        '<div class="field"><label>技術獎(下拉選獎項+得獎者,可＋新增、✕刪除;未選人的列會略過)</label></div>'+
+        '<p class="smnote" style="margin:0 0 6px">🏐 來賓禮:只自動帶入<b>有用餐</b>的來賓(留下餐敘才送球);沒用餐不帶。例外請用 ✕ 刪除或「+ 新增一列」調整。</p>'+
         '<div id="smTechRows">'+techRowsSeed()+'</div>'+
         '<button class="btn ghost sm" id="smAddTech" style="margin-top:6px">+ 新增一列</button>'+
         '<p class="smnote">送出後會先計算成績排名,再一併登錄技術獎並從球數庫存扣除。</p>'+
@@ -3582,7 +3598,10 @@ function wireMain(isFull, iAmIn){
     }).catch(function(){ toast("連線失敗"); var b=document.getElementById("pageExportPdf"); if(b){ b.disabled=false; b.textContent="📄 匯出 PDF"; } });
   };
   var scoreClose=document.getElementById("scoreClose");
-  if(scoreClose) scoreClose.onclick=function(){ var m=document.getElementById("scoreModal"); if(m) m.classList.add("hidden"); };
+  if(scoreClose) scoreClose.onclick=function(){
+    var m=document.getElementById("scoreModal"); if(m) m.classList.add("hidden");
+    if(window.__renderDeferred){ window.__renderDeferred=false; renderMain(); }   // 補畫輸入期間被凍結的更新
+  };
   var smBody=document.getElementById("smBody");
   // 填寫進度:已填/未填統計 + 未填列淡黃底;「下一個未填」一鍵跳到該列
   function scRowState(tr){
@@ -3758,6 +3777,15 @@ function wireMain(isFull, iAmIn){
       toast("✓ 已儲存加碼獎"); renderMain();
     });
   };
+  // 技術獎列刪除鈕(含自動帶入的來賓禮;刪過的來賓禮不會被自動補回)
+  var tbox=document.getElementById("smTechRows");
+  if(tbox) tbox.addEventListener("click",function(e){
+    var b=e.target&&e.target.closest?e.target.closest(".tr-del"):null; if(!b) return;
+    var row=b.closest(".techrow"); if(!row) return;
+    var ag=row.getAttribute("data-auto-guest");
+    if(ag){ window.__guestGiftSkip=window.__guestGiftSkip||{}; window.__guestGiftSkip[ag]=1; }
+    row.parentNode.removeChild(row);
+  });
   var smAddTech=document.getElementById("smAddTech");
   if(smAddTech) smAddTech.onclick=function(){
     var div=document.createElement("div"); div.className="techrow";
