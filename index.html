@@ -3304,7 +3304,7 @@ function wireMain(isFull, iAmIn){
   if(clr) clr.onclick=function(){
     if(!confirm("確定清空整份出席名單?此動作無法復原。")) return;
     busy("clearBtn","清空中…");
-    api({action:"clearRoster",userId:profile.userId}).then(after("名單已清空"));
+    api({action:"clearRoster",userId:profile.userId}).then(afterMerge("名單已清空"));
   };
   var mg=document.getElementById("makeGroups");
   if(mg) mg.onclick=function(){
@@ -3315,13 +3315,13 @@ function wireMain(isFull, iAmIn){
          size:val("gsize"),method:val("gmethod"),
          start:val("gstart"),interval:val("ginterval")};
     if(twoDay()) gp.day=val("gday")||"1";
-    api(gp).then(after(has?"已重新分組":"已完成分組"));
+    api(gp).then(afterMerge(has?"已重新分組":"已完成分組"));
   };
   var cg=document.getElementById("clearGroups");
   if(cg) cg.onclick=function(){
     if(!confirm("確定清除目前分組?")) return;
     busy("clearGroups","清除中…");
-    api({action:"clearGroups",userId:profile.userId}).then(after("已清除分組"));
+    api({action:"clearGroups",userId:profile.userId}).then(afterMerge("已清除分組"));
   };
   // 歷史分組:展開時載入一次
   var ghw=document.getElementById("ghistWrap");
@@ -3384,7 +3384,8 @@ function wireMain(isFull, iAmIn){
     if(!lines.length){ toast("請至少選一位得獎者"); return; }
     busy("recordTech","登錄中…");
     api({action:"recordTech",userId:profile.userId,date:d,text:lines.join("\n")}).then(function(r){
-      toast(r.ok?("已登錄 "+r.added+" 筆"):(r.error||"登錄失敗")); reload();
+      toast(r.ok?("已登錄 "+r.added+" 筆"):(r.error||"登錄失敗"));
+      if(r.ok && applyDelta_(r)){ rerenderKeepOpen(); saveSnap(); } else reload();
     });
   };
   var clrTech=document.getElementById("clearTech");
@@ -3394,7 +3395,8 @@ function wireMain(isFull, iAmIn){
     if(!confirm("刪除 "+d+" 的所有技術獎登錄?")) return;
     busy("clearTech","刪除中…");
     api({action:"clearTechDate",userId:profile.userId,date:d}).then(function(r){
-      toast(r.ok?("已刪除 "+r.removed+" 筆"):(r.error||"刪除失敗")); reload();
+      toast(r.ok?("已刪除 "+r.removed+" 筆"):(r.error||"刪除失敗"));
+      if(r.ok && applyDelta_(r)){ rerenderKeepOpen(); saveSnap(); } else reload();
     });
   };
   var bb=document.getElementById("buildBalls");
@@ -3617,10 +3619,7 @@ function wireMain(isFull, iAmIn){
     if(!nm){ toast("沒有可代報名的會員"); return; }
     var c=document.querySelector('input[name="proxyCart"]:checked');
     busy("doProxyReg","加入中…");
-    api(withDays_({action:"proxyRegister",userId:profile.userId,name:nm,cart:c?c.value:"用餐"},"proxyDays")).then(function(r){
-      if(!r||r.ok===false){ toast("⚠ "+((r&&r.error)||"代報名失敗")); reload(); return; }
-      toast("✓ 已代 "+nm+" 報名"); reload();
-    });
+    api(withDays_({action:"proxyRegister",userId:profile.userId,name:nm,cart:c?c.value:"用餐"},"proxyDays")).then(afterMerge("已代 "+nm+" 報名"));
   };
   var pbt=document.getElementById("proxyBulkTxt");
   if(pbt) pbt.oninput=function(){ (state.proxyBulk=state.proxyBulk||{}).txt=pbt.value; };
@@ -3654,20 +3653,15 @@ function wireMain(isFull, iAmIn){
     if(!confirm("確定一次代 "+names.length+" 位會員報名("+cart+dtxt+")?")) return;
     busy("proxyBulkGo","加入中…");
     api(withDays_({action:"proxyRegisterBulk",userId:profile.userId,names:names.join(","),cart:cart},"proxyBulkDays")).then(function(r){
-      if(!r||r.ok===false){ toast("⚠ "+((r&&r.error)||"批次代報名失敗")); reload(); return; }
-      var sk=(r.skipped||[]).length;
-      state.proxyBulk=null;
-      toast("✓ 已加入 "+(r.added||[]).length+" 人"+(sk?"(略過 "+sk+" 人)":"")); reload();
+      if(r && r.ok!==false) state.proxyBulk=null;
+      afterMerge(function(x){ var sk=(x.skipped||[]).length; return "已加入 "+(x.added||[]).length+" 人"+(sk?"(略過 "+sk+" 人)":""); })(r);
     });
   };
   Array.prototype.forEach.call(document.querySelectorAll(".proxyDel"), function(btn){
     btn.onclick=function(){
       var nm=btn.getAttribute("data-name");
       if(!confirm("移除代報名:"+nm+"?")) return;
-      api({action:"proxyRemove",userId:profile.userId,name:nm}).then(function(r){
-        if(!r||r.ok===false){ toast("⚠ "+((r&&r.error)||"移除失敗")); reload(); return; }
-        toast("✓ 已移除 "+nm); reload();
-      });
+      api({action:"proxyRemove",userId:profile.userId,name:nm}).then(afterMerge("已移除 "+nm));
     };
   });
   var ih=document.getElementById("importHcp");
@@ -3979,7 +3973,7 @@ function wireMain(isFull, iAmIn){
     if(!confirm("鎖定後「"+state.matchLockDate+"」的成績將不可再編輯(需解鎖才能改)。確定鎖定?")) return;
     busy("lockBtn","鎖定中…");
     api({action:"lockScores",userId:profile.userId,date:state.matchLockDate}).then(function(r){
-      if(r&&r.ok){ toast("✓ 已鎖定本場成績"); reload(); }
+      if(r&&r.ok){ toast("✓ 已鎖定本場成績"); if(applyDelta_(r)){ rerenderKeepOpen(); saveSnap(); } else reload(); }
       else { toast((r&&r.error)||"鎖定失敗"); var b=document.getElementById("lockBtn"); if(b){b.disabled=false;b.textContent="🔒 鎖定本場";} }
     });
   };
@@ -3988,7 +3982,7 @@ function wireMain(isFull, iAmIn){
     if(!confirm("解鎖後即可再次編輯「"+state.matchLockDate+"」的成績。確定解鎖?")) return;
     busy("unlockBtn","解鎖中…");
     api({action:"unlockScores",userId:profile.userId,date:state.matchLockDate}).then(function(r){
-      if(r&&r.ok){ toast("✓ 已解鎖,可重新編輯"); reload(); }
+      if(r&&r.ok){ toast("✓ 已解鎖,可重新編輯"); if(applyDelta_(r)){ rerenderKeepOpen(); saveSnap(); } else reload(); }
       else { toast((r&&r.error)||"解鎖失敗"); var b=document.getElementById("unlockBtn"); if(b){b.disabled=false;b.textContent="🔓 解鎖";} }
     });
   };
@@ -4154,6 +4148,31 @@ function after(msg){
   return function(r){
     if(r && r.ok===false){ toast("⚠ "+(r.error||"操作失敗,請再試一次")); reload(); }
     else { toast("✓ "+msg); reload(); }
+  };
+}
+// 寫入成功且後端已回傳變動資料 → 就地併入 state,不再多跑一趟 bootstrap(每次操作省約 2 秒)
+// 回傳值:有併入任何欄位才是 true;false 代表後端沒給可用資料,呼叫端要退回 reload()
+function applyDelta_(r){
+  if(!state || !r) return false;
+  var hit=false, has=function(k){ return Object.prototype.hasOwnProperty.call(r,k); };
+  ["roster","progress","groups"].forEach(function(k){ if(has(k)){ state[k]=r[k]; hit=true; } });
+  if(r.techList){
+    state.techList=r.techList; hit=true;
+    if(state.ranking && state.ranking.date){   // 本場成績頁的技術獎名單跟著更新(與 bootstrap 同一套篩法)
+      state.ranking.tech=r.techList.filter(function(t){ return t.date===state.ranking.date && t.winner; })
+        .map(function(t){ return {award:t.award,winner:t.winner,tiao:t.tiao}; });
+    }
+  }
+  if(r.balls){ state.balls=r.balls; if(r.balls.balance!=null) state.ballRemain=r.balls.balance; hit=true; }
+  if(r.techList || r.balls) tileSnapDel("adminData");   // 管理員資料快照已過期,下次開啟重抓
+  if(typeof r.locked==="boolean" && (!r.date || r.date===state.matchLockDate)){ state.matchLocked=r.locked; hit=true; }
+  return hit;
+}
+function afterMerge(msg){   // msg 可為字串或 function(r)
+  return function(r){
+    if(!r || r.ok===false){ toast("⚠ "+((r&&r.error)||"操作失敗,請再試一次")); return reload(); }
+    toast("✓ "+(typeof msg==="function"?msg(r):msg));
+    if(applyDelta_(r)){ rerenderKeepOpen(); saveSnap(); } else reload();
   };
 }
 // 出席相關動作:後端已回傳最新名單+進度 → 就地更新即可,免再跑一次 bootstrap(省一趟往返)
