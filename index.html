@@ -760,14 +760,12 @@ function api(params){
 // LINE 的登入憑證只有 1 小時:頁面開太久後,寫入/管理動作會被後端擋下(「憑證無效或已過期」)。
 // 偵測到就講清楚原因並引導重新登入(每次開頁只問一次),不要只丟一句錯誤訊息。
 var __tokAsked=false;
-function tokenExpired_(){
-  if(__tokAsked) return; __tokAsked=true;
-  var inClient=false; try{ inClient=!!(window.liff && liff.isInClient && liff.isInClient()); }catch(e){}
-  if(inClient){ alert("這一頁開超過 1 小時,LINE 的登入憑證過期了,所以剛才的動作沒有成功。\n\n請關掉這個視窗,再從 LINE 重新開啟一次(已經存好的資料不會不見)。"); return; }
-  if(confirm("這一頁開超過 1 小時,LINE 的登入憑證過期了,所以剛才的動作沒有成功。\n\n要現在重新登入嗎?(畫面會重新載入,還沒儲存的輸入會清掉)")){
-    try{ liff.logout(); }catch(e){}
-    location.reload();
-  }
+function tokenExpired_(force){
+  if(__tokAsked && !force) return; __tokAsked=true;
+  var why="LINE 的登入憑證過期了(每次登入有效 1 小時;電腦瀏覽器會記住舊的登入,所以剛打開也可能已經過期),剛才的動作沒有成功。\n\n";
+  var keep="成績輸入到一半的話不用擔心:已經打的桿數有自動存成草稿,回到「輸入成績」會問你要不要帶回來。";
+  if(inLineApp_()){ alert(why+"請關掉這個視窗,再從 LINE 重新開啟一次。\n\n"+keep); return; }
+  if(confirm(why+"要現在重新登入嗎?(畫面會重新載入)\n\n"+keep)) reLogin_();
 }
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
 function capNum(){var n=parseInt((state.eventView&&state.eventView.cap)||state.event.cap,10);return isNaN(n)?0:n;}
@@ -825,6 +823,18 @@ function withTimeout_(p,ms){ return Promise.race([p,new Promise(function(_,rej){
     return fatal(String(e&&e.message)==="timeout" ? "LINE 連線逾時,請檢查網路後點下方重新載入。" : "LIFF 初始化失敗,請確認 LIFF_ID 設定正確。");
   }
   if(!liff.isLoggedIn()){ liff.login(); return; }   // 外部瀏覽器會導向 LINE 登入
+  // 外部瀏覽器(電腦/手機瀏覽器)會記住登入狀態,但登入憑證只有 1 小時:隔一陣子再開,看起來是登入的、憑證卻早就過期,
+  // 管理與寫入動作會全部被後端擋下。所以一開頁就檢查:過期或剩不到 10 分鐘 → 自動重新登入換新的(60 秒內不重複,避免繞圈)。
+  try{
+    var __left=tokLeftMs_();
+    if(!inLineApp_() && __left!==null && __left < 10*60000){
+      var __last=0; try{ __last=Number(sessionStorage.getItem("relogin_at")||0); }catch(e){}
+      if(Date.now()-__last > 60000){
+        try{ sessionStorage.setItem("relogin_at", String(Date.now())); }catch(e){}
+        liff.logout(); liff.login(); return;
+      }
+    }
+  }catch(e){}
 
   try{ ID_TOKEN = liff.getIDToken() || ""; }catch(e){ ID_TOKEN = ""; }   // 寫入動作驗證用(需頻道開啟 openid scope)
 
@@ -1705,6 +1715,14 @@ document.addEventListener("input",function(e){
   if(t.closest(".tmodal")) window.__tmDirty=true;
   if(t.closest(".ledwrap")) window.__ledDirty=true;   // 帳務(分頁內或功能頁內)有還沒儲存的輸入
 },true);
+// 成績表內的任何輸入 → 0.4 秒後存草稿(見 scDraftSave_)
+var __scDraftT=null;
+function scDraftTouch_(e){
+  var t=e.target; if(!t || !t.closest || !t.closest("#scoreModal")) return;
+  clearTimeout(__scDraftT); __scDraftT=setTimeout(scDraftSave_,400);
+}
+document.addEventListener("input",scDraftTouch_,true);
+document.addEventListener("change",scDraftTouch_,true);
 // 小視窗(不是整頁的 .modal、.lightbox):點卡片外面的暗色區域=按它自己的關閉鈕(沿用各自的關閉流程)
 document.addEventListener("click",function(e){
   var t=e.target; if(!t || !t.classList || !uiV2()) return;
@@ -3179,6 +3197,84 @@ function smSetDate_(d){
   }
   smSyncDateUI_();
 }
+// ===== 成績輸入草稿(2026/11/17):打的每一格自動存在這支手機/這台電腦,送出成功才清掉。
+// 防的是:憑證過期要重新登入、不小心關掉、當機 —— 重開後回到輸入成績會問要不要帶回。全部包在 try 裡,草稿出錯也不能擋住輸入。
+var SC_DRAFT_KEY="score_draft_v1";
+function scDraftCollect_(){
+  var rows=[], tech=[];
+  document.querySelectorAll("#smBody tr[data-name]").forEach(function(tr){
+    var o=((tr.querySelector(".sc-out")||{}).value||"").trim(), i=((tr.querySelector(".sc-in")||{}).value||"").trim();
+    var b=((tr.querySelector(".sc-bird")||{}).value||"").trim(), dn=!!((tr.querySelector(".sc-dnf")||{}).checked);
+    if(o!==""||i!==""||b!==""||dn) rows.push({n:tr.getAttribute("data-name"),o:o,i:i,b:b,d:dn});
+  });
+  document.querySelectorAll("#smTechRows .techrow").forEach(function(r){
+    if(r.getAttribute("data-auto-guest")) return;            // 來賓禮是依成績自動產生的,不用存
+    tech.push({a:(r.querySelector(".tr-award")||{}).value||"", n:(r.querySelector(".tr-name")||{}).value||"", t:(r.querySelector(".tr-tiao")||{}).value||""});
+  });
+  return { date:String((document.getElementById("smDate")||{}).value||"").trim(), rows:rows, tech:tech, ts:Date.now(), uid:(profile&&profile.userId)||"" };
+}
+function scDraftSave_(){
+  try{
+    var m=document.getElementById("scoreModal"), inp=document.getElementById("smInput");
+    if(!m || m.classList.contains("hidden") || !inp || inp.classList.contains("hidden")) return;   // 只在輸入畫面存(結果頁不存)
+    var d=scDraftCollect_();
+    if(!d.date || !d.rows.length) return;                     // 空白表不覆蓋既有草稿
+    localStorage.setItem(SC_DRAFT_KEY, JSON.stringify(d));
+  }catch(e){}
+}
+function scDraftClear_(){ try{ localStorage.removeItem(SC_DRAFT_KEY); }catch(e){} }
+function scDraftGet_(){
+  try{
+    var d=JSON.parse(localStorage.getItem(SC_DRAFT_KEY)||"null");
+    if(!d || !d.rows || !d.rows.length) return null;
+    if(Date.now()-Number(d.ts||0) > 3*86400000){ scDraftClear_(); return null; }                  // 超過 3 天的不要
+    if(d.uid && profile && d.uid!==profile.userId) return null;
+    return d;
+  }catch(e){ return null; }
+}
+// 開啟成績表後:同一場有草稿 → 問要不要帶回
+function scDraftOffer_(){
+  try{
+    var d=scDraftGet_(); if(!d) return;
+    var cur=String((document.getElementById("smDate")||{}).value||"").trim();
+    if(d.date!==cur) return;
+    var t=new Date(Number(d.ts)), when=(t.getMonth()+1)+"/"+t.getDate()+" "+t.getHours()+":"+("0"+t.getMinutes()).slice(-2);
+    if(!confirm("找到一份還沒送出的 "+d.date+" 成績草稿("+when+" 存的,已填 "+d.rows.length+" 人)。\n\n要帶回來繼續嗎?\n(按「取消」=不帶回,從目前的畫面開始)")) return;
+    var by={}; d.rows.forEach(function(r){ by[r.n]=r; });
+    var hit=0;
+    document.querySelectorAll("#smBody tr[data-name]").forEach(function(tr){
+      var r=by[tr.getAttribute("data-name")]; if(!r) return;
+      hit++; delete by[r.n];
+      var oin=tr.querySelector(".sc-out"), iin=tr.querySelector(".sc-in"), bin=tr.querySelector(".sc-bird"), dn=tr.querySelector(".sc-dnf");
+      if(oin) oin.value=r.o; if(iin) iin.value=r.i; if(bin) bin.value=r.b||"";
+      if(oin) oin.dispatchEvent(new Event("input",{bubbles:true}));                                // 重算總桿/淨桿 + 更新得獎者名單
+      if(dn && !!r.d!==!!dn.checked){ dn.checked=!!r.d; dn.dispatchEvent(new Event("change",{bubbles:true})); }
+    });
+    var box=document.getElementById("smTechRows");
+    if(box && d.tech && d.tech.length){
+      box.querySelectorAll(".techrow:not([data-auto-guest])").forEach(function(x){ x.parentNode.removeChild(x); });
+      box.insertAdjacentHTML("afterbegin", d.tech.map(function(x){ return techRowFilled(x.a,x.n,x.t); }).join(""));
+    }
+    if(window.__updateScProg) __updateScProg();
+    var lost=Object.keys(by);
+    toast("✓ 已帶回 "+hit+" 人的草稿"+(lost.length?(";有 "+lost.length+" 人不在目前名單沒帶回:"+lost.join("、")):""));
+  }catch(e){}
+}
+// LINE 登入憑證還剩多久(毫秒);拿不到回 null
+function tokLeftMs_(){ try{ var dd=liff.getDecodedIDToken(); return (dd&&dd.exp)?(Number(dd.exp)*1000-Date.now()):null; }catch(e){ return null; } }
+function inLineApp_(){ try{ return !!(window.liff && liff.isInClient && liff.isInClient()); }catch(e){ return false; } }
+function reLogin_(){ try{ sessionStorage.setItem("relogin_at", String(Date.now())); }catch(e){} try{ liff.logout(); }catch(e){} location.reload(); }
+// 開始輸入成績前:憑證剩不到 40 分鐘就先提醒換新的(輸入 30~40 人可能要一陣子,送出時過期會被擋)
+function scTokenCheck_(){
+  try{
+    var left=tokLeftMs_(); if(left===null || left > 40*60000) return;
+    var mins=Math.max(0,Math.floor(left/60000));
+    var head="LINE 的登入憑證"+(left<=0?"已經過期":("只剩 "+mins+" 分鐘"))+"(每次登入有效 1 小時)。\n輸入成績需要一點時間,送出時如果過期會被擋下。\n\n";
+    if(inLineApp_()) alert(head+"建議先關掉這個視窗、從 LINE 重新開啟,再開始輸入。\n(已經打的桿數會自動存成草稿,重開後可以帶回來)");
+    else if(confirm(head+"要現在重新登入嗎?\n(已經打的桿數會自動存成草稿,登入後可以帶回來)")) reLogin_();
+  }catch(e){}
+}
+function scOpened_(){ setTimeout(function(){ scTokenCheck_(); scDraftOffer_(); },80); }
 // ① 行動卡「輸入本場成績」:日期鎖定本場、表格清空、直接進輸入畫面
 function openEnterScores(){
   var m=document.getElementById("scoreModal"); if(!m) return;
@@ -3193,6 +3289,7 @@ function openEnterScores(){
   var ttl=document.getElementById("smTitle"); if(ttl) ttl.textContent="輸入 "+curEventDate_()+" 成績";
   var sb=document.getElementById("smSubmit"); if(sb){ sb.disabled=false; sb.textContent="送出(成績+技術獎)"; }
   m.classList.remove("hidden");
+  scOpened_();
 }
 function openEditScores(){
   var m=document.getElementById("scoreModal");
@@ -3220,6 +3317,7 @@ function openEditScores(){
   if(window.__updateScProg) __updateScProg();
   fillTechFromState();                                       // 帶入該場技術獎(成績填好後名單才正確)
   m.classList.remove("hidden");
+  scOpened_();
 }
 // 當場已輸入成績(OUT+IN 都有)的會員 / 來賓
 function scoredList(guest){
@@ -4358,7 +4456,7 @@ function wireMain(isFull, iAmIn){
     });
   };
   var openScore=document.getElementById("openScore");
-  if(openScore) openScore.onclick=function(){ var m=document.getElementById("scoreModal"); if(m) m.classList.remove("hidden"); };
+  if(openScore) openScore.onclick=function(){ var m=document.getElementById("scoreModal"); if(m) m.classList.remove("hidden"); scOpened_(); };
   var openMatrix=document.getElementById("openMatrix");
   if(openMatrix) openMatrix.onclick=function(){
     var md=document.getElementById("matrixModal"); if(!md) return;
@@ -4704,9 +4802,13 @@ function wireMain(isFull, iAmIn){
       ? ("「"+d+"」已有成績,將【覆蓋並重新計算差點】(不會重覆扣)。確定送出?")
       : ("送出 "+lines.length+" 筆成績"+(techLines.length?(" + "+techLines.length+" 筆技術獎"):"")+"("+d+"),計算排名並更新差點?");
     if(!confirm(msg)) return;
+    scDraftSave_();                                          // 送出前再存一次草稿(送出失敗、要重新登入時用得上)
+    var tl=tokLeftMs_();
+    if(tl!==null && tl<=0){ tokenExpired_(true); return; }   // 憑證已過期:不送(送了也會被擋),直接引導重新登入
     busy("smSubmit","計算中…");
     api({action:"submitMatch",userId:profile.userId,date:d,text:lines.join("\n"),tech:techLines.join("\n"),dnf:dnf.join("\n")}).then(function(r){
-      if(!r.ok){ toast(r.error||"更新失敗"); var b=document.getElementById("smSubmit"); if(b){b.disabled=false;b.textContent="送出(成績+技術獎)";} return; }
+      if(!r.ok){ toast((r.error||"更新失敗")+"(已打的桿數有存成草稿)"); var b=document.getElementById("smSubmit"); if(b){b.disabled=false;b.textContent="送出(成績+技術獎)";} return; }
+      scDraftClear_();                                   // 送出成功 → 草稿功成身退
       state.ledger=null; tileSnapDel("ledger");         // 成績改變 → 帳務「本月獎金」變,清快照重抓
       state.seasonResults=null;                          // 逐場成績/年度總表重抓(本場結果變了)
       invalidateAdminData();                             // 送球庫存(技術獎球數)重抓
