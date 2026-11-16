@@ -446,6 +446,11 @@
   .gm{color:#2563eb}
   .gf{color:#d6336c}
   .bindrow{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border:1px solid var(--line);border-radius:9px;margin-bottom:5px;background:var(--paper-2)}
+  .daysum{display:flex;gap:8px;margin:0 0 10px}
+  .daysum span{flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--paper-2);font-size:14px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .daysum b{display:block;font-size:17px;color:var(--ink)}
+  .pbgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:8px 0}
+  .pbchk{display:flex;align-items:center;gap:5px;min-width:0;padding:8px 8px;border:1px solid var(--line);border-radius:9px;background:var(--paper-2);font-size:15px;white-space:nowrap;overflow:hidden}
   .bindrow.on{background:var(--green-soft);border-color:#cfe0d2}
   .bindrow .bn{font-size:16.5px;font-weight:600}
   .bindrow .bn small{color:var(--ink-soft);font-weight:400}
@@ -1034,7 +1039,22 @@ function tileModals(playing,leave,total,c){
   var att =
     (total===0
       ? '<div class="empty">還沒有人登記,當第一個開球的人吧 ⛳</div>'
-      : '<div class="rgrid">'+playing.map(function(p,i){return playerChip(p,i,c);}).join("")+'</div>')+
+      : (twoDay()
+          ? '<div class="daysum"><span>'+esc(dayLabel_(1))+'<b>'+playing.filter(function(p){return playsDay_(p,1);}).length+' 人</b></span><span>'+esc(dayLabel_(2))+'<b>'+playing.filter(function(p){return playsDay_(p,2);}).length+' 人</b></span></div>'+
+            [['','兩天都參加'],['1','只參加'+dayLabel_(1)],['2','只參加'+dayLabel_(2)]].map(function(sec){
+              var rows=[]; playing.forEach(function(p,i){ if((p.days||'')===sec[0]) rows.push([p,i]); });
+              if(!rows.length) return '';
+              return '<div class="section-label">'+esc(sec[1])+' · '+rows.length+' 人</div><div class="rgrid">'+
+                rows.map(function(x,k){return playerChip(x[0],x[1],c,k+1);}).join('')+'</div>';
+            }).join('')
+          : '<div class="rgrid">'+playing.map(function(p,i){return playerChip(p,i,c);}).join("")+'</div>'))+
+    ((twoDay()&&state.isAdmin&&total>0)
+      ? '<details class="admsec" style="margin-top:10px"><summary>調整參加天數</summary><div class="panel">'+
+          '<div class="field"><label>對象</label><select id="rdWho">'+playing.map(function(p){
+            return '<option value="'+esc(p.userId)+'">'+esc(p.name)+'('+(p.days?('只第'+esc(p.days)+'天'):'兩天')+')</option>'; }).join('')+'</select></div>'+
+          daysSelHtml("rdDays","")+
+          '<button class="btn sm" id="rdSave" style="width:100%">儲存</button></div></details>'
+      : '')+
     (leave.length? '<div class="section-label">請假名單 · '+leave.length+' 人</div><div class="rgrid">'+
         leave.map(function(p){return '<div class="rchip leave"><span class="rnm">'+gname(p.name)+'</span><i class="ct leave">請假</i></div>';}).join("")+'</div>' : '')+
     (function(){
@@ -1109,6 +1129,9 @@ function renderMain(){
     '<div class="meta">'+
       metaRow("球場",ev().course)+
       metaRow("開球",ev().tee,"tee")+
+      (ev().moreDays||[]).map(function(d,i){
+        return metaRow("第"+(i+2)+"天",(d.date||'')+(d.dow?'('+String(d.dow).replace('週','')+')':'')+(d.course?' · '+d.course:'')+(d.tee?' · '+d.tee:''));
+      }).join('')+
       '<div class="meta2">'+ metaRow("費用",ev().fee,"fee")+ '</div>'+   /* 名額欄位隱藏(cap 仍用於候補邏輯) */
       (function(){
         var dl=ev().deadline||'', left=deadlineLeft(dl);
@@ -1119,7 +1142,9 @@ function renderMain(){
       })()+
     '</div>'+
     '<div class="cardstat">'+
-      '<div class="cs"><b>'+confirmed+'</b><span>參加</span></div>'+
+      (twoDay()
+        ? '<div class="cs"><b>'+playing.filter(function(p){return playsDay_(p,1);}).length+' / '+playing.filter(function(p){return playsDay_(p,2);}).length+'</b><span>第1天 / 第2天</span></div>'
+        : '<div class="cs"><b>'+confirmed+'</b><span>參加</span></div>')+
       '<div class="cs"><b>'+leave.length+'</b><span>請假</span></div>'+
       (state.progress&&state.progress.members?'<div class="cs"><b>'+state.progress.notYet+'</b><span>尚未登記</span></div>':'')+
     '</div>'+
@@ -1158,7 +1183,8 @@ function registerPanel(isFull){
       '<button class="btn" id="regBtn" style="flex:2">'+(isFull?"加入候補名單":"參加")+'</button>'+
       '<button class="btn ghost" id="leaveBtn" style="flex:1">請假</button>'+
     '</div>'+
-    '<div class="field" style="margin-top:12px"><label>擊球後是否用餐?</label><select id="cart"><option>用餐</option><option>不用餐</option></select></div>'+
+    '<div style="margin-top:12px">'+daysSelHtml("regDays","")+'</div>'+
+    '<div class="field"><label>擊球後是否用餐?</label><select id="cart"><option>用餐</option><option>不用餐</option></select></div>'+
     '<div class="field"><label>備註(同組、其他需求)</label><textarea id="note" maxlength="60" placeholder="想同組請寫對方姓名(會優先排同組)/ 其他需求"></textarea></div>'+
     (isFull?'<p class="formnote">目前額滿,送出後列入候補,有人取消會依序遞補。</p>':'');
 }
@@ -1182,6 +1208,7 @@ function guestPanelHtml(){
       '<div style="font-size:16.5px;font-weight:700;color:#9a6a3a;padding:11px 2px">幫來賓登記出席'+(myGuests.length?' <span style="font-weight:400;font-size:14px">· 已登記 '+myGuests.length+' 位</span>':'')+'</div>'+
       '<div class="field"><label>來賓姓名</label><input id="guestName" maxlength="20" placeholder="例:王先生"></div>'+
       guestInviterSelHtml()+
+      daysSelHtml("guestDays","")+
       '<div class="field"><label>擊球後是否用餐?</label><select id="guestCart"><option>用餐</option><option>不用餐</option></select></div>'+
       '<button class="btn sm" id="guestAdd" style="width:100%">送出</button>'+
       (myGuests.length?'<div class="guestlist"><div class="gl-h">你登記的來賓('+myGuests.length+')</div>'+glist+'</div>':'')+
@@ -1205,8 +1232,9 @@ function guestInviterSelHtml(){
 function registeredPanel(mine){
   var dine=(mine.cart!=="不用餐");
   return '<details class="editbox">'+
-      '<summary><b class="reg-ok">本場已登記參加</b>｜'+(dine?"用餐":"不用餐")+(mine.note?('｜'+esc(mine.note)):'')+'</summary>'+
-      '<div class="field" style="margin-top:10px"><label>擊球後是否用餐?</label>'+
+      '<summary><b class="reg-ok">本場已登記參加</b>｜'+((twoDay()&&mine.days)?('只第'+esc(mine.days)+'天｜'):(twoDay()?'兩天｜':''))+(dine?"用餐":"不用餐")+(mine.note?('｜'+esc(mine.note)):'')+'</summary>'+
+      '<div style="margin-top:10px">'+daysSelHtml("editDays",mine.days||"")+'</div>'+
+      '<div class="field"><label>擊球後是否用餐?</label>'+
         '<div class="seg" id="cartSeg">'+
           '<button type="button" class="segb'+(dine?" on":"")+'" data-v="用餐">用餐</button>'+
           '<button type="button" class="segb'+(!dine?" on":"")+'" data-v="不用餐">不用餐</button>'+
@@ -1364,6 +1392,8 @@ function groupAdminPanel(){
       '<div class="field"><label>開球起始(選填)</label><input id="gstart" placeholder="07:30"></div>'+
       '<div class="field"><label>間隔分鐘</label><input id="ginterval" placeholder="8"></div>'+
     '</div>'+
+    (twoDay()?'<div class="field"><label>分組對象(只排當天參加的人;兩天共用同一張分組表,產生第2天會蓋掉第1天)</label><select id="gday">'+
+        '<option value="1">'+esc(dayLabel_(1))+'</option><option value="2"'+((state.groups&&state.groups.day===2)?' selected':'')+'>'+esc(dayLabel_(2))+'</option></select></div>':'')+
     '<button class="btn sm" id="makeGroups">'+(hasGroups?"重新分組(重新洗牌)":"產生分組")+'</button>'+
     (hasGroups ? '<div class="btnrow"><button class="btn ghost sm" id="clearGroups" style="flex:1">清除分組</button></div>' : '')+
     '<p class="formnote" style="text-align:left">開球順序會「輪轉」(上場較晚的人下場儘量排前);「隨機」會自動避開近期同組過的人。分組會自動留存到「分組紀錄」。</p>'+
@@ -1461,8 +1491,10 @@ function groupsSection(){
   var grouped=g.groups.reduce(function(a,grp){return a+grp.length;},0);
   var c=capNum();
   var confirmed=c>0?Math.min(state.roster.length,c):state.roster.length;
+  var gDay=(twoDay()&&g.day)?g.day:0;
+  if(gDay){ var dn=state.roster.filter(function(r){return playsDay_(r,gDay);}).length; confirmed=c>0?Math.min(dn,c):dn; }
   var stale=grouped!==confirmed;
-  var html='<div class="section-label">分組 · Tee Sheet</div>';
+  var html='<div class="section-label">分組 · '+(gDay?esc(dayLabel_(gDay)):'Tee Sheet')+'</div>';
   if(stale) html+='<div class="stale">名單已變動,分組可能過時,建議重新產生。</div>';
   html+='<div class="ggrid">'+g.groups.map(function(grp,i){
     var time=(g.times && g.times[i])?g.times[i]:'';
@@ -1504,6 +1536,7 @@ function buildGroupsText(){
   var g=state.groups; if(!g||!g.groups||!g.groups.length) return "";
   var ev=state.eventView||state.event||{};
   var L=[(ev.date||"")+(ev.course?" "+ev.course:"")+" 分組"];
+  if(twoDay()&&g.day){ var gd=dayInfo_(g.day); L=["第"+g.day+"天 "+gd.date+(gd.course?" "+gd.course:"")+" 分組"]; }
   g.groups.forEach(function(grp,i){
     var time=(g.times&&g.times[i])?(g.times[i]+"|"):"";
     L.push("第"+(i+1)+"組 "+time+grp.map(function(p){return p.name;}).join("、"));
@@ -1518,6 +1551,23 @@ function identitySmall(){
 }
 // 報名頁顯示用的活動資料(自動帶行事曆下一場)
 function ev(){ return state.eventView || state.event || {}; }
+// 兩天活動(連續兩天的外地賽):每人可記「參加天數」— days: ''=兩天、'1'=只第1天、'2'=只第2天
+function twoDay(){ var m=ev().moreDays; return !!(m&&m.length===1); }
+function dayInfo_(n){
+  var e=ev(), d=(n===2&&twoDay())?e.moreDays[0]:null;
+  if(d) return {date:(d.date||'')+(d.dow?'('+String(d.dow).replace('週','')+')':''), course:d.course||'', tee:d.tee||''};
+  return {date:e.date||'', course:e.course||'', tee:e.tee||''};
+}
+function dayLabel_(n){ var d=dayInfo_(n); return '第'+n+'天 '+String(d.date).replace(/\(.*\)/,'')+(d.course?' '+courseShort(d.course):''); }
+function playsDay_(r,n){ return r.status!=="請假" && (!twoDay() || !r.days || r.days===String(n)); }
+function daysSelHtml(id,cur){
+  if(!twoDay()) return '';
+  return '<div class="field"><label>參加天數</label><select id="'+id+'">'+
+    '<option value=""'+(!cur?' selected':'')+'>兩天都參加</option>'+
+    '<option value="1"'+(cur==="1"?' selected':'')+'>只參加'+esc(dayLabel_(1))+'</option>'+
+    '<option value="2"'+(cur==="2"?' selected':'')+'>只參加'+esc(dayLabel_(2))+'</option></select></div>';
+}
+function withDays_(params,id){ if(twoDay()) params.days=val(id); return params; }   // 單日活動不送 days,後端沿用原值
 // 抬頭的球隊名 + 屆
 function teamLine(){
   var e=state.event||{}, t=(e.teamName||'').trim();
@@ -2303,7 +2353,35 @@ function proxyRegisterHtml(){
       '<label><input type="radio" name="proxyCart" value="用餐" checked> 用餐</label>'+
       '<label style="margin-left:16px"><input type="radio" name="proxyCart" value="不用餐"> 不用餐</label>'+
     '</div>'+
+    daysSelHtml("proxyDays","")+
     '<button class="btn ghost sm" id="doProxyReg" style="width:100%"'+(cands.length?'':' disabled')+'>加入報名</button>';
+  var pb=state.proxyBulk||{};
+  html+='<div class="field" style="margin-top:20px"><label>批次代報名(貼上 LINE 群組接龍)</label>'+
+      '<textarea id="proxyBulkTxt" rows="5" placeholder="把群組的報名接龍整段貼上,系統會自動找出會員姓名">'+esc(pb.txt||'')+'</textarea></div>'+
+    '<button class="btn ghost sm" id="proxyBulkScan" style="width:100%">比對名單</button>';
+  if(pb.res){
+    var pr=pb.res, off=pb.off||{}, pn=pr.hit.filter(function(x){return !off[x];}).length;
+    if(pr.hit.length){
+      html+='<div style="font-size:14.5px;color:var(--ink-soft);margin-top:12px">比對到 '+pr.hit.length+' 位會員(取消勾選可排除):</div>'+
+        '<div class="pbgrid">'+pr.hit.map(function(nm){
+          return '<label class="pbchk"><input type="checkbox" class="pbPick" data-name="'+esc(nm)+'"'+(off[nm]?'':' checked')+'> '+esc(nm)+'</label>';
+        }).join('')+'</div>';
+    }else{
+      html+='<p class="formnote" style="text-align:left;margin-top:12px">沒有比對到可加入的會員。</p>';
+    }
+    if(pr.dup.length) html+='<p class="formnote" style="text-align:left">已在名單、略過('+pr.dup.length+'):'+esc(pr.dup.join('、'))+'</p>';
+    if(pr.plus.length) html+='<p class="formnote" style="text-align:left;color:var(--flag)">⚠ 這幾行可能帶來賓,來賓請另外用「幫來賓報名」登記:<br>'+pr.plus.map(esc).join('<br>')+'</p>';
+    if(pr.odd.length) html+='<p class="formnote" style="text-align:left;color:var(--flag)">⚠ 這 '+pr.odd.length+' 行找不到對應會員(可能是暱稱或來賓),請人工確認:<br>'+pr.odd.map(esc).join('<br>')+'</p>';
+    if(pr.hit.length){
+      html+=daysSelHtml("proxyBulkDays",pb.days||"")+
+        '<div style="margin:8px 0">'+
+          '<label><input type="radio" name="proxyBulkCart" value="用餐"'+(pb.cart==="不用餐"?'':' checked')+'> 用餐</label>'+
+          '<label style="margin-left:16px"><input type="radio" name="proxyBulkCart" value="不用餐"'+(pb.cart==="不用餐"?' checked':'')+'> 不用餐</label>'+
+        '</div>'+
+        '<button class="btn sm" id="proxyBulkGo" style="width:100%"'+(pn?'':' disabled')+'>一次加入 '+pn+' 人</button>'+
+        (twoDay()?'<p class="formnote" style="text-align:left">不同天數請分批貼:先貼兩天都參加的,再貼只第1天、只第2天的。加入後也可到「出席名單」個別調整。</p>':'');
+    }
+  }
   if(proxies.length){
     html+='<div style="font-size:14.5px;color:var(--ink-soft);margin-top:12px">目前代報名('+proxies.length+'):</div>';
     html+=proxies.map(function(r){
@@ -2313,6 +2391,28 @@ function proxyRegisterHtml(){
     }).join('');
   }
   return html;
+}
+
+// 批次代報名:從貼上的接龍文字找出會員姓名 → {hit 可加入, dup 已在名單, plus 可能帶來賓的行, odd 找不到會員的編號行}
+function proxyBulkScan_(txt){
+  var inRoster={};
+  (state.roster||[]).forEach(function(r){ inRoster[r.name]=true; });
+  var all=((state.binding&&state.binding.list)||[]).map(function(x){return x.name;}).filter(function(n){return !!n;});
+  all.sort(function(a,b){return b.length-a.length;});   // 長名優先,避免短名吃掉長名的一部分
+  var hit=[], dup=[], plus=[], odd=[], seen={};
+  String(txt||'').split(/\r?\n/).forEach(function(raw){
+    var s=raw.replace(/[\s　]+/g,''), found=false;
+    all.forEach(function(nm){
+      if(s.indexOf(nm)<0) return;
+      found=true; s=s.split(nm).join('|');
+      if(seen[nm]) return;
+      seen[nm]=1; (inRoster[nm]?dup:hit).push(nm);
+    });
+    var shown=raw.trim().slice(0,30);
+    if(found){ if(/[+＋]\s*\d|來賓|朋友/.test(s)) plus.push(shown); }
+    else if(/^\s*\d{1,2}\s*[\.、\)）]\s*\S/.test(raw) || /^\s*\d{1,2}\s*(?![月日號點人組場年時分桿洞])[一-鿿]/.test(raw)) odd.push(shown);
+  });
+  return {hit:hit,dup:dup,plus:plus,odd:odd};
 }
 
 function bindingHtml(){
@@ -2556,7 +2656,7 @@ function scRowHtml_(name,hcp,role){
   '</tr>';
 }
 function scRosterRows_(){   // 本場報名名單(排除請假)→ 輸入模式用
-  return (state.roster||[]).filter(function(r){return r.status!=="請假";})
+  return (state.roster||[]).filter(function(r){return playsDay_(r,1);})   // 兩天活動:本場成績=第1天,排除只打第2天的人
     .map(function(r){ return scRowHtml_(r.name, r.hcp, (state.roleMap&&state.roleMap[r.name])||'會員'); }).join('');
 }
 function scoreModalHtml(){
@@ -2819,6 +2919,7 @@ function buildEventFlex(){
     { type:'text', text:k, color:'#7a8a72', size:'sm', flex:2 },
     { type:'text', text:String(v||'—'), color:'#23301f', size:'sm', weight:'bold', flex:5, wrap:true } ]}; }
   var rows=[row('日期',date),row('球場',course),row('開球',tee)];
+  if(twoDay()){ var d2=dayInfo_(2); rows.push(row('第2天',d2.date+(d2.course?' '+d2.course:'')+(d2.tee?' '+d2.tee:''))); }
   if(deadline) rows.push(row('截止',deadline));
   return {
     type:'flex',
@@ -2903,13 +3004,18 @@ function shareRosterCard(){
 }
 
 // 當月出席名單純文字(傳給球隊/球場用):球隊名稱(第X屆)/日期/球場/開球 + 編號名單 + 請假
-function buildAttText(playing){
+function buildAttText(playing, day){
   var ev=state.eventView||{}, e=state.event||{};
   var team=(e.teamName||'').trim() || '意象太極高爾夫球隊';   // 確保一定有隊名(沒設定時用預設)
   var head=team + (e.term ? ' 第'+e.term+'屆' : '');
   var date=ev.date||e.date||"";
   var course=ev.course||e.course||"";
   var tee=ev.tee||e.tee||"";
+  if(twoDay()){   // 兩天活動:只列當天參加的人,抬頭用當天的日期/球場/開球
+    day=(day===2)?2:1;
+    var di=dayInfo_(day); date=di.date; course=di.course; tee=di.tee;
+    playing=playing.filter(function(p){return playsDay_(p,day);});
+  }
   var L=[];
   L.push(head);                          // 隊名固定放第一行
   if(date) L.push("日期:"+date);
@@ -2943,11 +3049,14 @@ function attListModalHtml(playing){
   return '<div id="attModal" class="modal hidden"><div class="modal-card">'+
     '<div class="modal-head"><span>當月出席名單</span><button class="mclose" id="attClose">✕</button></div>'+
     '<p class="smnote" style="margin:0 0 8px">下面文字可直接複製貼到 LINE 傳給球場;送出後按「標記已送球場」留紀錄。</p>'+
-    '<textarea id="attText" class="atttext" readonly>'+esc(buildAttText(playing))+'</textarea>'+
+    (twoDay()?'<div class="seg" id="attDaySeg" style="margin-bottom:8px">'+
+        '<button type="button" class="segb'+(state.attDay===2?'':' on')+'" data-d="1">'+esc(dayLabel_(1))+'</button>'+
+        '<button type="button" class="segb'+(state.attDay===2?' on':'')+'" data-d="2">'+esc(dayLabel_(2))+'</button></div>':'')+
+    '<textarea id="attText" class="atttext" readonly>'+esc(buildAttText(playing,state.attDay))+'</textarea>'+
     '<div class="smfoot" style="gap:8px"><button class="btn" id="attCopy" style="flex:1">複製文字</button>'+mark+'</div>'+
   '</div></div>';
 }
-function playerChip(p,i,c){
+function playerChip(p,i,c,no){   // no:顯示用序號(分段列出時用;候補判定仍看 i)
   var isWait=c>0&&i>=c, isMe=p.userId===profile.userId, tag='';
   var isGuest=(state.roleMap&&state.roleMap[p.name]==="來賓")||(p.userId&&p.userId.indexOf("G:")===0);
   var inviter=isGuest?String(p.note||"").replace(/^來賓[・·]/,"").replace(/\s*邀請$/,"").trim():"";
@@ -2956,7 +3065,7 @@ function playerChip(p,i,c){
   if(isWait) tag+='<i class="ct wait">候</i>';
   if(p.cart==='不用餐') tag+='<i class="ct">不用餐</i>';
   if(!isGuest && p.note) tag+='<i class="ct note">備</i>';
-  return '<div class="rchip'+(isMe?' me':'')+(isWait?' wait':'')+'"><span class="rnum">'+(isWait?'候':(i+1))+'</span><span class="rnm">'+gname(p.name)+'</span>'+tag+'</div>';
+  return '<div class="rchip'+(isMe?' me':'')+(isWait?' wait':'')+'"><span class="rnum">'+(isWait?'候':(no||(i+1)))+'</span><span class="rnm">'+gname(p.name)+'</span>'+tag+'</div>';
 }
 function schItem(e,isNext,past){
   var booked=e.status==="已訂", typecls=e.type==="月例賽"?"":"alt";
@@ -3075,8 +3184,8 @@ function wireMain(isFull, iAmIn){
   var reg=document.getElementById("regBtn");
   if(reg) reg.onclick=function(){
     busy("regBtn", isFull?"加入中…":"送出中…");
-    api({action:"register",userId:profile.userId,
-         cart:val("cart"),note:val("note")}).then(afterRoster("已登記參加!"));
+    api(withDays_({action:"register",userId:profile.userId,
+         cart:val("cart"),note:val("note")},"regDays")).then(afterRoster("已登記參加!"));
   };
   var seg=document.getElementById("cartSeg");
   if(seg) seg.querySelectorAll(".segb").forEach(function(b){
@@ -3087,7 +3196,7 @@ function wireMain(isFull, iAmIn){
     var on=seg?seg.querySelector(".segb.on"):null;
     var cart=on?on.dataset.v:"用餐";
     busy("saveEdit","儲存中…");
-    api({action:"register",userId:profile.userId,cart:cart,note:val("editNote")}).then(afterRoster("已更新出席資料"));
+    api(withDays_({action:"register",userId:profile.userId,cart:cart,note:val("editNote")},"editDays")).then(afterRoster("已更新出席資料"));
   };
   var cancel=document.getElementById("cancelBtn");
   if(cancel) cancel.onclick=function(){
@@ -3112,7 +3221,7 @@ function wireMain(isFull, iAmIn){
     if(!nm){ toast("請填來賓姓名"); return; }
     var inv=(document.getElementById("guestInviter")||{}).value||"";   // 管理員代會員登記:招待會員姓名(空=自己)
     busy("guestAdd","登記中…");
-    api({action:"addGuest",userId:profile.userId,guestName:nm,cart:val("guestCart"),inviterName:inv})
+    api(withDays_({action:"addGuest",userId:profile.userId,guestName:nm,cart:val("guestCart"),inviterName:inv},"guestDays"))
       .then(afterRoster("已登記來賓:"+nm+(inv?"(掛 "+inv+" 名下)":"")));
   };
   document.querySelectorAll(".glnk").forEach(function(b){
@@ -3143,6 +3252,21 @@ function wireMain(isFull, iAmIn){
   if(openAtt) openAtt.onclick=function(){ var m=document.getElementById("attModal"); if(m) m.classList.remove("hidden"); };
   var attClose=document.getElementById("attClose");
   if(attClose) attClose.onclick=function(){ var m=document.getElementById("attModal"); if(m) m.classList.add("hidden"); };
+  var attSeg=document.getElementById("attDaySeg");
+  if(attSeg) attSeg.querySelectorAll(".segb").forEach(function(b){
+    b.onclick=function(){
+      state.attDay=parseInt(b.dataset.d,10)||1;
+      attSeg.querySelectorAll(".segb").forEach(function(x){x.classList.toggle("on",x===b);});
+      var ta=document.getElementById("attText");
+      if(ta) ta.value=buildAttText((state.roster||[]).filter(function(r){return r.status!=="請假";}),state.attDay);
+    };
+  });
+  var rdSave=document.getElementById("rdSave");
+  if(rdSave) rdSave.onclick=function(){
+    var who=val("rdWho"); if(!who) return;
+    busy("rdSave","儲存中…");
+    api({action:"setRosterDays",userId:profile.userId,rowId:who,days:val("rdDays")}).then(afterRoster("已更新參加天數"));
+  };
   var attCopy=document.getElementById("attCopy");
   if(attCopy) attCopy.onclick=function(){
     var ta=document.getElementById("attText"); if(!ta) return;
@@ -3187,9 +3311,11 @@ function wireMain(isFull, iAmIn){
     var has=state.groups && state.groups.groups && state.groups.groups.length;
     if(has && !confirm("重新分組會覆蓋目前的分組,確定?")) return;
     busy("makeGroups", has?"重新分組中…":"分組中…");
-    api({action:"makeGroups",userId:profile.userId,
+    var gp={action:"makeGroups",userId:profile.userId,
          size:val("gsize"),method:val("gmethod"),
-         start:val("gstart"),interval:val("ginterval")}).then(after(has?"已重新分組":"已完成分組"));
+         start:val("gstart"),interval:val("ginterval")};
+    if(twoDay()) gp.day=val("gday")||"1";
+    api(gp).then(after(has?"已重新分組":"已完成分組"));
   };
   var cg=document.getElementById("clearGroups");
   if(cg) cg.onclick=function(){
@@ -3491,9 +3617,47 @@ function wireMain(isFull, iAmIn){
     if(!nm){ toast("沒有可代報名的會員"); return; }
     var c=document.querySelector('input[name="proxyCart"]:checked');
     busy("doProxyReg","加入中…");
-    api({action:"proxyRegister",userId:profile.userId,name:nm,cart:c?c.value:"用餐"}).then(function(r){
+    api(withDays_({action:"proxyRegister",userId:profile.userId,name:nm,cart:c?c.value:"用餐"},"proxyDays")).then(function(r){
       if(!r||r.ok===false){ toast("⚠ "+((r&&r.error)||"代報名失敗")); reload(); return; }
       toast("✓ 已代 "+nm+" 報名"); reload();
+    });
+  };
+  var pbt=document.getElementById("proxyBulkTxt");
+  if(pbt) pbt.oninput=function(){ (state.proxyBulk=state.proxyBulk||{}).txt=pbt.value; };
+  var pbs=document.getElementById("proxyBulkScan");
+  if(pbs) pbs.onclick=function(){
+    var txt=val("proxyBulkTxt");
+    if(!txt.trim()){ toast("請先貼上接龍名單"); return; }
+    if(!(state.binding&&state.binding.list)){ toast("會員名單載入中,請稍候再按一次"); return; }
+    state.proxyBulk={txt:txt,res:proxyBulkScan_(txt),off:{},cart:"用餐",days:(state.proxyBulk&&state.proxyBulk.days)||""};
+    renderMain();
+  };
+  var pbGo=document.getElementById("proxyBulkGo");
+  var pbPicked=function(){ var pb=state.proxyBulk||{}; return ((pb.res&&pb.res.hit)||[]).filter(function(n){return !(pb.off||{})[n];}); };
+  Array.prototype.forEach.call(document.querySelectorAll(".pbPick"), function(cb){
+    cb.onchange=function(){
+      var pb=state.proxyBulk; if(!pb) return;
+      pb.off=pb.off||{}; pb.off[cb.getAttribute("data-name")]=!cb.checked;
+      var n=pbPicked().length;
+      if(pbGo){ pbGo.textContent="一次加入 "+n+" 人"; pbGo.disabled=!n; }
+    };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('input[name="proxyBulkCart"]'), function(rd){
+    rd.onchange=function(){ if(state.proxyBulk&&rd.checked) state.proxyBulk.cart=rd.value; };
+  });
+  var pbDays=document.getElementById("proxyBulkDays");
+  if(pbDays) pbDays.onchange=function(){ if(state.proxyBulk) state.proxyBulk.days=pbDays.value; };
+  if(pbGo) pbGo.onclick=function(){
+    var names=pbPicked(), cart=(state.proxyBulk&&state.proxyBulk.cart)||"用餐";
+    if(!names.length) return;
+    var dv=twoDay()?val("proxyBulkDays"):"", dtxt=twoDay()?(dv?"・只第"+dv+"天":"・兩天都參加"):"";
+    if(!confirm("確定一次代 "+names.length+" 位會員報名("+cart+dtxt+")?")) return;
+    busy("proxyBulkGo","加入中…");
+    api(withDays_({action:"proxyRegisterBulk",userId:profile.userId,names:names.join(","),cart:cart},"proxyBulkDays")).then(function(r){
+      if(!r||r.ok===false){ toast("⚠ "+((r&&r.error)||"批次代報名失敗")); reload(); return; }
+      var sk=(r.skipped||[]).length;
+      state.proxyBulk=null;
+      toast("✓ 已加入 "+(r.added||[]).length+" 人"+(sk?"(略過 "+sk+" 人)":"")); reload();
     });
   };
   Array.prototype.forEach.call(document.querySelectorAll(".proxyDel"), function(btn){
