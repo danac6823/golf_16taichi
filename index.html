@@ -3534,88 +3534,35 @@ function guestSection(){
 function canShareCard(){
   try{ return !!(window.liff && liff.isApiAvailable && liff.isApiAvailable("shareTargetPicker")); }catch(e){ return false; }
 }
-// 兩張分享卡共用:深綠底標頭(淡金小字 + 日期·球場大字)、截止倒數小標、深綠按鈕 —— 配色跟新版場次卡一致。
-// LINE 小卡只能放文字與圖片網址,放不了手繪圖示,所以卡片上不放符號。
-// 換行規則:LINE 會在任何字中間斷行(「10:30集 / 合】」這種),所以不讓它自己斷 ——
-// 先估寬度,只在「 · 」「、」這些分隔處分行;每行各自一個 text,不 wrap,放不下時縮字(shrink-to-fit)而不是斷字。
-// 一行可用寬度(mega 卡 300 − 左右各 16):xs≈19 個全形字、sm≈17.5、md≈15.5、xl≈11.5(刻意抓保守)
-var FLEX_MAX={xs:19, sm:17.5, md:15.5, xl:11.5};
-function flexW_(t){ var w=0; String(t).split('').forEach(function(ch){ w+= ch===' ' ? 0.3 : (ch.charCodeAt(0)>0x2E7F ? 1 : 0.6); }); return w; }
-function flexPack_(parts, max, sep){
-  var lines=[], cur='';
-  parts.forEach(function(p){
-    if(!p) return;
-    var t=cur?cur+sep+p:p;
-    if(cur && flexW_(t)>max){ lines.push(cur); cur=p; } else cur=t;
-  });
-  if(cur) lines.push(cur);
-  return lines;
-}
-function flexLines_(parts, size, sep, o){   // → 一組不會亂斷行的 text 元件
-  return flexPack_(parts, FLEX_MAX[size]||17.5, sep||' · ').map(function(t,i){
-    var x={ type:'text', text:t, size:size, adjustMode:'shrink-to-fit' };
-    for(var k in (o||{})) x[k]=o[k];
-    if(i) x.margin='xs';
-    return x;
-  });
-}
-function flexTee_(tee){ tee=String(tee||'').trim(); return !tee ? '' : (/開球|集合/.test(tee) ? tee : '開球 '+tee); }   // 行事曆常寫成「11:00開球【10:30集合】」,不再重複加「開球」
-function flexHead_(labelParts, subGroups){
-  var e=ev(), c=[];
-  c=c.concat(flexLines_(labelParts,'xs',' · ',{color:'#e2c98a',weight:'bold'}));
-  var ttl=flexLines_([String((e.date||'').trim()||'—'), e.course?courseShort(e.course):''],'xl',' · ',{color:'#ffffff',weight:'bold'});
-  ttl[0].margin='sm'; c=c.concat(ttl);
-  (subGroups||[]).forEach(function(g){
-    var ls=flexLines_(g,'md',' · ',{color:'#dff3e5'}); if(ls.length){ ls[0].margin='sm'; c=c.concat(ls); }   // 開球/集合時間:比說明字大一級
-  });
-  return { type:'box', layout:'vertical', backgroundColor:'#0e4023', paddingAll:'16px', contents:c };
-}
-function flexLabel_(){
-  var e0=state.event||{}, mo=(String(ev().date||'').match(/(\d{1,2})\s*[\/月]/)||[])[1];
-  return (e0.titleZh||'').trim() || ((mo?mo+'月':'')+'例賽');
-}
-function flexDay2_(){
-  if(!twoDay()) return [];
-  var d2=dayInfo_(2); return ['第2天 '+d2.date, d2.course?courseShort(d2.course):'', flexTee_(d2.tee)];
-}
-function flexLeftTag_(prefix){   // 「剩 N 天/今天截止」小標;超過 14 天或已過期不顯示
-  var left=deadlineLeft(ev().deadline||'').replace(/^·\s*/,''); if(!left) return null;
-  return { type:'box', layout:'vertical', flex:0, backgroundColor:'#f6e3df', cornerRadius:'6px',
-    paddingStart:'6px', paddingEnd:'6px', paddingTop:'1px', paddingBottom:'1px',
-    contents:[ { type:'text', text:(prefix||'')+left, size:'xxs', color:'#791F1F', weight:'bold' } ] };
-}
-function flexBtn_(label){
-  return { type:'box', layout:'vertical', paddingAll:'12px', paddingTop:'2px', backgroundColor:'#f7f4ec', contents:[
-    { type:'button', style:'primary', color:'#14532d', height:'md', action:{ type:'uri', label:label, uri:'https://liff.line.me/'+LIFF_ID } } ]};
-}
 function buildEventFlex(){
-  var e0=state.event||{}, e=ev();
-  var team=(e0.teamName||'').trim()||'意象太極高爾夫球隊';
-  var teamLine=team+(e0.term?' 第'+e0.term+'屆':'');
-  var label=flexLabel_();
-  var sub=[flexTee_(e.tee)];   // 費用不放卡片上(點進系統就看得到)
-  var body=[];
-  if(e.deadline){
-    var dl=[ { type:'text', text:'截止', color:'#7a8a72', size:'sm', flex:0 },
-             { type:'text', text:String(e.deadline), color:'#23301f', size:'sm', weight:'bold', flex:1, adjustMode:'shrink-to-fit' } ];
-    var tag=flexLeftTag_(''); if(tag) dl.push(tag);
-    body.push({ type:'box', layout:'horizontal', spacing:'md', alignItems:'center', contents:dl });
-  }
-  var nt=String((state.notices&&state.notices.event)||'').trim();
-  if(nt){
-    if(body.length) body.push({ type:'separator', margin:'md', color:'#ddd6c4' });
-    body.push({ type:'text', text:'本場好康', size:'xxs', color:'#8a6d1f', weight:'bold', margin:body.length?'md':'none' });
-    body.push({ type:'text', text:nt.length>120?nt.slice(0,118)+'…':nt, size:'sm', color:'#23301f', wrap:true, margin:'xs' });
-  }
-  if(!body.length) body.push({ type:'text', text:'點下面按鈕報名或請假', size:'sm', color:'#7a8a72', wrap:true });
+  var ev=state.eventView||{}, e=state.event||{};
+  var team=(e.teamName||'').trim()||'意象太極高爾夫球隊';
+  var teamLine=team+(e.term?' 第'+e.term+'屆':'');
+  var date=ev.date||e.date||'';
+  var course=ev.course||e.course||'';
+  var tee=ev.tee||e.tee||'';
+  var deadline=ev.deadline||e.deadline||'';
+  var mo=(String(date).match(/(\d{1,2})\s*[\/月]/)||[])[1];
+  var title=(mo?mo+'月':'')+'例賽報名';
+  var liffUrl='https://liff.line.me/'+LIFF_ID;
+  function row(k,v){ return { type:'box', layout:'baseline', spacing:'sm', contents:[
+    { type:'text', text:k, color:'#7a8a72', size:'sm', flex:2 },
+    { type:'text', text:String(v||'—'), color:'#23301f', size:'sm', weight:'bold', flex:5, wrap:true } ]}; }
+  var rows=[row('日期',date),row('球場',course),row('開球',tee)];
+  if(twoDay()){ var d2=dayInfo_(2); rows.push(row('第2天',d2.date+(d2.course?' '+d2.course:'')+(d2.tee?' '+d2.tee:''))); }
+  if(deadline) rows.push(row('截止',deadline));
   return {
     type:'flex',
-    altText:teamLine+' '+label+'報名(點開報名/請假)',
+    altText:teamLine+' '+title+'(點開報名/請假)',
     contents:{
-      type:'bubble', size:'mega',
-      header:flexHead_([teamLine,label], [sub, flexDay2_()]),
-      body:{ type:'box', layout:'vertical', paddingAll:'16px', backgroundColor:'#f7f4ec', contents:body },
-      footer:flexBtn_('報名 / 請假')
+      type:'bubble', size:'kilo',
+      header:{ type:'box', layout:'vertical', backgroundColor:'#14532d', paddingAll:'16px', contents:[
+        { type:'text', text:teamLine, color:'#cdebd6', size:'xs', weight:'bold', wrap:true },
+        { type:'text', text:'⛳ '+title, color:'#ffffff', size:'xl', weight:'bold', margin:'sm' } ]},
+      body:{ type:'box', layout:'vertical', spacing:'sm', paddingAll:'16px', backgroundColor:'#f7f4ec', contents:rows },
+      footer:{ type:'box', layout:'vertical', paddingAll:'12px', paddingTop:'2px', contents:[
+        { type:'button', style:'primary', color:'#bc4b3c', height:'md',
+          action:{ type:'uri', label:'📋 我要報名 / 請假', uri:liffUrl } } ]}
     }
   };
 }
@@ -3635,58 +3582,45 @@ function shareEventCard(){
 }
 // 報名狀況卡:目前已報名名單 + 人數 + 截止 + 報名按鈕(催報名用)
 function buildRosterFlex(){
-  var e0=state.event||{}, e=ev();
-  var team=(e0.teamName||'').trim()||'意象太極高爾夫球隊';
-  var teamLine=team+(e0.term?' 第'+e0.term+'屆':'');
-  var label=flexLabel_();
-  var cap=parseInt(e.cap||e0.cap,10)||0;
+  var ev=state.eventView||{}, e=state.event||{};
+  var team=(e.teamName||'').trim()||'意象太極高爾夫球隊';
+  var teamLine=team+(e.term?' 第'+e.term+'屆':'');
+  var date=ev.date||e.date||'';
+  var course=ev.course||e.course||'';
+  var tee=ev.tee||e.tee||'';
+  var cap=ev.cap||e.cap||'';
+  var mo=(String(date).match(/(\d{1,2})\s*[\/月]/)||[])[1];
+  var title=(mo?mo+'月':'')+'例賽報名狀況';
+  var liffUrl='https://liff.line.me/'+LIFF_ID;
   var playing=(state.roster||[]).filter(function(p){ return p.status==='報名'; });
-  var inList=cap>0?playing.slice(0,cap):playing, waiting=cap>0?playing.slice(cap):[];
-  var isGuest=function(p){ return (state.roleMap&&state.roleMap[p.name]==='來賓') || String(p.userId||'').indexOf('G:')===0; };
-  var two=twoDay(), partial=false;
-  var nm=function(p){ var d=two?String(p.days||''):''; if(d) partial=true; return p.name+(d==='1'?'①':(d==='2'?'②':'')); };
-  var members=inList.filter(function(p){return !isGuest(p);}).map(nm), guests=inList.filter(isGuest).map(nm), waits=waiting.map(nm);
-  // 人數大字 + 截止倒數
-  var numRow=[ { type:'box', layout:'baseline', flex:1, spacing:'sm', contents:[
-      { type:'text', text:String(playing.length), color:'#14532d', size:'xxl', weight:'bold', flex:0 },
-      { type:'text', text:cap?('/ '+cap+' 人'):'人已報名', color:'#7a8a72', size:'sm', flex:0 } ]} ];
-  var tag=flexLeftTag_('截止'); if(tag) numRow.push(tag);
-  var body=[ { type:'box', layout:'horizontal', alignItems:'center', contents:numRow } ];
-  if(cap){
-    var pct=Math.min(100,Math.round(playing.length/cap*100));
-    body.push({ type:'box', layout:'vertical', height:'6px', backgroundColor:'#ddd6c4', cornerRadius:'3px', margin:'sm',
-      contents:[ pct>0 ? { type:'box', layout:'vertical', width:Math.max(3,pct)+'%', height:'6px', backgroundColor:'#14532d', cornerRadius:'3px', contents:[{type:'filler'}] } : { type:'filler' } ] });
+  function row(k,v){ return { type:'box', layout:'baseline', spacing:'sm', contents:[
+    { type:'text', text:k, color:'#7a8a72', size:'sm', flex:2 },
+    { type:'text', text:String(v||'—'), color:'#23301f', size:'sm', weight:'bold', flex:5, wrap:true } ]}; }
+  var body=[ { type:'text', text:'已報名 '+playing.length+' 人'+(cap?(' / 名額 '+cap):''), color:'#14532d', size:'xl', weight:'bold' } ];
+  if(date) body.push(row('日期',date));
+  if(course) body.push(row('球場',course));
+  if(tee) body.push(row('開球',tee));
+  body.push({ type:'separator', margin:'md' });
+  // 名單三欄對齊(2026/11:卡片其餘維持原樣,只有這裡從一整段改成三欄);沒人報名時維持原本那句
+  if(!playing.length) body.push({ type:'text', text:'目前還沒有人報名,快來搶頭香!', wrap:true, size:'sm', color:'#23301f', margin:'md' });
+  for(var gi=0; gi<playing.length; gi+=3){
+    body.push({ type:'box', layout:'horizontal', spacing:'sm', margin:gi?'xs':'md', contents:[0,1,2].map(function(k){
+      var q=playing[gi+k];
+      return q ? { type:'text', text:String(q.name), size:'sm', color:'#23301f', flex:1, adjustMode:'shrink-to-fit' } : { type:'filler', flex:1 };
+    }) });
   }
-  var info=[], pg=state.progress||{};
-  if(pg.notYet!=null) info.push('還沒回覆 '+pg.notYet+' 人');
-  if(pg.leave) info.push('請假 '+pg.leave+' 人');
-  if(e.deadline && !tag) info.push('截止 '+e.deadline);
-  var il=flexLines_(info,'xs',' · ',{color:'#7a8a72'}); if(il.length){ il[0].margin='sm'; body=body.concat(il); }
-  body.push({ type:'separator', margin:'md', color:'#ddd6c4' });
-  // 名單:三欄對齊
-  if(!playing.length){
-    body.push({ type:'text', text:'目前還沒有人報名,快來搶頭香!', wrap:true, size:'sm', color:'#23301f', margin:'md' });
-  }
-  for(var i=0;i<members.length;i+=3){
-    var cells=[0,1,2].map(function(k){
-      return members[i+k] ? { type:'text', text:members[i+k], size:'sm', color:'#23301f', flex:1, adjustMode:'shrink-to-fit' } : { type:'filler', flex:1 };
-    });
-    body.push({ type:'box', layout:'horizontal', spacing:'sm', margin:i?'xs':'md', contents:cells });
-  }
-  var extra=function(k,arr){   // 名字不從中間斷:只在「、」分行
-    if(!arr.length) return;
-    var ls=flexLines_([k+' '+arr.length+' 位:'+arr[0]].concat(arr.slice(1)),'xs','、',{color:'#7a8a72'}); ls[0].margin='md'; body=body.concat(ls);
-  };
-  extra('來賓',guests); extra('候補',waits);
-  if(partial) body.push({ type:'text', text:'①只第1天 ②只第2天', size:'xxs', color:'#7a8a72', margin:'sm' });
   return {
     type:'flex',
-    altText:teamLine+' '+label+'報名狀況(已報名 '+playing.length+' 人,點開報名)',
+    altText:teamLine+' '+title+'(已報名 '+playing.length+' 人,點開報名)',
     contents:{
-      type:'bubble', size:'mega',
-      header:flexHead_([label,'報名狀況'], [[flexTee_(e.tee)], flexDay2_()]),
-      body:{ type:'box', layout:'vertical', paddingAll:'16px', backgroundColor:'#f7f4ec', contents:body },
-      footer:flexBtn_('還沒回覆?點我報名 / 請假')
+      type:'bubble', size:'kilo',
+      header:{ type:'box', layout:'vertical', backgroundColor:'#14532d', paddingAll:'16px', contents:[
+        { type:'text', text:teamLine, color:'#cdebd6', size:'xs', weight:'bold', wrap:true },
+        { type:'text', text:'📋 '+title, color:'#ffffff', size:'xl', weight:'bold', margin:'sm' } ]},
+      body:{ type:'box', layout:'vertical', spacing:'sm', paddingAll:'16px', backgroundColor:'#f7f4ec', contents:body },
+      footer:{ type:'box', layout:'vertical', paddingAll:'12px', paddingTop:'2px', contents:[
+        { type:'button', style:'primary', color:'#bc4b3c', height:'md',
+          action:{ type:'uri', label:'📋 還沒報名?點我報名/請假', uri:liffUrl } } ]}
     }
   };
 }
