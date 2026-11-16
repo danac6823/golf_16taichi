@@ -323,7 +323,7 @@
   .footer{margin-top:26px;text-align:center;font-size:14.5px;color:var(--ink-soft)}
   .footer button{font-family:inherit;font-size:14.5px;color:var(--ink-soft);background:none;border:none;text-decoration:underline;cursor:pointer;margin:0 6px}
   .err{background:#fbeeec;border:1px solid #e8cfca;color:#8a3328;border-radius:10px;padding:12px 14px;font-size:16.5px;margin:14px 0}
-  .toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;font-size:16.5px;padding:11px 18px;border-radius:10px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;max-width:90%}
+  .toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;font-size:16.5px;padding:11px 18px;border-radius:10px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;max-width:min(90%,500px)}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .stale{background:#fbf3e0;border:1px solid #e9d6a8;color:#8a6516;border-radius:10px;padding:9px 12px;font-size:15.5px;margin-bottom:10px}
   .ggrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:start}
@@ -738,7 +738,11 @@ function api(params){
   return new Promise(function(resolve, reject){
     var cb = "cb_" + Date.now() + "_" + Math.floor(Math.random()*1e6);
     var timer = setTimeout(function(){ cleanup(); resolve({ok:false, error:"連線逾時,請確認網路後再試一次"}); }, 20000);
-    window[cb] = function(data){ clearTimeout(timer); cleanup(); resolve(data); };
+    window[cb] = function(data){
+      clearTimeout(timer); cleanup();
+      if(data && data.ok===false && /憑證無效或已過期/.test(String(data.error||""))) setTimeout(tokenExpired_,60);   // LINE 憑證 1 小時到期 → 引導重新登入
+      resolve(data);
+    };
     function cleanup(){ delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); }
     var qs = Object.keys(params).map(function(k){
       var v=params[k];
@@ -753,6 +757,18 @@ function api(params){
   });
 }
 
+// LINE 的登入憑證只有 1 小時:頁面開太久後,寫入/管理動作會被後端擋下(「憑證無效或已過期」)。
+// 偵測到就講清楚原因並引導重新登入(每次開頁只問一次),不要只丟一句錯誤訊息。
+var __tokAsked=false;
+function tokenExpired_(){
+  if(__tokAsked) return; __tokAsked=true;
+  var inClient=false; try{ inClient=!!(window.liff && liff.isInClient && liff.isInClient()); }catch(e){}
+  if(inClient){ alert("這一頁開超過 1 小時,LINE 的登入憑證過期了,所以剛才的動作沒有成功。\n\n請關掉這個視窗,再從 LINE 重新開啟一次(已經存好的資料不會不見)。"); return; }
+  if(confirm("這一頁開超過 1 小時,LINE 的登入憑證過期了,所以剛才的動作沒有成功。\n\n要現在重新登入嗎?(畫面會重新載入,還沒儲存的輸入會清掉)")){
+    try{ liff.logout(); }catch(e){}
+    location.reload();
+  }
+}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
 function capNum(){var n=parseInt((state.eventView&&state.eventView.cap)||state.event.cap,10);return isNaN(n)?0:n;}
 function myRow(){return state.roster.filter(function(p){return p.userId===profile.userId;})[0]||null;}
