@@ -673,6 +673,10 @@
   .modal-card.full .sctab-wrap{overflow-x:auto;overflow-y:visible}
   .modal-card.full .smfoot{flex:0 0 auto;background:var(--paper);padding:8px 0 calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
   .modal-card.full .smfoot .btn{padding:11px;font-size:17.5px}
+  /* 成績表蓋滿整個畫面(含底部列):開著時底部列收起來,送出鈕不會被蓋住 */
+  #scoreModal{z-index:60}
+  #app:has(#scoreModal:not(.hidden)) .tab2{display:none}
+  .smsub2{display:block;width:100%;margin:14px 0 28px;padding:12px;border:1.5px solid var(--fairway-2);border-radius:12px;background:none;font-family:inherit;font-size:16.5px;font-weight:600;color:var(--fairway-2);cursor:pointer}
   #schedModal .modal-card.full .sctab-wrap{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;margin:4px 0;padding-bottom:calc(8px + env(safe-area-inset-bottom))}
   .att-remind{background:#fdecec;border:1px solid #f0b6b0;color:#a5322a;border-radius:10px;padding:9px 12px;margin-top:8px;font-size:15.5px;font-weight:600;line-height:1.5}
   .att-sent{background:var(--green-soft);border:1px solid #bcd3c0;color:var(--fairway);border-radius:10px;padding:9px 12px;margin-top:8px;font-size:15.5px;font-weight:600}
@@ -3274,7 +3278,12 @@ function scTokenCheck_(){
     else if(confirm(head+"要現在重新登入嗎?\n(已經打的桿數會自動存成草稿,登入後可以帶回來)")) reLogin_();
   }catch(e){}
 }
-function scOpened_(){ setTimeout(function(){ scTokenCheck_(); scDraftOffer_(); },80); }
+// 成績表搬到最外層:它原本住在「輸入成績」功能頁的捲動區裡,新版功能頁讓出底部列之後,
+// 手機瀏覽器(iOS)會把它的下緣一起裁掉 → 送出鈕不見、露出底部列。每次重繪後、每次打開前都搬一次。
+function scLift_(){
+  try{ var m=document.getElementById("scoreModal"); if(m && app && m.parentElement!==app) app.appendChild(m); }catch(e){}
+}
+function scOpened_(){ scLift_(); setTimeout(function(){ scTokenCheck_(); scDraftOffer_(); },80); }
 // ① 行動卡「輸入本場成績」:日期鎖定本場、表格清空、直接進輸入畫面
 function openEnterScores(){
   var m=document.getElementById("scoreModal"); if(!m) return;
@@ -3426,6 +3435,7 @@ function scoreModalHtml(){
         '<p class="smnote">差點自動帶入,淨桿 = 總桿 − 差點(即時計算)。Birdie 欄填該員本場 birdie 數,送出時自動列入 BIRDIE獎(每人最多 2 條)。<b>未完賽</b>=有出席但成績不計算(不列任何排名、差點不變),桿數可留白。</p>'+
         '<div class="sctab-wrap"><table class="sctab"><thead><tr><th>姓名</th><th>OUT</th><th>IN</th><th>總桿</th><th>差點</th><th>淨桿</th><th>Birdie</th><th>未完賽</th></tr></thead>'+
         '<tbody id="smBody">'+(rows||'<tr><td colspan="8" class="muted" style="text-align:center;padding:14px">尚無出席名單</td></tr>')+'</tbody></table></div>'+
+        '<button type="button" class="smsub2">打完了,送出(成績+技術獎)</button>'+   // 表格最下面再放一顆:底部那顆萬一被擋住也送得出去
       '</div>'+
       '<div class="smpane hidden" id="smPane_tech">'+
         '<div class="field"><label>技術獎(下拉選獎項+得獎者,可＋新增、✕刪除;未選人的列會略過)</label></div>'+
@@ -4743,6 +4753,8 @@ function wireMain(isFull, iAmIn){
       else { toast((r&&r.error)||"解鎖失敗"); var b=document.getElementById("unlockBtn"); if(b){b.disabled=false;b.textContent="🔓 解鎖";} }
     });
   };
+  scLift_();
+  document.querySelectorAll(".smsub2").forEach(function(b){ b.onclick=function(){ var s=document.getElementById("smSubmit"); if(s && !s.disabled) s.click(); }; });
   var smSubmit=document.getElementById("smSubmit");
   if(smSubmit) smSubmit.onclick=function(){
     var d=(val("smDate")||"").trim();
