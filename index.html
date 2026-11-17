@@ -594,6 +594,7 @@
   .awrow.done .awdone{border-color:var(--line);color:var(--ink-soft);font-weight:400}
   .aww{font-size:20px;font-weight:600;line-height:1.55;margin:8px 0 10px 36px;word-break:break-word}
   .aww small{font-size:14px;font-weight:400;color:var(--ink-soft);margin-left:4px}
+  .aww .awnum{display:block;font-size:16.5px;font-weight:600;color:var(--ink);margin-top:2px}
   .awp{display:flex;align-items:center;gap:10px;margin-left:36px}
   .awp label{flex:0 0 auto;font-size:15px;color:var(--ink-soft)}
   .awp select{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:16.5px;background:#fff;color:var(--ink)}
@@ -3532,7 +3533,7 @@ function holePrizeLightbox(){
 
 // 送出後的計算結果(含淨桿1~3名新差點)
 // ---- 頒獎流程(2026/11/17):照頒獎順序列出本場得獎者,每個獎先指定頒獎人,頒完按一下記號 ----
-// 順序(總幹事指定):來賓禮 → 技術獎 → 跳獎 → 幸運獎 → BB獎 → 淨桿第 4→1 名 → 總桿冠軍。
+// 順序(總幹事指定):來賓禮 → 技術獎 → 跳獎 → 幸運獎 → BB獎 → 淨桿季軍→亞軍→冠軍 → 總桿冠軍(後四項要念 總桿/差點/淨桿)。
 // 頒獎人與「已頒」記號只存這支手機(localStorage),換場次自動清空;不進後端、不影響成績與帳務。
 var AWARD_KEY="award_flow_v1";
 function awardStore_(){
@@ -3544,12 +3545,13 @@ function awardStore_(){
 }
 function awardSave_(o){ try{ localStorage.setItem(AWARD_KEY, JSON.stringify(o)); }catch(e){} }
 function awardRanking_(){ return (state.ranking && state.ranking.results && state.ranking.results.length && String(state.ranking.date||"").trim()===curEventDate_()) ? state.ranking : null; }
+var AWARD_NET={3:"淨桿季軍",2:"淨桿亞軍",1:"淨桿冠軍"};
 function awardItems_(){
   var rk=awardRanking_(), items=[];
   function add(key,title,winners,fb){ items.push({key:key,title:title,winners:winners||[],fb:fb||""}); }
   if(!rk){   // 成績還沒送出:先列獎項,讓總幹事預先指定頒獎人
     add("guest","來賓禮"); add("tech","技術獎"); add("skip","跳獎"); add("lucky","幸運獎"); add("bb","BB獎");
-    [4,3,2,1].forEach(function(n){ add("net"+n,"淨桿第 "+n+" 名"); });
+    [3,2,1].forEach(function(n){ add("net"+n, AWARD_NET[n]); });
     add("gross","總桿冠軍");
     return items;
   }
@@ -3571,12 +3573,13 @@ function awardItems_(){
   if(sk.length) add("skip","跳獎", sk.map(function(x){ return {name:x.name, note:netNote(x)}; }));
   if(lk.length) add("lucky","幸運獎", lk.map(function(x){ return {name:x.name, note:netNote(x)}; }));
   if(bb.length) add("bb","BB獎", bb.map(function(x){ return {name:x.name, note:netNote(x)}; }));
-  [4,3,2,1].forEach(function(n){
+  function full(x){ return {name:x.name, note:"總桿 "+x.gross+" · 差點 "+((x.hcp===""||x.hcp==null)?"—":x.hcp)+" · 淨桿 "+x.net, big:true}; }   // 上台要念的三個數字
+  [3,2,1].forEach(function(n){
     var w=res.filter(function(x){ return x.rankType==="淨桿" && String(x.rank)===String(n); });
-    if(w.length) add("net"+n,"淨桿第 "+n+" 名", w.map(function(x){ return {name:x.name, note:"淨桿 "+x.net+"(總桿 "+x.gross+")"}; }));
+    if(w.length) add("net"+n, AWARD_NET[n], w.map(full));
   });
   var g=pick("總桿");
-  if(g.length) add("gross","總桿冠軍", g.map(function(x){ return {name:x.name, note:"總桿 "+x.gross}; }));
+  if(g.length) add("gross","總桿冠軍", g.map(full));
   return items;
 }
 // 頒獎人候選:當天出席的人(本場名單沒請假的 + 成績表裡有名字的來賓)
@@ -3603,7 +3606,7 @@ function awardFlowHtml(){
     var p=awardPicked_(st,it), done=!!(rk && st.done[it.key]);
     var opts='<option value="">— 還沒指定 —</option>'+names.concat((p && names.indexOf(p)<0)?[p]:[]).map(function(n){
       return '<option value="'+esc(n)+'"'+(n===p?' selected':'')+'>'+esc(n)+'</option>'; }).join('');
-    var win=it.winners.length ? it.winners.map(function(w){ return gname(w.name)+(w.note?' <small>'+esc(w.note)+'</small>':''); }).join('<br>')
+    var win=it.winners.length ? it.winners.map(function(w){ return gname(w.name)+(w.note?(w.big?'<span class="awnum">'+esc(w.note)+'</span>':' <small>'+esc(w.note)+'</small>'):''); }).join('<br>')
                               : '<small>成績送出後顯示得獎者</small>';
     return '<div class="awrow'+(i===cur?' cur':'')+(done?' done':'')+'" data-k="'+esc(it.key)+'">'+
       '<div class="awh"><span class="awn">'+(i+1)+'</span><b class="awt">'+esc(it.title)+'</b>'+
@@ -3619,7 +3622,7 @@ function awardFlowHtml(){
 function awardText_(){
   var st=awardStore_(), items=awardItems_();
   return curEventDate_()+" 頒獎流程\n"+items.map(function(it,i){
-    var p=awardPicked_(st,it), w=it.winners.map(function(x){ return x.name+(/條$/.test(x.note||"")?"("+x.note+")":""); }).join("、");
+    var p=awardPicked_(st,it), w=it.winners.map(function(x){ return x.name+((x.big||/條$/.test(x.note||""))?"("+x.note+")":""); }).join("、");
     return (i+1)+". "+it.title+(w?":"+w:"")+(p?" ← 頒獎人 "+p:"");
   }).join("\n");
 }
