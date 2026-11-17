@@ -675,6 +675,7 @@
   .modal-card.full .smfoot .btn{padding:11px;font-size:17.5px}
   /* 成績表蓋滿整個畫面(含底部列):開著時底部列收起來,送出鈕不會被蓋住 */
   #scoreModal{z-index:60}
+  #smInput.hidden,#smSubmitFoot.hidden,#smResult.hidden{display:none}   /* 送出後收起輸入表與送出鈕,只留計算結果(系統沒有通用 .hidden 規則) */
   #app:has(#scoreModal:not(.hidden)) .tab2{display:none}
   .smsub2{display:block;width:100%;margin:14px 0 28px;padding:12px;border:1.5px solid var(--fairway-2);border-radius:12px;background:none;font-family:inherit;font-size:16.5px;font-weight:600;color:var(--fairway-2);cursor:pointer}
   #schedModal .modal-card.full .sctab-wrap{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;margin:4px 0;padding-bottom:calc(8px + env(safe-area-inset-bottom))}
@@ -3283,6 +3284,13 @@ function scTokenCheck_(){
 function scLift_(){
   try{ var m=document.getElementById("scoreModal"); if(m && app && m.parentElement!==app) app.appendChild(m); }catch(e){}
 }
+// 回到輸入畫面(上一輪停在計算結果沒按「完成」就關掉時,重開要看得到輸入表)
+function scShowInput_(){
+  var inp=document.getElementById("smInput"); if(inp) inp.classList.remove("hidden");
+  var sf=document.getElementById("smSubmitFoot"); if(sf) sf.classList.remove("hidden");
+  var res=document.getElementById("smResult"); if(res) res.classList.add("hidden");
+  var sb=document.getElementById("smSubmit"); if(sb){ sb.disabled=false; sb.textContent="送出(成績+技術獎)"; }
+}
 function scOpened_(){ scLift_(); setTimeout(function(){ scTokenCheck_(); scDraftOffer_(); },80); }
 // ① 行動卡「輸入本場成績」:日期鎖定本場、表格清空、直接進輸入畫面
 function openEnterScores(){
@@ -3325,6 +3333,7 @@ function openEditScores(){
   var ttl=document.getElementById("smTitle"); if(ttl) ttl.textContent="修改 "+String(state.ranking.date||"")+" 成績";
   if(window.__updateScProg) __updateScProg();
   fillTechFromState();                                       // 帶入該場技術獎(成績填好後名單才正確)
+  scShowInput_();
   m.classList.remove("hidden");
   scOpened_();
 }
@@ -4466,7 +4475,7 @@ function wireMain(isFull, iAmIn){
     });
   };
   var openScore=document.getElementById("openScore");
-  if(openScore) openScore.onclick=function(){ var m=document.getElementById("scoreModal"); if(m) m.classList.remove("hidden"); scOpened_(); };
+  if(openScore) openScore.onclick=function(){ var m=document.getElementById("scoreModal"); scShowInput_(); if(m) m.classList.remove("hidden"); scOpened_(); };
   var openMatrix=document.getElementById("openMatrix");
   if(openMatrix) openMatrix.onclick=function(){
     var md=document.getElementById("matrixModal"); if(!md) return;
