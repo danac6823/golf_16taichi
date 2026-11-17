@@ -1832,11 +1832,24 @@ function leavePanel(){
     '</div>';
 }
 
+// 來賓掛在哪位會員名下:名單列的 userId 是 G:<招待會員 userId>:<來賓姓名>;招待會員不在名單時退回備註「來賓・某某 邀請」
+function guestHostName_(r){
+  var uid=String(r.userId||"").split(":")[1]||"", host=(state.roster||[]).filter(function(x){ return x.userId===uid; })[0];
+  if(host) return host.name;
+  var m=/來賓・(.+?)\s*邀請/.exec(String(r.note||"")); return m?m[1]:"";
+}
 function guestPanelHtml(){
-  var myGuests=(state.roster||[]).filter(function(r){return r.userId && r.userId.indexOf("G:"+profile.userId+":")===0;});
+  var allGuests=(state.roster||[]).filter(function(r){return r.userId && r.userId.indexOf("G:")===0;});
+  var myGuests=allGuests.filter(function(r){return r.userId.indexOf("G:"+profile.userId+":")===0;});
+  var otherGuests=state.isAdmin ? allGuests.filter(function(r){return r.userId.indexOf("G:"+profile.userId+":")!==0;}) : [];   // 管理員:別的會員名下的來賓也能代為移除
   var glist=myGuests.map(function(g){
     return '<div class="grow">'+gname(g.name)+'<span class="gtag">來賓</span>'+
       '<button class="glnk" data-gname="'+esc(g.name)+'">移除</button></div>';
+  }).join('');
+  var olist=otherGuests.map(function(g){
+    var hn=guestHostName_(g);
+    return '<div class="grow">'+gname(g.name)+'<span class="gtag">來賓</span><small style="font-weight:400;font-size:14px;color:var(--ink-soft)">'+esc(hn?hn+' 邀請':'')+'</small>'+
+      (hn?'<button class="glnk" data-gname="'+esc(g.name)+'" data-inv="'+esc(hn)+'">移除</button>':'')+'</div>';
   }).join('');
   // 已是滿版燈箱頁,不再用收合(舊排版遺留);直接平鋪表單
   return '<div class="guestbox">'+
@@ -1847,6 +1860,7 @@ function guestPanelHtml(){
       '<div class="field"><label>擊球後是否用餐?</label><select id="guestCart"><option>用餐</option><option>不用餐</option></select></div>'+
       '<button class="btn sm" id="guestAdd" style="width:100%">送出</button>'+
       (myGuests.length?'<div class="guestlist"><div class="gl-h">你登記的來賓('+myGuests.length+')</div>'+glist+'</div>':'')+
+      (otherGuests.length?'<div class="guestlist"><div class="gl-h">其他會員名下的來賓('+otherGuests.length+')· 管理員可代為移除</div>'+olist+'</div>':'')+
     '</div>';
 }
 
@@ -4122,10 +4136,10 @@ function wireMain(isFull, iAmIn){
   };
   document.querySelectorAll(".glnk").forEach(function(b){
     b.onclick=function(){
-      var gn=b.dataset.gname;
-      if(!confirm("移除來賓「"+gn+"」?")) return;
+      var gn=b.dataset.gname, inv=b.dataset.inv||"";   // inv=招待會員姓名(管理員代移除別人名下的來賓)
+      if(!confirm("移除來賓「"+gn+"」"+(inv?"("+inv+" 邀請)":"")+"?")) return;
       b.disabled=true;
-      api({action:"removeGuest",userId:profile.userId,guestName:gn}).then(afterRoster("已移除來賓"));
+      api({action:"removeGuest",userId:profile.userId,guestName:gn,inviterName:inv}).then(afterRoster("已移除來賓"));
     };
   });
   var openSched=document.getElementById("openSched");
